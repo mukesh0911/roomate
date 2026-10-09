@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
-import { injectFirebaseAuth } from '../../../helpers/firebaseAuthInjector';
 
 const AUTH_DIR = path.resolve(__dirname, '../../../../tests/.auth');
 
@@ -11,7 +10,6 @@ test.describe('Feature: Admin Operations & Governance', () => {
       storageState: path.join(AUTH_DIR, 'admin.json'),
     });
     const page = await context.newPage();
-    await injectFirebaseAuth(page, 'ADMIN');
 
     await page.goto('/admin', { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/\/admin/);
@@ -32,7 +30,6 @@ test.describe('Feature: Admin Operations & Governance', () => {
       storageState: path.join(AUTH_DIR, 'admin.json'),
     });
     const page = await context.newPage();
-    await injectFirebaseAuth(page, 'ADMIN');
 
     await page.goto('/admin/users', { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/\/admin\/users/);
@@ -53,7 +50,6 @@ test.describe('Feature: Admin Operations & Governance', () => {
       storageState: path.join(AUTH_DIR, 'admin.json'),
     });
     const page = await context.newPage();
-    await injectFirebaseAuth(page, 'ADMIN');
 
     await page.goto('/admin/verifications', { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/\/admin\/verifications/);

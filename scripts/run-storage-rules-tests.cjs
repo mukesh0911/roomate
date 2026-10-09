@@ -22,6 +22,7 @@ const result = spawnSync(
             ...process.env,
             RUN_STORAGE_RULES_TESTS: '1',
             FIREBASE_STORAGE_EMULATOR_HOST: process.env.FIREBASE_STORAGE_EMULATOR_HOST || '127.0.0.1:9199',
+            FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080',
             GCLOUD_PROJECT: process.env.GCLOUD_PROJECT || 'demo-nestmate',
         },
     }

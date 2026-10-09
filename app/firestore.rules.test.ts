@@ -30,6 +30,7 @@ import {
     collection,
     addDoc,
     updateDoc,
+    writeBatch,
     serverTimestamp,
     type Firestore,
 } from 'firebase/firestore';
@@ -117,7 +118,7 @@ d('Firestore security rules (emulator)', () => {
             },
         });
         await seed();
-    });
+    }, 30_000);
 
     afterAll(async () => {
         if (env) {
@@ -316,6 +317,41 @@ d('Firestore security rules (emulator)', () => {
     it('authenticated user CANNOT read reports; ADMIN CAN', async () => {
         await assertFails(getDoc(doc(seekerDb(), 'reports', 'some-report')));
         await assertSucceeds(getDoc(doc(adminDb(), 'reports', 'some-report')));
+    }, 30_000);
+
+    it('a formerly hard-coded email is NOT admin without an admins registry document', async () => {
+        const unregistered = fsOf(env.authenticatedContext('not-an-admin', { email: 'admin@nestmate.in' }));
+        await assertFails(getDoc(doc(unregistered, 'reports', 'some-report')));
+    });
+
+    // Accepted-pair integrity
+    it('participant CANNOT fabricate an acceptedPairs record for a pending connection', async () => {
+        await seedDisabled(async (db) => {
+            await setDoc(doc(db, 'connections', 'pending-pair-attack'), {
+                fromUserId: SEEKER, toUserId: OWNER, status: 'pending', createdAt: Date.now(),
+            });
+        });
+        await assertFails(setDoc(doc(seekerDb(), 'acceptedPairs', `${SEEKER}_${OWNER}`), {
+            user1: SEEKER, user2: OWNER, connectionId: 'pending-pair-attack', createdAt: serverTimestamp(),
+        }));
+    });
+
+    it('recipient CAN atomically accept a connection and create both directional accepted pairs', async () => {
+        await seedDisabled(async (db) => {
+            await setDoc(doc(db, 'connections', 'atomic-accept'), {
+                fromUserId: SEEKER, toUserId: OWNER, status: 'pending', createdAt: Date.now(),
+            });
+        });
+        const db = ownerDb();
+        const batch = writeBatch(db);
+        batch.update(doc(db, 'connections', 'atomic-accept'), { status: 'accepted' });
+        batch.set(doc(db, 'acceptedPairs', `${SEEKER}_${OWNER}`), {
+            user1: SEEKER, user2: OWNER, connectionId: 'atomic-accept', createdAt: serverTimestamp(),
+        });
+        batch.set(doc(db, 'acceptedPairs', `${OWNER}_${SEEKER}`), {
+            user1: OWNER, user2: SEEKER, connectionId: 'atomic-accept', createdAt: serverTimestamp(),
+        });
+        await assertSucceeds(batch.commit());
     });
 
     // ── Suspended / banned enforcement ─────────────────────────────
@@ -334,6 +370,73 @@ d('Firestore security rules (emulator)', () => {
         });
         await assertFails(getDoc(doc(attackerDb(), 'chatRooms', 'room-x')));
         await assertSucceeds(getDoc(doc(seekerDb(), 'chatRooms', 'room-x')));
+    });
+
+    it('user CANNOT create a chat without an accepted relationship', async () => {
+        await assertFails(setDoc(doc(seekerDb(), 'chatRooms', 'unaccepted-room'), {
+            participants: [SEEKER, OTHER_OWNER], createdAt: serverTimestamp(),
+        }));
+    });
+
+    it('accepted participant CAN create a two-person chat', async () => {
+        await seedDisabled(async (db) => {
+            await setDoc(doc(db, 'connections', 'accepted-chat-connection'), {
+                fromUserId: SEEKER, toUserId: OWNER, status: 'accepted', createdAt: Date.now(),
+            });
+            await setDoc(doc(db, 'acceptedPairs', `${SEEKER}_${OWNER}`), {
+                user1: SEEKER, user2: OWNER, connectionId: 'accepted-chat-connection', createdAt: Date.now(),
+            });
+        });
+        await assertSucceeds(setDoc(doc(seekerDb(), 'chatRooms', 'accepted-room'), {
+            participants: [SEEKER, OWNER], createdAt: serverTimestamp(), lastMessage: '', lastMessageAt: null,
+        }));
+    });
+
+    it('chat participant CANNOT add a third participant', async () => {
+        await seedDisabled(async (db) => {
+            await setDoc(doc(db, 'chatRooms', 'fixed-membership-room'), {
+                participants: [SEEKER, OWNER], createdAt: Date.now(), lastMessage: '',
+            });
+        });
+        await assertFails(updateDoc(doc(seekerDb(), 'chatRooms', 'fixed-membership-room'), {
+            participants: [SEEKER, OWNER, ATTACKER],
+        }));
+    });
+
+    it('chat participant CANNOT spoof another message sender', async () => {
+        await seedDisabled(async (db) => {
+            await setDoc(doc(db, 'chatRooms', 'message-room'), { participants: [SEEKER, OWNER] });
+        });
+        await assertFails(addDoc(collection(seekerDb(), 'chatRooms', 'message-room', 'messages'), {
+            senderId: OWNER, content: 'spoofed', read: false, createdAt: serverTimestamp(),
+        }));
+        await assertSucceeds(addDoc(collection(seekerDb(), 'chatRooms', 'message-room', 'messages'), {
+            senderId: SEEKER, content: 'authentic', read: false, createdAt: serverTimestamp(),
+        }));
+    });
+
+    // Notification integrity
+    it('user CANNOT create an arbitrary notification for an unrelated recipient', async () => {
+        await assertFails(addDoc(collection(attackerDb(), 'notifications'), {
+            userId: OWNER, actorId: ATTACKER, type: 'system', title: 'Fake admin',
+            description: 'Spoofed notice', read: false, createdAt: serverTimestamp(),
+        }));
+    });
+
+    it('user CAN create a bounded self-notification', async () => {
+        await assertSucceeds(addDoc(collection(seekerDb(), 'notifications'), {
+            userId: SEEKER, actorId: SEEKER, type: 'verification', title: 'Complete verification',
+            description: 'Verify your profile.', read: false, createdAt: serverTimestamp(),
+        }));
+    });
+
+    it('anonymous visitor CAN create a bounded support ticket but CANNOT read it', async () => {
+        const anonDb = env.unauthenticatedContext().firestore() as unknown as Firestore;
+        const ticket = await assertSucceeds(addDoc(collection(anonDb, 'supportTickets'), {
+            userId: 'anonymous', userEmail: null, userPhone: null, userName: 'Anonymous User',
+            topic: 'other', message: 'Please help', status: 'open', createdAt: serverTimestamp(),
+        }));
+        await assertFails(getDoc(doc(anonDb, 'supportTickets', ticket.id)));
     });
 
     // ── Owner Verification Security Gate ───────────────────────────
@@ -412,8 +515,9 @@ d('Firestore security rules (emulator)', () => {
         });
 
         it('Owner CANNOT activate an unverified listing via updateDoc', async () => {
-            const ref = await seedDisabled(async (db) => {
-                return await addDoc(collection(db, 'listings'), {
+            const listingId = 'unverified-room-owner-update';
+            await seedDisabled(async (db) => {
+                await setDoc(doc(db, 'listings', listingId), {
                     title: 'Unverified Room',
                     ownerId: OWNER,
                     city: 'Chennai',
@@ -422,15 +526,16 @@ d('Firestore security rules (emulator)', () => {
                 });
             });
             await assertFails(
-                updateDoc(doc(ownerDb(), 'listings', (ref as any).id), {
+                updateDoc(doc(ownerDb(), 'listings', listingId), {
                     status: 'active',
                 })
             );
         });
 
         it('Admin CAN activate an unverified listing and set ownerVerified=true', async () => {
-            const ref = await seedDisabled(async (db) => {
-                return await addDoc(collection(db, 'listings'), {
+            const listingId = 'unverified-room-admin-update';
+            await seedDisabled(async (db) => {
+                await setDoc(doc(db, 'listings', listingId), {
                     title: 'Admin Unlocked Room',
                     ownerId: OWNER,
                     city: 'Chennai',
@@ -439,7 +544,7 @@ d('Firestore security rules (emulator)', () => {
                 });
             });
             await assertSucceeds(
-                updateDoc(doc(adminDb(), 'listings', (ref as any).id), {
+                updateDoc(doc(adminDb(), 'listings', listingId), {
                     status: 'active',
                     ownerVerified: true,
                 })

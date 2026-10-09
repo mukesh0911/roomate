@@ -395,7 +395,7 @@ export default function AdminSettings() {
           value={emailList}
           onChange={e => setEmailList(e.target.value)}
           rows={5}
-          placeholder="mukeshram2001@gmail.com&#10;admin@nestmate.com"
+          placeholder="moderator@example.test&#10;admin@example.test"
           className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-fire/20 focus:border-fire font-mono resize-none transition-all"
         />
 

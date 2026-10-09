@@ -56,7 +56,7 @@ export default function EditListing() {
     amenities: [] as string[],
     houseRules: [] as string[],
     screeningQuestions: [] as ScreeningQuestion[],
-    status: 'active' as 'active' | 'paused' | 'filled' | 'closed' | 'pending_verification',
+    status: 'active' as 'active' | 'paused' | 'filled' | 'closed' | 'pending_verification' | 'draft',
   });
 
   useEffect(() => {

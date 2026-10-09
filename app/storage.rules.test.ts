@@ -18,6 +18,7 @@ import {
     type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import { ref, uploadBytes, getBytes, deleteObject } from 'firebase/storage';
+import { doc, setDoc, type Firestore } from 'firebase/firestore';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -28,6 +29,7 @@ const PROJECT_ID = process.env.GCLOUD_PROJECT || 'demo-nestmate';
 // The Storage emulator derives the default bucket from the projectId.
 const BUCKET = `${PROJECT_ID}.appspot.com`;
 const RULES_PATH = resolve(__dirname, 'storage.rules');
+const FIRESTORE_RULES_PATH = resolve(__dirname, 'firestore.rules');
 
 const ALICE = 'alice-1';
 const MALLORY = 'mallory-1';
@@ -49,15 +51,29 @@ d('Firebase Storage security rules (emulator)', () => {
         const hostAndPort = process.env.FIREBASE_STORAGE_EMULATOR_HOST || '127.0.0.1:9199';
         const [host, portStr] = hostAndPort.split(':');
         const port = Number(portStr || 9199);
+        const firestoreHostAndPort = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
+        const [firestoreHost, firestorePortStr] = firestoreHostAndPort.split(':');
         env = await initializeTestEnvironment({
             projectId: PROJECT_ID,
+            firestore: {
+                host: firestoreHost,
+                port: Number(firestorePortStr || 8080),
+                rules: readFileSync(FIRESTORE_RULES_PATH, 'utf8'),
+            },
             storage: {
                 host,
                 port,
                 rules: readFileSync(RULES_PATH, 'utf8'),
             },
         });
-    });
+        await env.withSecurityRulesDisabled(async ctx => {
+            const db = ctx.firestore() as unknown as Firestore;
+            await setDoc(doc(db, 'users', ALICE), { name: 'Alice', status: 'active' });
+            await setDoc(doc(db, 'users', MALLORY), { name: 'Mallory', status: 'active' });
+            await setDoc(doc(db, 'listings', 'listing-1'), { ownerId: ALICE, status: 'active' });
+            await setDoc(doc(db, 'chatRooms', 'room-1'), { participants: [ALICE, 'bob-1'] });
+        });
+    }, 30_000);
 
     afterAll(async () => {
         if (env) {
@@ -111,9 +127,15 @@ d('Firebase Storage security rules (emulator)', () => {
         );
     });
 
-    it('valid image upload to listings by an authenticated user SUCCEEDS', async () => {
+    it('listing owner CAN upload a valid listing image', async () => {
         await assertSucceeds(
-            uploadBytes(ref(malloryStorage(), 'listings/listing-1/room.png'), PNG_BYTES, { contentType: 'image/png' })
+            uploadBytes(ref(aliceStorage(), 'listings/listing-1/room.png'), PNG_BYTES, { contentType: 'image/png' })
+        );
+    }, 30_000);
+
+    it('non-owner CANNOT upload a valid image to another owner listing', async () => {
+        await assertFails(
+            uploadBytes(ref(malloryStorage(), 'listings/listing-1/evil.png'), PNG_BYTES, { contentType: 'image/png' })
         );
     });
 
@@ -121,7 +143,7 @@ d('Firebase Storage security rules (emulator)', () => {
     it('oversized listing image is REJECTED', async () => {
         const big = new Uint8Array(10 * 1024 * 1024 + 1);
         await assertFails(
-            uploadBytes(ref(malloryStorage(), 'listings/listing-1/big.png'), big, { contentType: 'image/png' })
+            uploadBytes(ref(aliceStorage(), 'listings/listing-1/big.png'), big, { contentType: 'image/png' })
         );
     });
 
@@ -130,7 +152,22 @@ d('Firebase Storage security rules (emulator)', () => {
         await assertFails(deleteObject(ref(env.unauthenticatedContext().storage(), 'listings/listing-1/room.png')));
     });
 
-    it('authenticated user CAN delete per the existing listings policy', async () => {
-        await assertSucceeds(deleteObject(ref(malloryStorage(), 'listings/listing-1/room.png')));
+    it('non-owner CANNOT delete another owner listing image', async () => {
+        await assertFails(deleteObject(ref(malloryStorage(), 'listings/listing-1/room.png')));
+    });
+
+    it('listing owner CAN delete their listing image', async () => {
+        await assertSucceeds(deleteObject(ref(aliceStorage(), 'listings/listing-1/room.png')));
+    });
+
+    it('chat participant CAN upload/read chat media; unrelated user CANNOT', async () => {
+        await assertSucceeds(
+            uploadBytes(ref(aliceStorage(), 'chats/room-1/photo.png'), PNG_BYTES, { contentType: 'image/png' })
+        );
+        await assertSucceeds(getBytes(ref(aliceStorage(), 'chats/room-1/photo.png')));
+        await assertFails(getBytes(ref(malloryStorage(), 'chats/room-1/photo.png')));
+        await assertFails(
+            uploadBytes(ref(malloryStorage(), 'chats/room-1/evil.png'), PNG_BYTES, { contentType: 'image/png' })
+        );
     });
 });

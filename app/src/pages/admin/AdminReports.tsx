@@ -16,10 +16,10 @@ const PAGE_SIZE = 20;
 interface Report {
   id: string;
   reporterId: string;
-  reportedUserId: string;
+  targetId: string;
   reason: string;
-  details: string;
-  status: 'open' | 'under_review' | 'resolved';
+  description: string;
+  status: 'pending' | 'under_review' | 'resolved' | 'dismissed';
   createdAt: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -49,7 +49,7 @@ function formatDate(ts: Timestamp | string | Date | undefined): string {
 
 function StatusBadge({ status }: { status: string }) {
   const cls =
-    status === 'open' ? 'bg-red-50 text-red-700 border border-red-200' :
+    status === 'pending' ? 'bg-red-50 text-red-700 border border-red-200' :
     status === 'under_review' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
     'bg-emerald-50 text-emerald-700 border border-emerald-200';
   const label = status === 'under_review' ? 'Under Review' : status.charAt(0).toUpperCase() + status.slice(1);
@@ -123,7 +123,7 @@ export default function AdminReports() {
     const ids = new Set<string>();
     reports.forEach(r => {
       if (r.reporterId) ids.add(r.reporterId);
-      if (r.reportedUserId) ids.add(r.reportedUserId);
+      if (r.targetId) ids.add(r.targetId);
     });
 
     const missingIds = Array.from(ids).filter(uid => !profiles[uid]);
@@ -165,13 +165,13 @@ export default function AdminReports() {
       const s = search.toLowerCase().trim();
       result = result.filter(r => {
         const reporter = profiles[r.reporterId];
-        const reported = profiles[r.reportedUserId];
+        const reported = profiles[r.targetId];
         return (
           reporter?.name?.toLowerCase().includes(s) ||
           reported?.name?.toLowerCase().includes(s) ||
           reporter?.email?.toLowerCase().includes(s) ||
           reported?.email?.toLowerCase().includes(s) ||
-          r.details?.toLowerCase().includes(s)
+          r.description?.toLowerCase().includes(s)
         );
       });
     }
@@ -199,19 +199,19 @@ export default function AdminReports() {
 
   const handleDismiss = async (id: string) => {
     try {
-      await updateReportStatus(id, 'resolved');
-      setReports(prev => prev.map(r => r.id === id ? { ...r, status: 'resolved' as const } : r));
+      await updateReportStatus(id, 'dismissed');
+      setReports(prev => prev.map(r => r.id === id ? { ...r, status: 'dismissed' as const } : r));
       if (selected?.id === id) setSelected(null);
-      toast.success('Report resolved and closed');
+      toast.success('Report dismissed without penalties');
     } catch {
-      toast.error('Failed to resolve report');
+      toast.error('Failed to dismiss report');
     }
   };
 
   const handleWarn = async (report: Report) => {
     try {
       await addDoc(collection(db, 'notifications'), {
-        userId: report.reportedUserId,
+        userId: report.targetId,
         type: 'system',
         title: 'Community Guidelines Warning',
         description: `Your account received a moderation flag for ${REASON_LABELS[report.reason] || report.reason}. Please maintain respectful communication and adhere to community policies.`,
@@ -265,8 +265,8 @@ export default function AdminReports() {
 
   // Repeat offender report count
   const offenderReportCount = useMemo(() => {
-    if (!selected?.reportedUserId) return 0;
-    return reports.filter(r => r.reportedUserId === selected.reportedUserId).length;
+    if (!selected?.targetId) return 0;
+    return reports.filter(r => r.targetId === selected.targetId).length;
   }, [reports, selected]);
 
   if (loading) {
@@ -289,7 +289,7 @@ export default function AdminReports() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-red-700 bg-red-50 border border-red-200/60 px-3 py-1.5 rounded-xl">
-              {reports.filter(r => r.status === 'open').length} Open Reports
+              {reports.filter(r => r.status === 'pending').length} Pending Reports
             </span>
           </div>
         </div>
@@ -323,9 +323,10 @@ export default function AdminReports() {
             onChange={e => setStatusFilter(e.target.value)}
             className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 outline-none focus:border-fire">
             <option value="all">All Statuses</option>
-            <option value="open">Open (Urgent)</option>
+            <option value="pending">Pending (Urgent)</option>
             <option value="under_review">Under Review</option>
             <option value="resolved">Resolved / Closed</option>
+            <option value="dismissed">Dismissed</option>
           </select>
         </div>
       </div>
@@ -361,20 +362,20 @@ export default function AdminReports() {
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-red-50 text-red-700 border border-red-200 flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">
-                          {getAvatar(report.reportedUserId) ? (
+                          {getAvatar(report.targetId) ? (
                             <img
-                              src={getAvatar(report.reportedUserId)}
+                              src={getAvatar(report.targetId)}
                               className="w-full h-full object-cover"
                               alt=""
                               onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                             />
                           ) : (
-                            getName(report.reportedUserId).charAt(0)
+                            getName(report.targetId).charAt(0)
                           )}
                         </div>
                         <div className="min-w-0">
-                          <p className="font-bold text-slate-900 truncate max-w-[130px]">{getName(report.reportedUserId)}</p>
-                          <p className="text-[10px] text-slate-400 truncate max-w-[130px]">{getEmail(report.reportedUserId)}</p>
+                          <p className="font-bold text-slate-900 truncate max-w-[130px]">{getName(report.targetId)}</p>
+                          <p className="text-[10px] text-slate-400 truncate max-w-[130px]">{getEmail(report.targetId)}</p>
                         </div>
                       </div>
                     </td>
@@ -471,7 +472,7 @@ export default function AdminReports() {
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reported User</p>
                   <Link
-                    to={`/admin/users?search=${encodeURIComponent(getName(selected.reportedUserId))}`}
+                    to={`/admin/users?search=${encodeURIComponent(getName(selected.targetId))}`}
                     className="inline-flex items-center gap-1 text-[11px] font-semibold text-fire hover:underline">
                     <span>Inspect Account</span>
                     <ExternalLink className="w-3 h-3" />
@@ -479,21 +480,21 @@ export default function AdminReports() {
                 </div>
                 <div className="flex items-center gap-3 bg-red-50/50 rounded-2xl p-3.5 border border-red-100">
                   <div className="w-11 h-11 rounded-full bg-red-100 flex items-center justify-center text-sm font-bold text-red-600 shrink-0 overflow-hidden">
-                    {getAvatar(selected.reportedUserId) ? (
+                    {getAvatar(selected.targetId) ? (
                       <img
-                        src={getAvatar(selected.reportedUserId)}
+                        src={getAvatar(selected.targetId)}
                         className="w-full h-full object-cover"
                         alt=""
                         onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                       />
                     ) : (
-                      getName(selected.reportedUserId).charAt(0)
+                      getName(selected.targetId).charAt(0)
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-900 truncate">{getName(selected.reportedUserId)}</p>
-                    <p className="text-xs text-slate-500 truncate">{getEmail(selected.reportedUserId) || 'No email'}</p>
-                    <p className="text-[10px] text-slate-400 font-mono mt-0.5">UID: {selected.reportedUserId}</p>
+                    <p className="text-sm font-bold text-slate-900 truncate">{getName(selected.targetId)}</p>
+                    <p className="text-xs text-slate-500 truncate">{getEmail(selected.targetId) || 'No email'}</p>
+                    <p className="text-[10px] text-slate-400 font-mono mt-0.5">UID: {selected.targetId}</p>
                   </div>
                 </div>
               </div>
@@ -537,7 +538,7 @@ export default function AdminReports() {
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Submitted Description</p>
                 <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
                   <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">
-                    {selected.details || 'No additional details provided by reporter.'}
+                    {selected.description || 'No additional details provided by reporter.'}
                   </p>
                 </div>
               </div>
@@ -551,7 +552,7 @@ export default function AdminReports() {
               <div className="space-y-2 pt-4 border-t border-slate-200">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Resolution Actions</p>
 
-                {selected.status === 'open' && (
+                {selected.status === 'pending' && (
                   <button
                     onClick={() => handleMarkReviewed(selected.id)}
                     className="w-full py-2.5 border border-slate-200 bg-white text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
@@ -566,13 +567,13 @@ export default function AdminReports() {
                 </button>
 
                 <button
-                  onClick={() => setConfirmAction({ type: 'suspend', userId: selected.reportedUserId, userName: getName(selected.reportedUserId) })}
+                  onClick={() => setConfirmAction({ type: 'suspend', userId: selected.targetId, userName: getName(selected.targetId) })}
                   className="w-full py-2.5 bg-orange-50 border border-orange-200 text-fire rounded-xl text-xs font-bold hover:bg-orange-100 transition-all flex items-center justify-center gap-2">
                   <Shield className="w-4 h-4" /> Suspend Reported Account
                 </button>
 
                 <button
-                  onClick={() => setConfirmAction({ type: 'ban', userId: selected.reportedUserId, userName: getName(selected.reportedUserId) })}
+                  onClick={() => setConfirmAction({ type: 'ban', userId: selected.targetId, userName: getName(selected.targetId) })}
                   className="w-full py-2.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-bold hover:bg-red-100 transition-all flex items-center justify-center gap-2">
                   <Ban className="w-4 h-4" /> Permanently Ban Reported User
                 </button>
@@ -581,7 +582,7 @@ export default function AdminReports() {
                   <button
                     onClick={() => handleDismiss(selected.id)}
                     className="w-full py-2.5 text-slate-500 rounded-xl text-xs font-semibold hover:text-slate-800 hover:bg-slate-100 transition-all">
-                    Resolve / Dismiss without Penalties
+                    Dismiss without Penalties
                   </button>
                 )}
               </div>

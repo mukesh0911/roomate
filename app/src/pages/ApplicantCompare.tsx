@@ -175,6 +175,8 @@ export default function ApplicantCompare() {
         description: `Great news! You have been selected as the new roommate. Open Messages to coordinate move-in.`,
         read: false,
         actionUrl,
+        actorId: user.uid,
+        connectionId: selectedCandidate.connectionId,
         createdAt: serverTimestamp(),
       });
       toast.success(`Selected ${selectedCandidate.name}! The room is marked Filled and notifications sent.`);

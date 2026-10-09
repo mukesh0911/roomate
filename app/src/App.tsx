@@ -37,7 +37,9 @@ const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const EditListing = lazy(() => import('@/pages/EditListing'));
 const BrowseSeekers = lazy(() => import('@/pages/BrowseSeekers'));
-const SeedData = lazy(() => import('@/pages/SeedData'));
+// Keep the destructive development seed utility out of production bundles,
+// not merely out of the production route table.
+const SeedData = import.meta.env.DEV ? lazy(() => import('@/pages/SeedData')) : null;
 
 // Target screens
 const TrustCenter = lazy(() => import('@/pages/TrustCenter'));
@@ -221,34 +223,13 @@ function OnboardingGuard({ children, isAuthenticated, authState, expectedRole }:
 }
 
 function AppRoutes() {
-  const [authState, setAuthState] = useState<AuthState>(() => {
-    if (import.meta.env.DEV && typeof window !== 'undefined') {
-      try {
-        const raw = window.localStorage.getItem('nestmate_auth_session')
-          || (window as any).__MOCK_AUTH_USER__;
-        if (raw) {
-          const testUser = typeof raw === 'string' ? JSON.parse(raw) : raw;
-          if (testUser?.uid) {
-            return {
-              uid: testUser.uid,
-              role: testUser.role || null,
-              onboardingComplete: testUser.onboardingComplete !== false,
-              status: testUser.status || 'active',
-              loading: false,
-              hasPhone: !!testUser.phone,
-            };
-          }
-        }
-      } catch {}
-    }
-    return {
-      uid: null,
-      role: null,
-      onboardingComplete: false,
-      status: 'active',
-      loading: true,
-      hasPhone: false,
-    };
+  const [authState, setAuthState] = useState<AuthState>({
+    uid: null,
+    role: null,
+    onboardingComplete: false,
+    status: 'active',
+    loading: true,
+    hasPhone: false,
   });
 
 
@@ -341,26 +322,6 @@ function AppRoutes() {
           }
         );
       } else {
-        if (import.meta.env.DEV && typeof window !== 'undefined') {
-          const raw = window.localStorage.getItem('nestmate_auth_session')
-            || (window as any).__MOCK_AUTH_USER__;
-          if (raw) {
-            try {
-              const testUser = typeof raw === 'string' ? JSON.parse(raw) : raw;
-              if (testUser?.uid) {
-                setAuthState({
-                  uid: testUser.uid,
-                  role: testUser.role || null,
-                  onboardingComplete: testUser.onboardingComplete !== false,
-                  status: testUser.status || 'active',
-                  loading: false,
-                  hasPhone: !!testUser.phone,
-                });
-                return;
-              }
-            } catch {}
-          }
-        }
         setAuthState({ uid: null, role: null, onboardingComplete: false, status: 'active', loading: false, hasPhone: false });
       }
     });
@@ -512,7 +473,7 @@ function BrowseRoomsRedirect() {
         </Route>
 
         {/* Dev-only: seed utility is compiled out of production builds */}
-        {import.meta.env.DEV && <Route path="/dev/seed" element={<SeedData />} />}
+        {import.meta.env.DEV && SeedData && <Route path="/dev/seed" element={<SeedData />} />}
 
         {/* Deep Link & Convenience Redirects */}
         <Route path="/home" element={<Navigate to={getDashboardRoute()} replace />} />

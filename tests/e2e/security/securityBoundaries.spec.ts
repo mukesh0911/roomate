@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
-import { injectFirebaseAuth } from '../../helpers/firebaseAuthInjector';
 
 const AUTH_DIR = path.resolve(__dirname, '../../../tests/.auth');
 
@@ -11,7 +10,6 @@ test.describe('Security & Authorization Regression', () => {
       storageState: path.join(AUTH_DIR, 'seekerA.json'),
     });
     const page = await context.newPage();
-    await injectFirebaseAuth(page, 'SEEKER_A');
 
     await page.goto('/admin', { waitUntil: 'domcontentloaded' });
 
@@ -71,7 +69,6 @@ test.describe('Security & Authorization Regression', () => {
       storageState: path.join(AUTH_DIR, 'ownerA.json'),
     });
     const page = await context.newPage();
-    await injectFirebaseAuth(page, 'OWNER_A');
 
     await page.goto('/admin', { waitUntil: 'domcontentloaded' });
 

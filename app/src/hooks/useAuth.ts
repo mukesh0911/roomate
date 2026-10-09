@@ -157,43 +157,11 @@ function setAuthSingleton(partial: Partial<AuthSingletonState>) {
   authListeners.forEach(cb => cb());
 }
 
-function getTestSession(): { user: FirebaseUser; profile: UserProfile } | null {
-  if (!import.meta.env.DEV || typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem('nestmate_auth_session')
-      || (window as any).__MOCK_AUTH_USER__;
-    if (!raw) return null;
-    const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    if (!data || !data.uid) return null;
-    const mockUser = {
-      uid: data.uid,
-      email: data.email || '',
-      displayName: data.name || '',
-      photoURL: data.avatar || '',
-      phoneNumber: data.phone || '',
-    } as unknown as FirebaseUser;
-    return { user: mockUser, profile: data as UserProfile };
-  } catch {
-    return null;
-  }
-}
-
 let authListenerInitialized = false;
 
 function initSharedAuthListener() {
   if (authListenerInitialized) return;
   authListenerInitialized = true;
-
-  // Initial check for test environment session
-  const initialTestSession = getTestSession();
-  if (initialTestSession) {
-    setAuthSingleton({
-      user: initialTestSession.user,
-      profile: initialTestSession.profile,
-      isLoading: false,
-      error: null,
-    });
-  }
 
   onAuthStateChanged(auth, async (firebaseUser) => {
     if (firebaseUser) {
@@ -219,17 +187,6 @@ function initSharedAuthListener() {
         setAuthSingleton({ user: firebaseUser, isLoading: false, error: 'Unable to load profile data. Please refresh or contact support.' });
       }
     } else {
-      // In DEV/TEST, preserve injected test session if present
-      const currentTestSession = getTestSession();
-      if (currentTestSession) {
-        setAuthSingleton({
-          user: currentTestSession.user,
-          profile: currentTestSession.profile,
-          isLoading: false,
-          error: null,
-        });
-        return;
-      }
       setAuthSingleton({ user: null, profile: null, isLoading: false, error: null });
     }
   });
@@ -704,10 +661,6 @@ export function useAuth() {
   }, []);
 
   const logout = useCallback(async () => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem('nestmate_auth_session');
-      delete (window as any).__MOCK_AUTH_USER__;
-    }
     await signOut(auth);
     setUser(null);
     setProfile(null);

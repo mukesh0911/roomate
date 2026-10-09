@@ -6,6 +6,24 @@ service firebase.storage {
       return request.auth != null;
     }
 
+    function isAdmin() {
+      return isAuthenticated()
+        && 'email' in request.auth.token
+        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.token.email.lower()));
+    }
+
+    function ownsListing(listingId) {
+      return isAuthenticated()
+        && firestore.exists(/databases/(default)/documents/listings/$(listingId))
+        && firestore.get(/databases/(default)/documents/listings/$(listingId)).data.ownerId == request.auth.uid;
+    }
+
+    function isChatParticipant(roomId) {
+      return isAuthenticated()
+        && firestore.exists(/databases/(default)/documents/chatRooms/$(roomId))
+        && request.auth.uid in firestore.get(/databases/(default)/documents/chatRooms/$(roomId)).data.participants;
+    }
+
     // Upload validation helpers.
     // Sprint FINAL fix: request.resource is NULL on read/delete operations.
     // The unguarded versions threw evaluation errors that silently DENIED
@@ -26,14 +44,14 @@ service firebase.storage {
     // Admin review works through the stored download URL recorded in
     // the `verifications` or `ownerVerifications` Firestore collection.
     match /verifications/{userId}/{allPaths=**} {
-      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       allow create, update: if isAuthenticated()
         && request.auth.uid == userId
         && sizeUnderMb(10);
       allow delete: if isAuthenticated() && request.auth.uid == userId;
     }
     match /verificationDocs/{userId}/{allPaths=**} {
-      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       allow create, update: if isAuthenticated()
         && request.auth.uid == userId
         && sizeUnderMb(10);
@@ -58,8 +76,8 @@ service firebase.storage {
     // integration (custom claims / Cloud Functions) — tracked P1.
     match /listings/{listingId}/{allPaths=**} {
       allow read: if true;
-      allow create, update: if isAuthenticated() && isImageUpload() && sizeUnderMb(10);
-      allow delete: if isAuthenticated();
+      allow create, update: if (ownsListing(listingId) || isAdmin()) && isImageUpload() && sizeUnderMb(10);
+      allow delete: if ownsListing(listingId) || isAdmin();
     }
 
     // ── Chat Images ───────────────────────────────────────────
@@ -67,9 +85,9 @@ service firebase.storage {
     // without custom claims; room membership is enforced at the
     // Firestore layer for message metadata. Size/type capped here.
     match /chats/{roomId}/{allPaths=**} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated() && isImageUpload() && sizeUnderMb(10);
-      allow delete: if isAuthenticated();
+      allow read: if isChatParticipant(roomId) || isAdmin();
+      allow create, update: if (isChatParticipant(roomId) || isAdmin()) && isImageUpload() && sizeUnderMb(10);
+      allow delete: if isChatParticipant(roomId) || isAdmin();
     }
 
     // ── Agreement Documents ───────────────────────────────────

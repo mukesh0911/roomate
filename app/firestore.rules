@@ -23,11 +23,8 @@ service cloud.firestore {
     }
     function isAdmin() {
       return isAuthenticated()
-        && request.auth.token.email != null
-        && (
-          exists(/databases/$(database)/documents/admins/$(adminEmail()))
-          || adminEmail() in ['admin@nestmate-test.com', 'admin@nestmate.in', 'mukvr46@gmail.com']
-        );
+        && 'email' in request.auth.token
+        && exists(/databases/$(database)/documents/admins/$(adminEmail()));
     }
 
     function myUserDoc() {
@@ -124,7 +121,7 @@ service cloud.firestore {
     // their own entry (to confirm admin status).
     // ─────────────────────────────────────────────────────────────
     match /admins/{email} {
-      allow get: if isAuthenticated() && request.auth.token.email != null && request.auth.token.email.lower() == email;
+      allow get: if isAuthenticated() && 'email' in request.auth.token && request.auth.token.email.lower() == email;
       allow list: if false;
       allow create, update, delete: if isAdmin();
     }
@@ -173,8 +170,28 @@ service cloud.firestore {
         request.auth.uid == resource.data.user2 ||
         isAdmin()
       );
-      allow create, update: if isAuthenticated()
-        && (request.auth.uid == request.resource.data.user1 || request.auth.uid == request.resource.data.user2 || isAdmin());
+      allow create, update: if isAdmin() || (
+        isAuthenticated()
+        && (request.auth.uid == request.resource.data.user1 || request.auth.uid == request.resource.data.user2)
+        && request.resource.data.user1 is string
+        && request.resource.data.user2 is string
+        && request.resource.data.user1 != request.resource.data.user2
+        && request.resource.data.connectionId is string
+        && pairId == request.resource.data.user1 + '_' + request.resource.data.user2
+        && existsAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId))
+        && getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.status == 'accepted'
+        && (
+          (
+            getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.fromUserId == request.resource.data.user1
+            && getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.toUserId == request.resource.data.user2
+          )
+          ||
+          (
+            getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.fromUserId == request.resource.data.user2
+            && getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.toUserId == request.resource.data.user1
+          )
+        )
+      );
       allow delete: if isAuthenticated()
         && (request.auth.uid == resource.data.user1 || request.auth.uid == resource.data.user2 || isAdmin());
     }
@@ -187,7 +204,7 @@ service cloud.firestore {
     // admin — seekers can never confirm someone else's room.
     function listingStatusValid() {
       return request.resource.data.get('status', 'pending_verification')
-        in ['active', 'paused', 'filled', 'closed', 'pending_verification'];
+        in ['draft', 'active', 'paused', 'filled', 'closed', 'pending_verification'];
     }
 
     // A new listing MUST start with ownerVerified=false and status=pending_verification.
@@ -195,7 +212,7 @@ service cloud.firestore {
     function newListingFieldsSafe() {
       return (!('ownerVerified' in request.resource.data) || request.resource.data.ownerVerified == false)
         && request.resource.data.get('status', 'pending_verification')
-             in ['pending_verification', 'paused'];
+             in ['draft', 'pending_verification', 'paused'];
     }
 
     // An owner update cannot set status→'active' unless ownerVerified is already true.
@@ -304,13 +321,33 @@ service cloud.firestore {
     // Chat rooms: only participants or admin can read/write.
     // Creation requires exactly two participants including the caller,
     // and an active (non-suspended) creator.
+    function acceptedPairExists(userA, userB) {
+      return exists(/databases/$(database)/documents/acceptedPairs/$(userA + '_' + userB))
+        || exists(/databases/$(database)/documents/acceptedPairs/$(userB + '_' + userA));
+    }
+
+    function chatParticipantsUnchanged() {
+      return request.resource.data.participants == resource.data.participants;
+    }
+
     match /chatRooms/{roomId} {
       allow read: if isAuthenticated() && (request.auth.uid in resource.data.participants || isAdmin());
-      allow create: if isAuthenticated()
+      allow create: if isAdmin() || (
+        isAuthenticated()
         && isActiveUser()
+        && request.resource.data.participants is list
         && request.resource.data.participants.size() == 2
-        && request.auth.uid in request.resource.data.participants;
-      allow update: if isAuthenticated() && (request.auth.uid in resource.data.participants || isAdmin());
+        && request.resource.data.participants[0] != request.resource.data.participants[1]
+        && request.auth.uid in request.resource.data.participants
+        && acceptedPairExists(request.resource.data.participants[0], request.resource.data.participants[1])
+      );
+      allow update: if isAdmin() || (
+        isAuthenticated()
+        && request.auth.uid in resource.data.participants
+        && chatParticipantsUnchanged()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['lastMessage', 'lastMessageAt', 'typingStatus', 'phoneSharing'])
+      );
       allow delete: if isAuthenticated() && (request.auth.uid in resource.data.participants || isAdmin());
 
       // Messages subcollection
@@ -318,24 +355,61 @@ service cloud.firestore {
         allow read: if isAuthenticated() && (request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(roomId)).data.participants || isAdmin());
         allow create: if isAuthenticated()
           && isActiveUser()
-          && (request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(roomId)).data.participants || isAdmin());
+          && (request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(roomId)).data.participants || isAdmin())
+          && request.resource.data.senderId == request.auth.uid;
         // Participants may mark read; sender may edit own message content; admins unrestricted
         allow update: if isAdmin() || (
           isAuthenticated()
           && request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(roomId)).data.participants
           && (
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
-            || request.auth.uid == resource.data.senderId
+            || (
+              request.auth.uid == resource.data.senderId
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['content', 'editedAt'])
+            )
           )
         );
         allow delete: if isAdmin();
       }
     }
 
-    // Notifications: only the recipient or admin can read/update/delete; anyone authenticated can create
+    // Notifications: only the recipient or admin can read/update/delete.
+    // Non-admin creation is limited to self-notifications. Cross-user product
+    // notifications require a trusted admin/backend path rather than accepting
+    // caller-controlled content for arbitrary recipients.
     match /notifications/{notificationId} {
       allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
-      allow create: if isAuthenticated();
+      allow create: if isAdmin() || (
+        isActiveUser()
+        && request.resource.data.actorId == request.auth.uid
+        && request.resource.data.type in ['match', 'message', 'connect', 'room', 'agreement', 'verification', 'system']
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 160
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 1000
+        && request.resource.data.read == false
+        && (
+          request.resource.data.userId == request.auth.uid
+          || (
+            request.resource.data.type in ['connect', 'match']
+            && request.resource.data.connectionId is string
+            && exists(/databases/$(database)/documents/connections/$(request.resource.data.connectionId))
+            && get(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.status in ['pending', 'accepted']
+            && (
+              (
+                get(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.fromUserId == request.auth.uid
+                && get(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.toUserId == request.resource.data.userId
+              )
+              ||
+              (
+                get(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.toUserId == request.auth.uid
+                && get(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.fromUserId == request.resource.data.userId
+              )
+            )
+          )
+        )
+      );
       allow update: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
       allow delete: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
     }
@@ -353,6 +427,21 @@ service cloud.firestore {
     match /ratings/{ratingId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
+    }
+
+    // Persisted match records are visible only to their two participants.
+    match /matches/{matchId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.userId
+        || request.auth.uid == resource.data.matchedUserId
+        || isAdmin()
+      );
+      allow create: if isActiveUser()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.matchedUserId is string
+        && request.resource.data.matchedUserId != request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update, delete: if isAdmin();
     }
 
     // Reviews (Vouches). Sprint 2B integrity:
@@ -462,9 +551,31 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // Public support entry point with a narrow immutable create schema.
+    match /supportTickets/{ticketId} {
+      allow create: if request.resource.data.keys().hasOnly([
+          'userId', 'userEmail', 'userPhone', 'userName', 'topic', 'message', 'status', 'createdAt'
+        ])
+        && request.resource.data.userId == (isAuthenticated() ? request.auth.uid : 'anonymous')
+        && request.resource.data.userName is string
+        && request.resource.data.userName.size() <= 120
+        && request.resource.data.topic in ['verification', 'account', 'safety', 'listing', 'payment', 'other']
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.message.size() <= 4000
+        && request.resource.data.status == 'open';
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Broadcast audit history is administrative data.
+    match /broadcasts/{broadcastId} {
+      allow read, write: if isAdmin();
+    }
+
     // Admins collection
     match /admins/{adminKey} {
-      allow read: if isAuthenticated() && (request.auth.token.email.lower() == adminKey || isAdmin());
+      allow read: if isAuthenticated()
+        && (('email' in request.auth.token && request.auth.token.email.lower() == adminKey) || isAdmin());
       allow write: if isAdmin();
     }
 

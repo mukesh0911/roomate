@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
-import { injectFirebaseAuth } from '../../../helpers/firebaseAuthInjector';
 
 const AUTH_DIR = path.resolve(__dirname, '../../../../tests/.auth');
 
@@ -11,7 +10,6 @@ test.describe('Feature: Notifications Feed & Activity Alerts', () => {
       storageState: path.join(AUTH_DIR, 'seekerA.json'),
     });
     const page = await context.newPage();
-    await injectFirebaseAuth(page, 'SEEKER_A');
 
     await page.goto('/notifications', { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/\/notifications/);
@@ -32,24 +30,18 @@ test.describe('Feature: Notifications Feed & Activity Alerts', () => {
       storageState: path.join(AUTH_DIR, 'seekerA.json'),
     });
     const page = await context.newPage();
-    await injectFirebaseAuth(page, 'SEEKER_A');
 
     await page.goto('/notifications', { waitUntil: 'domcontentloaded' });
 
-    // Check if filter tabs exist (when notifications exist)
-    const allTab = page.locator('main').locator('button').filter({ hasText: /^All/i }).locator('visible=true').first();
-    const unreadTab = page.locator('main').locator('button').filter({ hasText: /^Unread/i }).locator('visible=true').first();
-
-    if (await allTab.isVisible()) {
-      await expect(unreadTab).toBeVisible();
-      await unreadTab.click();
-      // Ensure tab clicked without crash
-      await expect(unreadTab).toBeVisible();
-    } else {
-      // Empty state shows caught up message
-      const emptyState = page.locator('main').locator('text=/All caught up|No unread notifications/i').locator('visible=true').first();
-      await expect(emptyState).toBeVisible({ timeout: 10000 });
-    }
+    // Tabs remain present for both populated and empty feeds; wait for the
+    // subscription-backed count before interacting with the stable control.
+    const main = page.locator('main');
+    const allTab = main.getByRole('button', { name: /^All(?: \(\d+\))?$/i }).first();
+    const unreadTab = main.getByRole('button', { name: /^Unread/i }).first();
+    await expect(allTab).toBeVisible({ timeout: 15000 });
+    await expect(unreadTab).toBeVisible();
+    await unreadTab.click();
+    await expect(unreadTab).toBeVisible();
 
     await context.close();
   });
@@ -59,13 +51,17 @@ test.describe('Feature: Notifications Feed & Activity Alerts', () => {
       storageState: path.join(AUTH_DIR, 'seekerA.json'),
     });
     const page = await context.newPage();
-    await injectFirebaseAuth(page, 'SEEKER_A');
 
     await page.goto('/notifications', { waitUntil: 'domcontentloaded' });
 
-    // Verify interactive elements (Enable Alerts button or notification action controls)
-    const alertBtnOrAction = page.locator('main').locator('button').filter({ hasText: /Enable Alerts|Mark all as read|Browse Listings/i }).locator('visible=true').first();
+    // Browser permission may already be denied and every seeded notification may
+    // already be read. In that state, the per-notification delete action is the
+    // available interactive control.
+    const alertBtnOrAction = page.locator('main').getByRole('button', {
+      name: /Enable Alerts|Mark all as read|Browse Listings|Delete notification/i,
+    }).first();
     await expect(alertBtnOrAction).toBeVisible({ timeout: 10000 });
+    await expect(alertBtnOrAction).toBeEnabled();
 
     await context.close();
   });

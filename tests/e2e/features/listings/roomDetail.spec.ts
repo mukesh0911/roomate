@@ -16,7 +16,7 @@ test.describe('Feature: Room Detail & Listing Inspection', () => {
     await expect(page).toHaveURL(new RegExp(`/room/${TEST_LISTINGS.ACTIVE_KORAMANGALA}`));
 
     // Verify room title is rendered
-    const titleLocator = page.locator('text=/Active Prime 2BHK|Koramangala/i').first();
+    const titleLocator = page.getByRole('heading', { name: /Sunny room in Koramangala/i }).first();
     await expect(titleLocator).toBeVisible({ timeout: 10000 });
 
     // Verify pricing and locality details are displayed

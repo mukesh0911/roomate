@@ -33,10 +33,7 @@ export default function AuthPage() {
     return isAdminRedirect ? 'email' : 'google';
   });
 
-  // Email state - prefill with mukvr46@gmail.com if entering via admin route
-  const [email, setEmail] = useState(() => {
-    return isAdminRedirect ? 'mukvr46@gmail.com' : '';
-  });
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
 
@@ -46,15 +43,13 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   const displayError = error || authError;
-  const isDevelopment = import.meta.env.DEV;
-
+  const showEmulatorHelpers = import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true';
   const handleGoogle = async () => {
     setError('');
     setLoading(true);
     try {
-      const { isNew, role, onboardingComplete, email: signedEmail } = await signInWithGoogle();
-      const isTargetAdmin = isAdminRedirect || (signedEmail && signedEmail.toLowerCase() === 'mukvr46@gmail.com');
-      if (isTargetAdmin) {
+      const { isNew, role, onboardingComplete } = await signInWithGoogle();
+      if (isAdminRedirect) {
         navigate(redirectParam || '/admin');
         return;
       }
@@ -92,8 +87,7 @@ export default function AuthPage() {
     setLoading(true);
     try {
       const { isNew, role, onboardingComplete } = await signInWithEmail(cleanEmail, password);
-      const isTargetAdmin = isAdminRedirect || cleanEmail.toLowerCase() === 'mukvr46@gmail.com';
-      if (isTargetAdmin) {
+      if (isAdminRedirect) {
         navigate(redirectParam || '/admin');
         return;
       }
@@ -112,7 +106,7 @@ export default function AuthPage() {
       if (e?.code === 'auth/user-not-found' || e?.code === 'auth/invalid-credential') {
         try {
           await signUpWithEmail(cleanEmail, password);
-          if (isAdminRedirect || cleanEmail.toLowerCase() === 'mukvr46@gmail.com') {
+          if (isAdminRedirect) {
             navigate(redirectParam || '/admin');
             return;
           }
@@ -323,7 +317,7 @@ export default function AuthPage() {
                       <div>
                         <p className="text-xs font-bold text-white">Administrator Access</p>
                         <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
-                          Sign in with authorized admin account (<strong>mukvr46@gmail.com</strong>).
+                          Sign in with an account present in the administrator registry.
                         </p>
                       </div>
                     </div>
@@ -488,14 +482,14 @@ export default function AuthPage() {
           </div>
 
         {/* Discreet bottom dev quick-fill for local testing */}
-        {isDevelopment && (
+        {showEmulatorHelpers && (
           <div className="absolute bottom-2 left-6 z-20 text-[10px] text-stone-400 opacity-60 hover:opacity-100 flex gap-2">
             <span>Dev:</span>
             <button
               type="button"
               onClick={() => {
-                setEmail('seeker@example.com');
-                setPassword('password123');
+                setEmail('seeker.a@nestmate.test');
+                setPassword('Nestmate-Emulator-Only-123!');
                 setAuthMethod('email');
               }}
               className="underline hover:text-[#E5501A]"
@@ -506,8 +500,8 @@ export default function AuthPage() {
             <button
               type="button"
               onClick={() => {
-                setEmail('mukvr46@gmail.com');
-                setPassword('mukesh@123');
+                setEmail('admin.qa@nestmate.test');
+                setPassword('Nestmate-Emulator-Only-123!');
                 setAuthMethod('email');
               }}
               className="underline hover:text-[#E5501A]"
@@ -691,7 +685,7 @@ export default function AuthPage() {
                     <div>
                       <p className="text-xs font-bold text-white">Administrator Access</p>
                       <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
-                        Sign in with authorized admin account (<strong>mukvr46@gmail.com</strong>).
+                        Sign in with an account present in the administrator registry.
                       </p>
                     </div>
                   </div>
@@ -858,14 +852,14 @@ export default function AuthPage() {
         </div>
 
         {/* Discreet mobile dev helper */}
-        {isDevelopment && (
+        {showEmulatorHelpers && (
           <div className="px-6 py-2 text-center text-[10px] text-stone-400 opacity-60 flex justify-center gap-3">
             <span>Dev:</span>
             <button
               type="button"
               onClick={() => {
-                setEmail('seeker@example.com');
-                setPassword('password123');
+                setEmail('seeker.a@nestmate.test');
+                setPassword('Nestmate-Emulator-Only-123!');
                 setAuthMethod('email');
               }}
               className="underline hover:text-[#E5501A]"
@@ -876,8 +870,8 @@ export default function AuthPage() {
             <button
               type="button"
               onClick={() => {
-                setEmail('mukvr46@gmail.com');
-                setPassword('mukesh@123');
+                setEmail('admin.qa@nestmate.test');
+                setPassword('Nestmate-Emulator-Only-123!');
                 setAuthMethod('email');
               }}
               className="underline hover:text-[#E5501A]"

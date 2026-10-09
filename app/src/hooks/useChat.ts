@@ -152,9 +152,9 @@ export function useChat() {
   );
 
   const sendSystemMessage = useCallback(
-    async (roomId: string, content: string): Promise<void> => {
+    async (roomId: string, senderId: string, content: string): Promise<void> => {
       await addDoc(collection(db, 'chatRooms', roomId, 'messages'), {
-        senderId: 'system',
+        senderId,
         content,
         read: true,
         isSystem: true,
@@ -201,7 +201,7 @@ export function useChat() {
         'phoneSharing.requestedAt': serverTimestamp(),
         'phoneSharing.requesterPhone': requesterPhone,
       });
-      await sendSystemMessage(roomId, `📱 ${requesterName} wants to share phone numbers`);
+      await sendSystemMessage(roomId, requesterId, `📱 ${requesterName} wants to share phone numbers`);
     },
     [sendSystemMessage]
   );
@@ -228,7 +228,7 @@ export function useChat() {
         'phoneSharing.ownerPhone': ownerPhone,
         'phoneSharing.seekerPhone': seekerPhone,
       });
-      await sendSystemMessage(roomId, `✅ Phone numbers are now shared between both parties`);
+      await sendSystemMessage(roomId, accepterId, `✅ Phone numbers are now shared between both parties`);
     },
     [sendSystemMessage]
   );

@@ -51,33 +51,12 @@ export function useAdmin() {
           return;
         }
 
-        // Fallback fast check for known admins
-        if (email === 'admin@nestmate-test.com' || email === 'admin@nestmate.in' || email === 'mukvr46@gmail.com') {
-          adminCache.set(email, true);
-          setIsAdmin(true);
-          setChecking(false);
-          // Ensure admin document exists in Firestore for rules and listing queries
-          try {
-            const docKey = adminEmailKey(email);
-            setDoc(doc(db, 'admins', docKey), {
-              email,
-              name: profile?.name || 'Administrator',
-              role: 'admin',
-              updatedAt: serverTimestamp()
-            }, { merge: true }).catch(() => {});
-          } catch {}
-          return;
-        }
-        // Dynamic check against admins/{email} and config/admin
+        // Authoritative check against admins/{email}. This intentionally
+        // mirrors firestore.rules: config lists and hard-coded emails are not
+        // authorization sources.
         try {
-          const [adminDoc, configSnap] = await Promise.all([
-            getDoc(doc(db, 'admins', adminEmailKey(email))).catch(() => null),
-            getDoc(doc(db, 'config', 'admin')).catch(() => null),
-          ]);
-          const inConfig = (configSnap?.data()?.adminEmails || []).some(
-            (e: string) => (e || '').trim().toLowerCase() === email
-          );
-          const result = !!(adminDoc?.exists() || inConfig);
+          const adminDoc = await getDoc(doc(db, 'admins', adminEmailKey(email))).catch(() => null);
+          const result = !!adminDoc?.exists();
           adminCache.set(email, result);
           setIsAdmin(result);
         } catch {
@@ -207,7 +186,7 @@ export function useAdmin() {
     try {
       const reportsSnap = await getDocs(collection(db, 'reports')).catch(() => ({ docs: [] }));
       pendingReports = (reportsSnap.docs || []).filter(
-        (d: any) => d.data().status === 'open' || d.data().status === 'under_review'
+        (d: any) => d.data().status === 'pending' || d.data().status === 'under_review'
       ).length;
     } catch {}
 
@@ -561,8 +540,8 @@ export function useAdmin() {
   }, []);
 
   /**
-   * Safely purge all demo and seed accounts and their dependent records
-   * while strictly protecting real user accounts (e.g. mukvr46@gmail.com).
+   * Safely purge all demo and seed accounts and their dependent records while
+   * protecting every account in the authoritative admin registry.
    */
   const cleanDemoAndSeedData = useCallback(async (onProgress?: (msg: string) => void) => {
     const log = (m: string) => onProgress?.(m);
@@ -570,6 +549,17 @@ export function useAdmin() {
 
     let totalDeleted = 0;
     const SEED_TAG = 'seed_user_';
+
+    // Resolve protected identities from the same registry used by rules. Never
+    // encode a person's address in client code as an authorization exception.
+    const adminsSnap = await getDocs(collection(db, 'admins'));
+    const protectedAdminEmails = new Set(
+      adminsSnap.docs.flatMap(adminDoc => {
+        const registryEmail = String(adminDoc.data().email || '').toLowerCase().trim();
+        const idEmail = adminDoc.id.toLowerCase().trim();
+        return [registryEmail, idEmail].filter(Boolean);
+      })
+    );
 
     // 1. Scan users
     log('Scanning user accounts...');
@@ -596,8 +586,8 @@ export function useAdmin() {
       const email = (data.email || '').toLowerCase().trim();
       const uid = uDoc.id;
 
-      // NEVER touch admin accounts or verified real non-demo users!
-      if (email === 'mukvr46@gmail.com' || email === 'admin@nestmate.in' || email === 'admin@nestmate-test.com') {
+      // Never remove a registered admin or the operator's current profile.
+      if (protectedAdminEmails.has(email) || uid === user?.uid) {
         continue;
       }
 
@@ -683,7 +673,7 @@ export function useAdmin() {
 
     log(`Cleanup complete! Removed ${totalDeleted} demo & seed documents.`);
     return totalDeleted;
-  }, []);
+  }, [user?.uid]);
 
   /**
    * Nuclear wipe: Completely purges all collections across the entire database,

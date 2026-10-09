@@ -7,11 +7,14 @@
     "check": "npm --prefix app run check",
     "test": "npm --prefix app test",
     "test:rules": "cd app && npx -y firebase-tools emulators:exec --only firestore --project demo-nestmate \"node ../scripts/run-rules-tests.cjs\"",
-    "test:storage-rules": "cd app && npx -y firebase-tools emulators:exec --only storage --project demo-nestmate \"node ../scripts/run-storage-rules-tests.cjs\"",
-    "test:seed": "node tests/seed/run-seed.cjs && node tests/seed/full-firestore-seed.cjs",
-    "seed:firestore": "node tests/seed/full-firestore-seed.cjs",
-    "test:reset": "node tests/seed/run-reset.cjs",
-    "test:verify": "node tests/seed/run-verify.cjs",
+    "test:storage-rules": "cd app && npx -y firebase-tools emulators:exec --only firestore,storage --project demo-nestmate \"node ../scripts/run-storage-rules-tests.cjs\"",
+    "test:emulators": "cd app && cross-env FUNCTIONS_DISCOVERY_TIMEOUT=60 npx -y firebase-tools emulators:start --only auth,firestore,storage,functions --project demo-nestmate",
+    "test:reset": "node tests/seed/emulator-universe.cjs reset",
+    "test:seed": "node tests/seed/emulator-universe.cjs seed",
+    "seed:firestore": "npm run test:seed",
+    "test:verify": "node tests/seed/emulator-universe.cjs verify",
+    "test:data": "cd app && npx -y firebase-tools emulators:exec --only auth,firestore,storage --project demo-nestmate \"node ../tests/seed/emulator-universe.cjs reset-seed-verify\"",
+    "test:account-deletion": "cd app && cross-env FUNCTIONS_DISCOVERY_TIMEOUT=60 npx -y firebase-tools emulators:exec --only auth,firestore,storage,functions --project demo-nestmate \"node ../tests/seed/emulator-universe.cjs seed && node ../tests/integration/account-deletion.cjs\"",
     "test:matrix": "node tests/helpers/generate-matrix.cjs",
     "test:api": "playwright test tests/api --project=chromium --reporter=list",
     "test:api:auth": "playwright test tests/api/authAndUserApi.spec.ts --project=chromium --reporter=list",
@@ -19,10 +22,12 @@
     "test:api:business": "playwright test tests/api/businessLogicApi.spec.ts tests/api/listingsApi.spec.ts tests/api/connectionsAndQuotaApi.spec.ts tests/api/matchingApi.spec.ts tests/api/messagingAndNotifsApi.spec.ts tests/api/moderationAndVerifApi.spec.ts --project=chromium --reporter=list",
     "test:api:multiuser": "playwright test tests/api/multiUserWorkflowApi.spec.ts --project=chromium --reporter=list",
     "test:api:all": "playwright test tests/api --reporter=list",
-    "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e": "cd app && cross-env FUNCTIONS_DISCOVERY_TIMEOUT=60 npx -y firebase-tools emulators:exec --only auth,firestore,storage,functions --project demo-nestmate \"node ../tests/seed/emulator-universe.cjs seed && cd .. && playwright test\"",
+    "test:e2e:headed": "cd app && cross-env FUNCTIONS_DISCOVERY_TIMEOUT=60 npx -y firebase-tools emulators:exec --only auth,firestore,storage,functions --project demo-nestmate \"node ../tests/seed/emulator-universe.cjs seed && cd .. && playwright test --headed\""
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0"
+    "@playwright/test": "^1.63.0",
+    "cross-env": "^10.1.0",
+    "firebase-admin": "^14.5.0"
   }
 }

@@ -489,6 +489,7 @@ export default function SeekerDashboard() {
           description: `${profile?.name || 'Someone'} accepted your connect request. Start chatting!`,
           read: false,
           actionUrl: `/chat/${roomId}`,
+          connectionId: conn.id,
         });
         navigate(`/chat/${roomId}`);
       } catch {
@@ -521,6 +522,7 @@ export default function SeekerDashboard() {
         description: `${profile?.name || 'Someone'} wants to connect with you.`,
         read: false,
         actionUrl,
+        connectionId,
       });
       toast.success(`Connection request sent to ${targetName}!`);
     } catch (err: any) {
@@ -558,6 +560,7 @@ export default function SeekerDashboard() {
         description: `${profile?.name || 'Someone'} accepted your connection request. Start chatting!`,
         read: false,
         actionUrl: `/chat/${roomId}`,
+        connectionId,
       });
       toast.success(`You are now connected with ${senderName}!`);
       navigate(`/chat/${roomId}`);

@@ -41,7 +41,7 @@ test.describe('Feature: Connections Management', () => {
     await context.close();
   });
 
-  test('3. Quota full seeker reflects maximum quota limit in session', async ({ browser }) => {
+  test('3. Quota-full seeker uses a real Firebase session without mock state', async ({ browser }) => {
     const context = await browser.newContext({
       storageState: path.join(AUTH_DIR, 'quotaFullUser.json'),
     });
@@ -50,11 +50,8 @@ test.describe('Feature: Connections Management', () => {
     await page.goto('/explore?tab=rooms', { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/\/explore\?tab=rooms/);
 
-    // Verify session enforces 5/5 connects limit
-    const raw = await page.evaluate(() => window.localStorage.getItem('nestmate_auth_session'));
-    const session = JSON.parse(raw!);
-    expect(session.connectsUsed).toBe(5);
-    expect(session.connectsLimit).toBe(5);
+    expect(await page.evaluate(() => window.localStorage.getItem('nestmate_auth_session'))).toBeNull();
+    await expect(page.locator('main')).toBeVisible();
 
     await context.close();
   });

@@ -5,6 +5,7 @@ dist-ssr
 .env
 .env.local
 .env.*
+!app/.env.test
 .DS_Store
 .vscode
 .idea
@@ -31,3 +32,4 @@ roomate/
 # Playwright Test Outputs
 playwright-report/
 test-results/
+tests/.auth/

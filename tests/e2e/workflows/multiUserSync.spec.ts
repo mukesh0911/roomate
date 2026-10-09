@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
-import { injectFirebaseAuth } from '../../helpers/firebaseAuthInjector';
 
 const AUTH_DIR = path.resolve(__dirname, '../../../tests/.auth');
 
@@ -12,14 +11,12 @@ test.describe('Workflow: Multi-User Browser Synchronization & Context Isolation'
       storageState: path.join(AUTH_DIR, 'seekerB.json'),
     });
     const pageSeeker = await contextSeeker.newPage();
-    await injectFirebaseAuth(pageSeeker, 'SEEKER_B');
 
     // Context B: Owner A (Ramesh)
     const contextOwner = await browser.newContext({
       storageState: path.join(AUTH_DIR, 'ownerA.json'),
     });
     const pageOwner = await contextOwner.newPage();
-    await injectFirebaseAuth(pageOwner, 'OWNER_A');
 
     // Navigate concurrently
     await Promise.all([
@@ -27,15 +24,18 @@ test.describe('Workflow: Multi-User Browser Synchronization & Context Isolation'
       pageOwner.goto('/owner-dashboard', { waitUntil: 'domcontentloaded' }),
     ]);
 
-    // Verify Seeker sees Roommate Explore without cross-talk
+    // Verify each role reaches its own protected destination without cross-talk.
     await expect(pageSeeker).toHaveURL(/\/explore\?tab=roommates/);
-    const seekerIdentity = pageSeeker.locator('header, nav, main').locator('text=/Pooja/i').locator('visible=true').first();
-    await expect(seekerIdentity).toBeVisible({ timeout: 10000 });
-
-    // Verify Owner sees Owner Dashboard without being redirected or contaminated by Seeker
     await expect(pageOwner).toHaveURL(/\/owner-dashboard/);
-    const ownerIdentity = pageOwner.locator('header, nav, main').locator('text=/Owner Dashboard|Ramesh/i').locator('visible=true').first();
-    await expect(ownerIdentity).toBeVisible({ timeout: 10000 });
+
+    // Full names are intentionally hidden in the compact mobile header. The
+    // profile page is a stable, viewport-independent identity boundary.
+    await Promise.all([
+      pageSeeker.goto('/profile', { waitUntil: 'domcontentloaded' }),
+      pageOwner.goto('/profile', { waitUntil: 'domcontentloaded' }),
+    ]);
+    await expect(pageSeeker.getByRole('heading', { name: 'Pooja Iyer' })).toBeVisible({ timeout: 10000 });
+    await expect(pageOwner.getByRole('heading', { name: 'Ramesh Gupta' })).toBeVisible({ timeout: 10000 });
 
     await contextSeeker.close();
     await contextOwner.close();
@@ -47,14 +47,12 @@ test.describe('Workflow: Multi-User Browser Synchronization & Context Isolation'
       storageState: path.join(AUTH_DIR, 'seekerB.json'),
     });
     const pageSeeker = await contextSeeker.newPage();
-    await injectFirebaseAuth(pageSeeker, 'SEEKER_B');
 
     // Context B: Owner A (Ramesh)
     const contextOwner = await browser.newContext({
       storageState: path.join(AUTH_DIR, 'ownerA.json'),
     });
     const pageOwner = await contextOwner.newPage();
-    await injectFirebaseAuth(pageOwner, 'OWNER_A');
 
     // Both users open /chat concurrently
     await Promise.all([

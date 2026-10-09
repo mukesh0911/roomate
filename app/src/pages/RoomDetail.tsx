@@ -225,7 +225,7 @@ export default function RoomDetail() {
     if (!user?.uid || !room || connecting) return;
     setConnecting(true);
     try {
-      await sendRequest(user.uid, room.ownerId, { listingId: room.id, screeningAnswers });
+      const connectionId = await sendRequest(user.uid, room.ownerId, { listingId: room.id, screeningAnswers });
       logEvent({ name: 'interest_sent', actorId: user.uid, entityId: room.id, city: room.city });
       await createNotification({
         userId: room.ownerId,
@@ -234,6 +234,7 @@ export default function RoomDetail() {
         description: `${profile?.name || 'Someone'} expressed interest in "${room.title}".`,
         read: false,
         actionUrl: '/owner-dashboard?tab=applicants',
+        connectionId,
       });
       setRequestSent(true);
       toast.success('Interest and screening answers sent to owner!');
@@ -779,6 +780,15 @@ export default function RoomDetail() {
                     <span>{isSaved ? 'Saved' : 'Save'}</span>
                   </button>
                 </div>
+              </div>
+
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-black text-[#1A1A2E] tracking-tight">
+                  {room.title}
+                </h1>
+                <p className="mt-1 text-sm text-gray-500">
+                  {room.flatType} in {room.locality}, {room.city}
+                </p>
               </div>
 
               {/* 2. Location Section */}

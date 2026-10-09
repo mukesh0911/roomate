@@ -4,7 +4,6 @@ import {
   addDoc,
   getDocs,
   getDoc,
-  setDoc,
   deleteDoc,
   updateDoc,
   query,
@@ -199,34 +198,27 @@ export function useConnections() {
   /** Accept a connection request */
   const acceptRequest = useCallback(async (connectionId: string) => {
     const snap = await getDoc(doc(db, 'connections', connectionId));
-    if (snap.exists()) {
-      const data = snap.data();
-      const fromUserId = data.fromUserId;
-      const toUserId = data.toUserId;
-      if (fromUserId && toUserId) {
-        try {
-          await Promise.all([
-            setDoc(doc(db, 'acceptedPairs', `${fromUserId}_${toUserId}`), {
-              user1: fromUserId,
-              user2: toUserId,
-              connectionId,
-              createdAt: serverTimestamp(),
-            }),
-            setDoc(doc(db, 'acceptedPairs', `${toUserId}_${fromUserId}`), {
-              user1: toUserId,
-              user2: fromUserId,
-              connectionId,
-              createdAt: serverTimestamp(),
-            }),
-          ]);
-        } catch (e) {
-          console.warn('Failed to sync accepted pair record:', e);
-        }
-      }
-    }
-    await updateDoc(doc(db, 'connections', connectionId), {
-      status: 'accepted',
+    if (!snap.exists()) throw new Error('Connection request not found.');
+    const { fromUserId, toUserId } = snap.data();
+    if (!fromUserId || !toUserId) throw new Error('Connection participants are invalid.');
+
+    // One atomic state transition. Firestore rules validate each acceptedPairs
+    // document against the post-batch accepted connection via getAfter().
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'connections', connectionId), { status: 'accepted' });
+    batch.set(doc(db, 'acceptedPairs', `${fromUserId}_${toUserId}`), {
+      user1: fromUserId,
+      user2: toUserId,
+      connectionId,
+      createdAt: serverTimestamp(),
     });
+    batch.set(doc(db, 'acceptedPairs', `${toUserId}_${fromUserId}`), {
+      user1: toUserId,
+      user2: fromUserId,
+      connectionId,
+      createdAt: serverTimestamp(),
+    });
+    await batch.commit();
   }, []);
 
   /** Reject a connection request */

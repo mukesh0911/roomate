@@ -67,7 +67,7 @@ export interface Listing {
   availableFrom: string;
   lat: number;
   lng: number;
-  status: 'active' | 'paused' | 'filled' | 'closed' | 'pending_verification';
+  status: 'draft' | 'active' | 'paused' | 'filled' | 'closed' | 'pending_verification';
   applicants: number;
   views: number;
   /** Owner-confirmed availability timestamp (Sprint 2A). Legacy docs may lack it. */

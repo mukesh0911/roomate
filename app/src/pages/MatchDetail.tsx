@@ -386,6 +386,7 @@ export default function MatchDetail() {
           description: `${profile?.name || 'A user'} accepted your connect request. Start chatting!`,
           read: false,
           actionUrl: `/chat/${roomId}`,
+          connectionId: existingConn.id,
         });
         toast.success('Connection accepted! Opening chat...');
         navigate(`/chat/${roomId}`);
@@ -418,6 +419,7 @@ export default function MatchDetail() {
         description: `${profile?.name || 'Someone'} wants to connect with you.`,
         read: false,
         actionUrl,
+        connectionId,
       });
       toast.success('Connect request sent successfully!');
     } catch (err) {

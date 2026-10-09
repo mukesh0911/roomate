@@ -15,6 +15,7 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 
 export interface Notification {
   id: string;
@@ -24,6 +25,8 @@ export interface Notification {
   description: string;
   read: boolean;
   actionUrl?: string;
+  actorId?: string;
+  connectionId?: string;
   createdAt: Timestamp;
 }
 
@@ -77,9 +80,12 @@ export function useNotifications() {
 
   /** Create a notification for a user */
   const createNotification = useCallback(
-    async (data: Omit<Notification, 'id' | 'createdAt'>) => {
+    async (data: Omit<Notification, 'id' | 'createdAt' | 'actorId'>) => {
+      const actorId = auth.currentUser?.uid;
+      if (!actorId) throw new Error('You must be signed in to create a notification.');
       await addDoc(collection(db, 'notifications'), {
         ...data,
+        actorId,
         createdAt: serverTimestamp(),
       });
     },

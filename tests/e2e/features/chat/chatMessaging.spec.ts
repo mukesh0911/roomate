@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
-import { injectFirebaseAuth } from '../../../helpers/firebaseAuthInjector';
+import { TEST_CHAT_ROOMS } from '../../../helpers/testDataRegistry';
 
 const AUTH_DIR = path.resolve(__dirname, '../../../../tests/.auth');
 
@@ -11,7 +11,6 @@ test.describe('Feature: Chat & Messaging', () => {
       storageState: path.join(AUTH_DIR, 'seekerB.json'),
     });
     const page = await context.newPage();
-    await injectFirebaseAuth(page, 'SEEKER_B');
 
     await page.goto('/chat', { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/\/chat/);
@@ -31,17 +30,18 @@ test.describe('Feature: Chat & Messaging', () => {
       storageState: path.join(AUTH_DIR, 'seekerB.json'),
     });
     const page = await context.newPage();
-    await injectFirebaseAuth(page, 'SEEKER_B');
 
-    await page.goto('/chat/test_chat_crm_01', { waitUntil: 'domcontentloaded' });
-    await expect(page).toHaveURL(/\/chat\/test_chat_crm_01/);
+    await page.goto(`/chat/${TEST_CHAT_ROOMS.DEFAULT_ROOM}`, { waitUntil: 'domcontentloaded' });
+    await expect(page).toHaveURL(new RegExp(`/chat/${TEST_CHAT_ROOMS.DEFAULT_ROOM}`));
 
     // Verify message input is available
     const messageInput = page.locator('input[placeholder*="Type a message" i], input[aria-label="Message"]').first();
     await expect(messageInput).toBeVisible({ timeout: 10000 });
 
     // Verify seeded messages are visible in thread
-    const messageText = page.locator('text=/Saturday afternoon works best for the tour/i').first();
+    // The conversation preview and thread contain the same text. The thread
+    // copy is last in DOM order and remains visible on both split and mobile UI.
+    const messageText = page.locator('main').getByText('See you at 5 PM.', { exact: true }).last();
     await expect(messageText).toBeVisible({ timeout: 10000 });
 
     await context.close();
@@ -52,14 +52,13 @@ test.describe('Feature: Chat & Messaging', () => {
       storageState: path.join(AUTH_DIR, 'seekerB.json'),
     });
     const page = await context.newPage();
-    await injectFirebaseAuth(page, 'SEEKER_B');
 
-    await page.goto('/chat/test_chat_crm_01', { waitUntil: 'domcontentloaded' });
+    await page.goto(`/chat/${TEST_CHAT_ROOMS.DEFAULT_ROOM}`, { waitUntil: 'domcontentloaded' });
 
     const messageInput = page.locator('input[placeholder*="Type a message" i], input[aria-label="Message"]').first();
     await expect(messageInput).toBeVisible({ timeout: 10000 });
 
-    const testMsg = `Sounds great, confirmed! ${Date.now()}`;
+    const testMsg = 'Sounds great, confirmed! chatMessaging-send-01';
     await messageInput.fill(testMsg);
 
     // Click send button

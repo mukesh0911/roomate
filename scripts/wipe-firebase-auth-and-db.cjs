@@ -54,7 +54,7 @@ const serviceAccount = JSON.parse(fs.readFileSync(keyArg, 'utf8'));
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  projectId: serviceAccount.project_id || 'nestmate-eb562',
+  projectId: serviceAccount.project_id,
 });
 
 const db = admin.firestore();

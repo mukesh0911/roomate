@@ -420,6 +420,7 @@ export default function OwnerDashboard() {
         description: `${profile?.name || 'A user'} accepted your connect request. Start chatting!`,
         read: false,
         actionUrl: `/chat/${roomId}`,
+        connectionId: applicant.connection.id,
       });
       navigate(`/chat/${roomId}`);
     } catch (err) {

@@ -7,10 +7,10 @@ import {
   Bell, Lock, Eye, Moon, Camera, Loader2, AlertTriangle, Download, Trash2, ShieldCheck, X, ArrowRightLeft,
 } from 'lucide-react';
 import {
-  collection, query, where, getDocs, deleteDoc, doc, getDoc,
+  collection, query, where, getDocs, doc, getDoc,
 } from 'firebase/firestore';
-import { deleteUser } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from '@/lib/firebase';
 import { toast } from 'sonner';
 import PageShell from '@/components/PageShell';
 
@@ -173,46 +173,17 @@ export default function SettingsPage() {
     if (!user?.uid || deleteConfirmText !== 'DELETE') return;
     setDeleting(true);
     try {
-      const uid = user.uid;
-
-      // 1. Delete user's listings
-      const listingsQ = query(collection(db, 'listings'), where('ownerId', '==', uid));
-      const listingsSnap = await getDocs(listingsQ);
-      await Promise.all(listingsSnap.docs.map(d => deleteDoc(d.ref)));
-
-      // 2. Delete user's connections (both directions)
-      const [connFrom, connTo] = await Promise.all([
-        getDocs(query(collection(db, 'connections'), where('fromUserId', '==', uid))),
-        getDocs(query(collection(db, 'connections'), where('toUserId', '==', uid))),
-      ]);
-      await Promise.all([...connFrom.docs, ...connTo.docs].map(d => deleteDoc(d.ref)));
-
-      // 3. Delete user's notifications
-      const notifsSnap = await getDocs(query(collection(db, 'notifications'), where('userId', '==', uid)));
-      await Promise.all(notifsSnap.docs.map(d => deleteDoc(d.ref)));
-
-      // 4. Delete chat rooms (where participant)
-      const roomsSnap = await getDocs(query(collection(db, 'chatRooms'), where('participants', 'array-contains', uid)));
-      await Promise.all(roomsSnap.docs.map(d => deleteDoc(d.ref)));
-
-      // 5. Delete user profile + private contact data
-      await deleteDoc(doc(db, 'users', uid));
-      try {
-        await deleteDoc(doc(db, 'privateUserData', uid));
-      } catch {
-        // May not exist for legacy accounts
-      }
-
-      // 6. Delete Firebase Auth user
-      if (auth.currentUser) {
-        await deleteUser(auth.currentUser);
-      }
+      const deleteAccount = httpsCallable<{ confirmation: string }, { deleted: boolean }>(
+        functions,
+        'requestAccountDeletion'
+      );
+      await deleteAccount({ confirmation: deleteConfirmText });
 
       toast.success('Your account has been deleted.');
       navigate('/');
     } catch (err: any) {
       console.error('Delete account failed:', err);
-      if (err.code === 'auth/requires-recent-login') {
+      if (err.code === 'functions/failed-precondition') {
         toast.error('For security, please log out and log back in before deleting your account.');
       } else {
         toast.error('Failed to delete account. Please try again.');
@@ -620,7 +591,7 @@ export default function SettingsPage() {
             </div>
             <h2 className="font-serif font-medium text-2xl text-center text-[#1A1A2E]">Delete Account?</h2>
             <p className="text-xs text-gray-500 text-center leading-relaxed">
-              This action permanently removes your identity, properties, reviews, and messaging history. Type <strong className="text-red-600">DELETE</strong> to authorize.
+              This permanently removes your identity, properties, shared chats and messages, reviews, reports, and uploaded files. Other participants will also lose shared conversation history. Type <strong className="text-red-600">DELETE</strong> to authorize.
             </p>
             <input
               type="text"
