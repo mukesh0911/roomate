@@ -329,9 +329,9 @@ export default function BrowseRooms({
           </div>
         )}
 
-        {/* RESPONSIVE FEED: 1 COLUMN ON MOBILE, 2 COLUMNS ON DESKTOP WITH SIDEBAR */}
+        {/* RESPONSIVE FEED: 1 COLUMN ON MOBILE, 2 COLUMNS ON DESKTOP (MATCHING FLATMATE EXACT LAYOUT) */}
         {!isLoading && sortedListings.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
             {sortedListings.map((listing) => (
               <CompactRoomCard
                 key={listing.id}
@@ -341,7 +341,6 @@ export default function BrowseRooms({
                 compatibilityScore={profile ? calculateRoomCompatibility(profile, listing) : undefined}
                 distanceKm={0}
                 onClick={() => navigate(`/room/${listing.id}`)}
-                onCall={(r) => handleCallOwner(r)}
                 onChat={(r) => handleChatOwner(r)}
               />
             ))}
@@ -354,7 +353,7 @@ export default function BrowseRooms({
             icon={Bed}
             compact
             title={searchQuery ? `No rooms match "${searchQuery}" in ${currentCity}` : `No rooms available in ${currentCity} yet`}
-            titleClassName="text-sm sm:text-base font-semibold text-[#1A1A2E]"
+            titleClassName="text-sm sm:text-base font-semibold text-[#1E2229]"
             description={
               searchQuery
                 ? "Try clearing your search terms or adjusting budget filters."
@@ -398,7 +397,7 @@ export default function BrowseRooms({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             aria-label="Search rooms"
-            className="w-full pl-11 pr-10 py-3 bg-white rounded-2xl text-xs sm:text-sm border border-gray-200/90 shadow-2xs outline-none focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 transition-all text-[#1A1A2E] placeholder:text-gray-400 font-medium"
+            className="w-full pl-11 pr-10 py-3 bg-white rounded-2xl text-xs sm:text-sm border border-gray-200/90 shadow-2xs outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 transition-all text-[#1E2229] placeholder:text-gray-400 font-medium"
           />
           {searchQuery && (
             <button
@@ -420,7 +419,7 @@ export default function BrowseRooms({
                 setIsSortOpen(!isSortOpen);
                 setIsCityOpen(false);
               }}
-              className="w-full px-3.5 py-3 bg-white border border-gray-200/90 rounded-2xl text-xs sm:text-sm font-semibold text-[#1A1A2E] flex items-center justify-between shadow-2xs hover:border-gray-300 transition-all cursor-pointer whitespace-nowrap"
+              className="w-full px-3.5 py-3 bg-white border border-gray-200/90 rounded-2xl text-xs sm:text-sm font-semibold text-[#1E2229] flex items-center justify-between shadow-2xs hover:border-gray-300 transition-all cursor-pointer whitespace-nowrap"
             >
               <div className="flex items-center gap-1.5 truncate">
                 <ArrowUpDown className="w-3.5 h-3.5 text-gray-500 shrink-0" />
@@ -440,11 +439,11 @@ export default function BrowseRooms({
                       setIsSortOpen(false);
                     }}
                     className={`w-full px-4 py-2.5 text-left text-xs font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      sortBy === key ? 'text-[#E5501A] bg-[#FFF2EB]' : 'text-[#1A1A2E] hover:bg-gray-50'
+                      sortBy === key ? 'text-[#FF5A36] bg-[#FFF2EB]' : 'text-[#1E2229] hover:bg-gray-50'
                     }`}
                   >
                     <span>{sortLabels[key]}</span>
-                    {sortBy === key && <Check className="w-3.5 h-3.5 text-[#E5501A]" />}
+                    {sortBy === key && <Check className="w-3.5 h-3.5 text-[#FF5A36]" />}
                   </button>
                 ))}
               </div>
@@ -456,7 +455,7 @@ export default function BrowseRooms({
             onClick={() => setShowFilters(true)}
             aria-label="Open filters"
             className={`w-full px-3.5 py-3 bg-white border rounded-2xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer ${
-              hasActiveFilters ? 'border-[#E5501A] text-[#E5501A] bg-[#FFF2EB]' : 'border-gray-200/90 text-[#1A1A2E] hover:border-gray-300'
+              hasActiveFilters ? 'border-[#FF5A36] text-[#FF5A36] bg-[#FFF2EB]' : 'border-gray-200/90 text-[#1E2229] hover:border-gray-300'
             }`}
           >
             <SlidersHorizontal className="w-3.5 h-3.5 text-gray-500" />
@@ -473,7 +472,7 @@ export default function BrowseRooms({
                 setIsCityOpen(!isCityOpen);
                 setIsSortOpen(false);
               }}
-              className="px-4 py-3 bg-white border border-gray-200/90 rounded-2xl text-xs sm:text-sm font-semibold text-[#1A1A2E] flex items-center gap-2 shadow-2xs hover:border-gray-300 transition-all cursor-pointer whitespace-nowrap"
+              className="px-4 py-3 bg-white border border-gray-200/90 rounded-2xl text-xs sm:text-sm font-semibold text-[#1E2229] flex items-center gap-2 shadow-2xs hover:border-gray-300 transition-all cursor-pointer whitespace-nowrap"
             >
               <MapPin className="w-4 h-4 text-gray-500 shrink-0" />
               <span>{currentCity}</span>
@@ -488,11 +487,11 @@ export default function BrowseRooms({
                     type="button"
                     onClick={() => handleCitySelect(c)}
                     className={`w-full px-4 py-2.5 text-left text-xs font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      currentCity === c ? 'text-[#E5501A] bg-[#FFF2EB]' : 'text-[#1A1A2E] hover:bg-gray-50'
+                      currentCity === c ? 'text-[#FF5A36] bg-[#FFF2EB]' : 'text-[#1E2229] hover:bg-gray-50'
                     }`}
                   >
                     <span>{c}</span>
-                    {currentCity === c && <Check className="w-3.5 h-3.5 text-[#E5501A]" />}
+                    {currentCity === c && <Check className="w-3.5 h-3.5 text-[#FF5A36]" />}
                   </button>
                 ))}
               </div>
@@ -506,7 +505,7 @@ export default function BrowseRooms({
                 setIsSortOpen(!isSortOpen);
                 setIsCityOpen(false);
               }}
-              className="px-4 py-3 bg-white border border-gray-200/90 rounded-2xl text-xs sm:text-sm font-semibold text-[#1A1A2E] flex items-center gap-2 shadow-2xs hover:border-gray-300 transition-all cursor-pointer whitespace-nowrap"
+              className="px-4 py-3 bg-white border border-gray-200/90 rounded-2xl text-xs sm:text-sm font-semibold text-[#1E2229] flex items-center gap-2 shadow-2xs hover:border-gray-300 transition-all cursor-pointer whitespace-nowrap"
             >
               <ArrowUpDown className="w-4 h-4 text-gray-500 shrink-0" />
               <span>{sortLabels[sortBy]}</span>
@@ -524,11 +523,11 @@ export default function BrowseRooms({
                       setIsSortOpen(false);
                     }}
                     className={`w-full px-4 py-2.5 text-left text-xs font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      sortBy === key ? 'text-[#E5501A] bg-[#FFF2EB]' : 'text-[#1A1A2E] hover:bg-gray-50'
+                      sortBy === key ? 'text-[#FF5A36] bg-[#FFF2EB]' : 'text-[#1E2229] hover:bg-gray-50'
                     }`}
                   >
                     <span>{sortLabels[key]}</span>
-                    {sortBy === key && <Check className="w-3.5 h-3.5 text-[#E5501A]" />}
+                    {sortBy === key && <Check className="w-3.5 h-3.5 text-[#FF5A36]" />}
                   </button>
                 ))}
               </div>
@@ -541,8 +540,8 @@ export default function BrowseRooms({
             aria-label="Open filters"
             className={`flex items-center gap-2 px-4 sm:px-5 py-3 bg-white border rounded-2xl text-xs sm:text-sm font-semibold transition-all shadow-2xs cursor-pointer shrink-0 ${
               hasActiveFilters
-                ? 'border-[#E5501A] text-[#E5501A] bg-[#FFF2EB]'
-                : 'border-gray-200/90 text-[#1A1A2E] hover:border-gray-300'
+                ? 'border-[#FF5A36] text-[#FF5A36] bg-[#FFF2EB]'
+                : 'border-gray-200/90 text-[#1E2229] hover:border-gray-300'
             }`}
           >
             <SlidersHorizontal className="w-4 h-4" />
@@ -556,8 +555,8 @@ export default function BrowseRooms({
               aria-label="Grid view"
               className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
                 viewMode === 'grid'
-                  ? 'border-[#E5501A] bg-[#FFF2EB] text-[#E5501A]'
-                  : 'border-gray-200/90 bg-white text-gray-500 hover:text-[#1A1A2E]'
+                  ? 'border-[#FF5A36] bg-[#FFF2EB] text-[#FF5A36]'
+                  : 'border-gray-200/90 bg-white text-gray-500 hover:text-[#1E2229]'
               }`}
             >
               <LayoutGrid className="w-4 h-4" />
@@ -568,8 +567,8 @@ export default function BrowseRooms({
               aria-label="List view"
               className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
                 viewMode === 'list'
-                  ? 'border-[#E5501A] bg-[#FFF2EB] text-[#E5501A]'
-                  : 'border-gray-200/90 bg-white text-gray-500 hover:text-[#1A1A2E]'
+                  ? 'border-[#FF5A36] bg-[#FFF2EB] text-[#FF5A36]'
+                  : 'border-gray-200/90 bg-white text-gray-500 hover:text-[#1E2229]'
               }`}
             >
               <List className="w-4 h-4" />
@@ -580,7 +579,7 @@ export default function BrowseRooms({
 
       {/* Verified Properties Count */}
       <div className="pt-1 pb-1">
-        <h2 className="text-sm font-bold text-[#1A1A2E]">
+        <h2 className="text-sm font-bold text-[#1E2229]">
           {sortedListings.length} verified properties
         </h2>
       </div>
@@ -610,7 +609,7 @@ export default function BrowseRooms({
         <div className="flex justify-center pt-6">
           <button
             onClick={() => loadMore(filters)}
-            className="px-6 py-2.5 bg-white border border-gray-200/90 rounded-full text-xs font-semibold text-[#1A1A2E] hover:border-gray-300 hover:bg-gray-50 shadow-2xs transition-all cursor-pointer"
+            className="px-6 py-2.5 bg-white border border-gray-200/90 rounded-full text-xs font-semibold text-[#1E2229] hover:border-gray-300 hover:bg-gray-50 shadow-2xs transition-all cursor-pointer"
           >
             Load More Rooms
           </button>
@@ -627,7 +626,7 @@ export default function BrowseRooms({
             action={
               <button
                 onClick={clearFilters}
-                className="px-6 py-3 bg-[#E5501A] hover:bg-[#D0400B] text-white rounded-full text-xs font-semibold shadow-xs cursor-pointer"
+                className="px-6 py-3 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full text-xs font-semibold shadow-xs cursor-pointer"
               >
                 Clear All Filters
               </button>
@@ -656,7 +655,7 @@ export default function BrowseRooms({
   );
 
   return (
-    <div className="min-h-screen bg-[#FBF9F6] pb-24 font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-[#FBFBFC] pb-24 font-sans overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {contentGrid}
       </div>

@@ -107,7 +107,7 @@ export default function HelpSupport() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FBF9F6] pb-24 font-sans">
+    <div className="min-h-screen bg-[#FBFBFC] pb-24 font-sans">
       {/* Top Header */}
       <div className="bg-white/80 backdrop-blur-md border-b border-gray-100 py-4 px-4 sticky top-0 z-30 shadow-2xs">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
@@ -120,16 +120,16 @@ export default function HelpSupport() {
                 navigate('/explore?tab=rooms');
               }
             }}
-            className="flex items-center gap-2 text-xs font-semibold text-gray-600 hover:text-[#1A1A2E] bg-white px-3.5 py-1.5 rounded-full border border-gray-200 shadow-2xs transition-all cursor-pointer"
+            className="flex items-center gap-2 text-xs font-semibold text-gray-600 hover:text-[#1E2229] bg-white px-3.5 py-1.5 rounded-full border border-gray-200 shadow-2xs transition-all cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back</span>
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center">
+            <div className="w-6 h-6 rounded-full bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center">
               <HelpCircle className="w-3.5 h-3.5" />
             </div>
-            <h1 className="font-serif font-medium text-sm text-[#1A1A2E]">Help &amp; Support</h1>
+            <h1 className="font-serif font-medium text-sm text-[#1E2229]">Help &amp; Support</h1>
           </div>
           <Link to="/safety" className="text-xs font-semibold text-red-600 hover:underline">
             Safety Center
@@ -140,7 +140,7 @@ export default function HelpSupport() {
       <div className="max-w-2xl mx-auto px-4 pt-8 space-y-6">
 
         <div>
-          <h2 className="font-serif font-medium text-3xl text-[#1A1A2E]">Frequently Asked Questions</h2>
+          <h2 className="font-serif font-medium text-3xl text-[#1E2229]">Frequently Asked Questions</h2>
           <p className="text-xs text-gray-500 mt-1">Instant answers regarding verification, deposits, safety, and mutual contact reveal.</p>
         </div>
 
@@ -152,7 +152,7 @@ export default function HelpSupport() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search FAQs (verification, deposits, freshness, safety...)"
-            className="w-full bg-white border border-gray-200 rounded-full pl-11 pr-5 py-3 text-xs sm:text-sm text-[#1A1A2E] placeholder:text-gray-400 focus:outline-none focus:border-[#E5501A] shadow-2xs font-medium"
+            className="w-full bg-white border border-gray-200 rounded-full pl-11 pr-5 py-3 text-xs sm:text-sm text-[#1E2229] placeholder:text-gray-400 focus:outline-none focus:border-[#FF5A36] shadow-2xs font-medium"
           />
         </div>
 
@@ -181,10 +181,10 @@ export default function HelpSupport() {
                       onClick={() => setOpenIndex(isOpen ? null : idx)}
                       className="w-full flex items-center justify-between text-left group cursor-pointer"
                     >
-                      <span className="text-sm font-semibold text-[#1A1A2E] group-hover:text-[#E5501A] transition-colors pr-2">
+                      <span className="text-sm font-semibold text-[#1E2229] group-hover:text-[#FF5A36] transition-colors pr-2">
                         {item.question}
                       </span>
-                      <div className="w-7 h-7 rounded-full bg-gray-50 flex items-center justify-center shrink-0 text-gray-500 group-hover:text-[#E5501A]">
+                      <div className="w-7 h-7 rounded-full bg-gray-50 flex items-center justify-center shrink-0 text-gray-500 group-hover:text-[#FF5A36]">
                         {isOpen ? (
                           <ChevronUp className="w-4 h-4" />
                         ) : (
@@ -207,11 +207,11 @@ export default function HelpSupport() {
         {/* Contact Support Form */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-xs space-y-4">
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-9 h-9 rounded-2xl bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-2xl bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center">
               <Mail className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="font-serif font-medium text-xl text-[#1A1A2E]">
+              <h2 className="font-serif font-medium text-xl text-[#1E2229]">
                 Contact NestMate Operations
               </h2>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -232,7 +232,7 @@ export default function HelpSupport() {
               <button
                 type="button"
                 onClick={() => { setTicketSent(false); setMessage(''); }}
-                className="text-xs font-semibold text-[#E5501A] hover:underline pt-2 block mx-auto cursor-pointer"
+                className="text-xs font-semibold text-[#FF5A36] hover:underline pt-2 block mx-auto cursor-pointer"
               >
                 Send another message
               </button>
@@ -240,11 +240,11 @@ export default function HelpSupport() {
           ) : (
             <form onSubmit={handleSubmitTicket} className="space-y-4 pt-2">
               <div>
-                <label className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2">Category Topic</label>
+                <label className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2">Category Topic</label>
                 <select
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs sm:text-sm font-medium text-[#1A1A2E] focus:outline-none focus:border-[#E5501A]"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs sm:text-sm font-medium text-[#1E2229] focus:outline-none focus:border-[#FF5A36]"
                 >
                   <option value="verification">Verification & Documents</option>
                   <option value="listing">Listing & Freshness Issue</option>
@@ -255,20 +255,20 @@ export default function HelpSupport() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2">Detailed Message</label>
+                <label className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2">Detailed Message</label>
                 <textarea
                   rows={4}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Describe your inquiry or issue with as much context as possible..."
-                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 text-xs sm:text-sm text-[#1A1A2E] placeholder:text-gray-400 focus:outline-none focus:border-[#E5501A] leading-relaxed resize-none"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 text-xs sm:text-sm text-[#1E2229] placeholder:text-gray-400 focus:outline-none focus:border-[#FF5A36] leading-relaxed resize-none"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={sending}
-                className="w-full py-3.5 bg-[#E5501A] hover:bg-[#D0400B] text-white rounded-full font-semibold text-xs shadow-sm shadow-[#E5501A]/20 flex items-center justify-center gap-2 disabled:opacity-50 transition-all cursor-pointer active:scale-[0.98]"
+                className="w-full py-3.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full font-semibold text-xs shadow-sm shadow-[#FF5A36]/20 flex items-center justify-center gap-2 disabled:opacity-50 transition-all cursor-pointer active:scale-[0.98]"
               >
                 {sending ? (
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

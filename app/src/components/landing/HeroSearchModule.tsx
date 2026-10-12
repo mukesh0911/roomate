@@ -102,11 +102,11 @@ export default function HeroSearchModule() {
           onClick={() => setActiveTab('rooms')}
           className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-full text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
             activeTab === 'rooms'
-              ? 'bg-[#FFF2EB] text-[#E5501A] border border-[#E5501A]/30 shadow-xs'
+              ? 'bg-[#FFF2EB] text-[#FF5A36] border border-[#FF5A36]/30 shadow-xs'
               : 'bg-white/90 text-gray-600 hover:text-gray-900 border border-gray-200/80'
           }`}
         >
-          <Home className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'rooms' ? 'text-[#E5501A]' : 'text-gray-400'}`} />
+          <Home className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'rooms' ? 'text-[#FF5A36]' : 'text-gray-400'}`} />
           <span className="truncate">Rooms &amp; PGs</span>
         </button>
 
@@ -115,11 +115,11 @@ export default function HeroSearchModule() {
           onClick={() => setActiveTab('flatmates')}
           className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-full text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
             activeTab === 'flatmates'
-              ? 'bg-[#FFF2EB] text-[#E5501A] border border-[#E5501A]/30 shadow-xs'
+              ? 'bg-[#FFF2EB] text-[#FF5A36] border border-[#FF5A36]/30 shadow-xs'
               : 'bg-white/90 text-gray-600 hover:text-gray-900 border border-gray-200/80'
           }`}
         >
-          <Users className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'flatmates' ? 'text-[#E5501A]' : 'text-gray-400'}`} />
+          <Users className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'flatmates' ? 'text-[#FF5A36]' : 'text-gray-400'}`} />
           <span className="truncate">Roommates</span>
         </button>
       </div>
@@ -136,7 +136,7 @@ export default function HeroSearchModule() {
               value={cityAreaQuery}
               onChange={(e) => setCityAreaQuery(e.target.value)}
               placeholder="Enter city, area or landmark"
-              className="w-full bg-transparent text-xs sm:text-sm font-medium text-[#1A1A2E] placeholder:text-gray-400 focus:outline-none truncate"
+              className="w-full bg-transparent text-xs sm:text-sm font-medium text-[#1E2229] placeholder:text-gray-400 focus:outline-none truncate"
             />
           </div>
 
@@ -154,7 +154,7 @@ export default function HeroSearchModule() {
             >
               <div className="flex items-center gap-2 min-w-0">
                 <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
-                <span className="text-xs sm:text-sm font-medium text-[#1A1A2E] truncate">
+                <span className="text-xs sm:text-sm font-medium text-[#1E2229] truncate">
                   {moveInDate === 'Any date' ? 'Move-in date' : moveInDate}
                 </span>
               </div>
@@ -172,7 +172,7 @@ export default function HeroSearchModule() {
                       setIsDateOpen(false);
                     }}
                     className={`w-full text-left px-3.5 py-2 sm:py-1.5 text-xs font-medium hover:bg-orange-50/50 transition-colors ${
-                      moveInDate === opt ? 'text-[#E5501A] font-bold bg-[#E5501A]/5' : 'text-slate-700'
+                      moveInDate === opt ? 'text-[#FF5A36] font-bold bg-[#FF5A36]/5' : 'text-slate-700'
                     }`}
                   >
                     {opt}
@@ -196,7 +196,7 @@ export default function HeroSearchModule() {
             >
               <div className="flex items-center gap-2 min-w-0">
                 <IndianRupee className="w-4 h-4 text-gray-400 shrink-0" />
-                <span className="text-xs sm:text-sm font-medium text-[#1A1A2E] truncate">
+                <span className="text-xs sm:text-sm font-medium text-[#1E2229] truncate">
                   {budgetRange === 'Any budget' ? 'Budget range' : budgetRange}
                 </span>
               </div>
@@ -214,7 +214,7 @@ export default function HeroSearchModule() {
                       setIsBudgetOpen(false);
                     }}
                     className={`w-full text-left px-3.5 py-2 sm:py-1.5 text-xs font-medium hover:bg-orange-50/50 transition-colors ${
-                      budgetRange === opt.label ? 'text-[#E5501A] font-bold bg-[#E5501A]/5' : 'text-slate-700'
+                      budgetRange === opt.label ? 'text-[#FF5A36] font-bold bg-[#FF5A36]/5' : 'text-slate-700'
                     }`}
                   >
                     {opt.label}
@@ -228,7 +228,7 @@ export default function HeroSearchModule() {
           <button
             type="submit"
             aria-label="Search"
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-full bg-[#E5501A] hover:bg-[#D0400B] text-white font-semibold text-xs sm:text-sm shadow-xs transition-all active:scale-[0.98] cursor-pointer shrink-0 mt-0.5 sm:mt-0 min-h-[40px]"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-full bg-[#FF5A36] hover:bg-[#E54E2B] text-white font-semibold text-xs sm:text-sm shadow-xs transition-all active:scale-[0.98] cursor-pointer shrink-0 mt-0.5 sm:mt-0 min-h-[40px]"
           >
             <Search className="w-4 h-4" />
             <span>Search</span>
@@ -248,7 +248,7 @@ export default function HeroSearchModule() {
           </span>
         </div>
         <div className="flex flex-col items-center text-center">
-          <div className="w-6 h-6 rounded-full bg-orange-50 text-[#E5501A] flex items-center justify-center text-xs mb-1">
+          <div className="w-6 h-6 rounded-full bg-orange-50 text-[#FF5A36] flex items-center justify-center text-xs mb-1">
             👥
           </div>
           <span className="text-[10px] text-gray-600 font-medium leading-tight">
@@ -299,6 +299,26 @@ export default function HeroSearchModule() {
           </div>
           <span className="truncate">Safe &amp; private chat</span>
         </div>
+      </div>
+
+      {/* Top Cities Quick Links (Matching FlatMate Reference Screenshot 1 & 2) */}
+      <div className="mt-3.5 pt-3 border-t border-gray-100/80 flex items-center gap-1.5 flex-wrap">
+        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mr-1">
+          Top Cities:
+        </span>
+        {['Delhi', 'Mumbai', 'Bangalore', 'Pune', 'Noida', 'Gurgaon', 'Hyderabad'].map((c) => (
+          <button
+            key={c}
+            type="button"
+            onClick={() => {
+              updateFilters({ city: c });
+              navigate(`/explore?tab=${activeTab === 'flatmates' ? 'roommates' : 'rooms'}&city=${c}`);
+            }}
+            className="px-2.5 py-1 rounded-full text-xs font-semibold bg-white hover:bg-orange-50 hover:text-[#FF5A36] text-slate-700 border border-gray-200/80 shadow-2xs transition-colors cursor-pointer"
+          >
+            {c}
+          </button>
+        ))}
       </div>
     </div>
   );

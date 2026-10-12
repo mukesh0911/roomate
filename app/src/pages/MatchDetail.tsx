@@ -433,7 +433,7 @@ export default function MatchDetail() {
   if (isLoading) return <StateLoading label="Loading profile..." fullScreen />;
 
   if (!matchedUser) return (
-    <div className="min-h-screen bg-[#FBF9F6] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[#FBFBFC] flex items-center justify-center px-4">
       <StateEmpty
         icon={Star}
         title="Profile not found"
@@ -442,13 +442,13 @@ export default function MatchDetail() {
           <div className="flex flex-wrap items-center justify-center gap-2.5">
             <button
               onClick={() => navigate('/explore?tab=roommates')}
-              className="px-5 py-2.5 rounded-full font-bold text-xs bg-[#E5501A] hover:bg-[#D0400B] text-white shadow-xs cursor-pointer"
+              className="px-5 py-2.5 rounded-full font-bold text-xs bg-[#FF5A36] hover:bg-[#E54E2B] text-white shadow-xs cursor-pointer"
             >
               Browse Roommates
             </button>
             <button
               onClick={() => navigate('/explore?tab=rooms')}
-              className="px-5 py-2.5 rounded-full font-bold text-xs bg-white hover:bg-gray-50 border border-gray-200 text-[#1A1A2E] shadow-2xs cursor-pointer"
+              className="px-5 py-2.5 rounded-full font-bold text-xs bg-white hover:bg-gray-50 border border-gray-200 text-[#1E2229] shadow-2xs cursor-pointer"
             >
               Browse Rooms
             </button>
@@ -544,15 +544,15 @@ export default function MatchDetail() {
   const isOwner = p.role === 'owner' || ownerListings.length > 0 || Boolean(listing);
 
   return (
-    <div className="min-h-screen bg-[#FBF9F6] pb-32 sm:pb-36 lg:pb-20 text-[#1A1A2E] font-sans">
+    <div className="min-h-screen bg-[#FBFBFC] pb-32 sm:pb-36 lg:pb-20 text-[#1E2229] font-sans">
 
       {/* ── Toast Notification ──────────────────────────────────────── */}
       {copyToast && (
         <div
           role="status"
-          className="fixed top-20 left-1/2 -translate-x-1/2 z-[80] bg-[#1A1A2E]/95 backdrop-blur-md text-white text-xs font-semibold px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-2 border border-white/10 animate-fade-up"
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-[80] bg-[#1E2229]/95 backdrop-blur-md text-white text-xs font-semibold px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-2 border border-white/10 animate-fade-up"
         >
-          <Copy className="w-3.5 h-3.5 text-[#E5501A]" />
+          <Copy className="w-3.5 h-3.5 text-[#FF5A36]" />
           <span>Profile link copied to clipboard</span>
         </div>
       )}
@@ -566,7 +566,7 @@ export default function MatchDetail() {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="flex items-center gap-1.5 text-gray-700 hover:text-[#1A1A2E] font-bold transition-colors cursor-pointer shrink-0 py-1.5 px-2.5 rounded-xl hover:bg-gray-100"
+              className="flex items-center gap-1.5 text-gray-700 hover:text-[#1E2229] font-bold transition-colors cursor-pointer shrink-0 py-1.5 px-2.5 rounded-xl hover:bg-gray-100"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
@@ -586,7 +586,7 @@ export default function MatchDetail() {
               {isOwner ? 'Rooms & Hosts' : 'Roommates'}
             </Link>
             <span className="text-gray-300">/</span>
-            <span className="font-extrabold text-[#1A1A2E] truncate">
+            <span className="font-extrabold text-[#1E2229] truncate">
               {p.name}
             </span>
           </div>
@@ -633,7 +633,7 @@ export default function MatchDetail() {
             </div>
 
             {/* Name & Verification Badge */}
-            <h1 className="text-xl sm:text-2xl font-bold text-[#1A1A2E] mb-1 flex items-center justify-center gap-1.5">
+            <h1 className="text-xl sm:text-2xl font-bold text-[#1E2229] mb-1 flex items-center justify-center gap-1.5">
               <span>{p.name}</span>
               {isIdentityVerified && (
                 <span title={isOwner ? "Verified Host" : "Verified User"} className="text-emerald-500">
@@ -652,8 +652,8 @@ export default function MatchDetail() {
 
             {/* Room Provider Pill Badge */}
             {isOwner && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#FFF2EB] text-[#E5501A] border border-[#E5501A]/20 text-[11px] font-bold mb-2 shadow-2xs">
-                <Building2 className="w-3.5 h-3.5 text-[#E5501A]" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#FFF2EB] text-[#FF5A36] border border-[#FF5A36]/20 text-[11px] font-bold mb-2 shadow-2xs">
+                <Building2 className="w-3.5 h-3.5 text-[#FF5A36]" />
                 <span>Room Provider · {ownerListings.length > 0 ? `${ownerListings.length} Available Space${ownerListings.length > 1 ? 's' : ''}` : 'Verified Property'}</span>
               </div>
             )}
@@ -670,7 +670,7 @@ export default function MatchDetail() {
                 <button
                   type="button"
                   onClick={() => navigate('/edit-profile')}
-                  className="w-full py-2.5 px-5 rounded-full font-bold text-xs sm:text-sm bg-[#E5501A] hover:bg-[#D0400B] text-white shadow-md shadow-[#E5501A]/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                  className="w-full py-2.5 px-5 rounded-full font-bold text-xs sm:text-sm bg-[#FF5A36] hover:bg-[#E54E2B] text-white shadow-md shadow-[#FF5A36]/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
                 >
                   <User className="w-4 h-4" />
                   <span>Edit My Profile</span>
@@ -682,7 +682,7 @@ export default function MatchDetail() {
                   type="button"
                   onClick={handleConnectOrChat}
                   disabled={connecting || connectState === 'pending_sent'}
-                  className="flex-1 py-2.5 px-5 rounded-full font-bold text-xs sm:text-sm bg-[#E5501A] hover:bg-[#D0400B] text-white shadow-md shadow-[#E5501A]/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-85"
+                  className="flex-1 py-2.5 px-5 rounded-full font-bold text-xs sm:text-sm bg-[#FF5A36] hover:bg-[#E54E2B] text-white shadow-md shadow-[#FF5A36]/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-85"
                 >
                   {connecting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -696,15 +696,6 @@ export default function MatchDetail() {
                       </span>
                     </>
                   )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleCallUser}
-                  className="flex-1 py-2.5 px-5 rounded-full font-bold text-xs sm:text-sm bg-[#E5501A] hover:bg-[#D0400B] text-white shadow-md shadow-[#E5501A]/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
-                >
-                  <Phone className="w-4 h-4" />
-                  <span>{isOwner ? 'Call Host' : 'Call'}</span>
                 </button>
               </div>
             )}
@@ -721,12 +712,12 @@ export default function MatchDetail() {
           {/* 2. Match Compatibility (Original Engine & Reasons) */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-base sm:text-lg font-bold text-[#1A1A2E]">
+              <h2 className="text-base sm:text-lg font-bold text-[#1E2229]">
                 {isOwner ? 'Compatibility with Host & Space' : 'Match Compatibility'}
               </h2>
               {user && compatibilityScore > 0 && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#E5501A] bg-[#FFF2EB] px-2.5 py-0.5 rounded-full border border-[#E5501A]/20">
-                  <Sparkles className="w-3 h-3 text-[#E5501A]" />
+                <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#FF5A36] bg-[#FFF2EB] px-2.5 py-0.5 rounded-full border border-[#FF5A36]/20">
+                  <Sparkles className="w-3 h-3 text-[#FF5A36]" />
                   <span>{compatibilityScore}% Match</span>
                 </span>
               )}
@@ -736,7 +727,7 @@ export default function MatchDetail() {
               <div className="space-y-3">
                 <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-[#E5501A] to-[#F26428] h-full rounded-full transition-all duration-500 shadow-xs"
+                    className="bg-gradient-to-r from-[#FF5A36] to-[#F26428] h-full rounded-full transition-all duration-500 shadow-xs"
                     style={{ width: `${Math.min(100, compatibilityScore)}%` }}
                   />
                 </div>
@@ -744,8 +735,8 @@ export default function MatchDetail() {
                 {matchReasons.length > 0 && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                     {matchReasons.map((reason, idx) => (
-                      <div key={idx} className="flex items-center gap-2 p-2.5 rounded-xl bg-[#FFF9F6] border border-[#E5501A]/15 text-xs text-gray-700">
-                        <Check className="w-3.5 h-3.5 text-[#E5501A] shrink-0 font-bold" />
+                      <div key={idx} className="flex items-center gap-2 p-2.5 rounded-xl bg-[#FFF9F6] border border-[#FF5A36]/15 text-xs text-gray-700">
+                        <Check className="w-3.5 h-3.5 text-[#FF5A36] shrink-0 font-bold" />
                         <span>{reason}</span>
                       </div>
                     ))}
@@ -753,7 +744,7 @@ export default function MatchDetail() {
                 )}
               </div>
             ) : (
-              <div className="p-3.5 rounded-2xl bg-[#FFF9F6] border border-[#E5501A]/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
+              <div className="p-3.5 rounded-2xl bg-[#FFF9F6] border border-[#FF5A36]/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
                 <p className="text-xs text-gray-600">
                   {!user
                     ? "Sign in to calculate personalized compatibility across lifestyle, budget, and habits."
@@ -769,18 +760,18 @@ export default function MatchDetail() {
                       subtitle: 'Sign in to see how well your habits align.',
                       redirect: `/match/${id}`
                     })}
-                    className="shrink-0 text-xs font-bold text-[#E5501A] hover:underline flex items-center gap-1 cursor-pointer"
+                    className="shrink-0 text-xs font-bold text-[#FF5A36] hover:underline flex items-center gap-1 cursor-pointer"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-[#E5501A]" />
+                    <Sparkles className="w-3.5 h-3.5 text-[#FF5A36]" />
                     <span>Sign in to match →</span>
                   </button>
                 ) : !hasUserQuiz ? (
                   <button
                     type="button"
                     onClick={() => navigate('/preferences')}
-                    className="shrink-0 text-xs font-bold text-[#E5501A] hover:underline flex items-center gap-1 cursor-pointer"
+                    className="shrink-0 text-xs font-bold text-[#FF5A36] hover:underline flex items-center gap-1 cursor-pointer"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-[#E5501A]" />
+                    <Sparkles className="w-3.5 h-3.5 text-[#FF5A36]" />
                     <span>Take quiz →</span>
                   </button>
                 ) : null}
@@ -796,13 +787,13 @@ export default function MatchDetail() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-base sm:text-lg font-bold text-[#1A1A2E] flex items-center gap-2">
-                      <Building2 className="w-5 h-5 text-[#E5501A]" />
+                    <h2 className="text-base sm:text-lg font-bold text-[#1E2229] flex items-center gap-2">
+                      <Building2 className="w-5 h-5 text-[#FF5A36]" />
                       <span>Available Rooms by {p.name}</span>
                     </h2>
                     <p className="text-xs text-gray-500 mt-0.5">Explore active spaces and rooms hosted by {p.name}</p>
                   </div>
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-[#FFF2EB] text-[#E5501A] border border-[#E5501A]/20">
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-[#FFF2EB] text-[#FF5A36] border border-[#FF5A36]/20">
                     {ownerListings.length} {ownerListings.length === 1 ? 'Space' : 'Spaces'}
                   </span>
                 </div>
@@ -816,7 +807,7 @@ export default function MatchDetail() {
                       <div
                         key={item.id}
                         onClick={() => navigate(`/room/${item.id}`)}
-                        className="group bg-white rounded-2xl border border-gray-200/90 hover:border-[#E5501A]/50 p-3.5 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+                        className="group bg-white rounded-2xl border border-gray-200/90 hover:border-[#FF5A36]/50 p-3.5 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
                       >
                         <div>
                           <div className="relative aspect-video rounded-xl overflow-hidden mb-3 bg-gray-100">
@@ -837,30 +828,30 @@ export default function MatchDetail() {
                             </div>
                             {item.genderPreference && (
                               <div className="absolute bottom-2 left-2">
-                                <span className="bg-white/95 backdrop-blur-xs text-[#1A1A2E] text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs">
+                                <span className="bg-white/95 backdrop-blur-xs text-[#1E2229] text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs">
                                   {item.genderPreference} preferred
                                 </span>
                               </div>
                             )}
                           </div>
 
-                          <h3 className="text-sm font-bold text-[#1A1A2E] group-hover:text-[#E5501A] transition-colors line-clamp-1 mb-1">
+                          <h3 className="text-sm font-bold text-[#1E2229] group-hover:text-[#FF5A36] transition-colors line-clamp-1 mb-1">
                             {item.title || `${item.flatType || 'Room'} in ${item.locality || item.city}`}
                           </h3>
                           <p className="text-xs text-gray-500 flex items-center gap-1 mb-3 line-clamp-1">
-                            <MapPin className="w-3.5 h-3.5 text-[#E5501A] shrink-0" />
+                            <MapPin className="w-3.5 h-3.5 text-[#FF5A36] shrink-0" />
                             <span>{item.locality ? `${item.locality}, ${item.city}` : item.city || 'Location not specified'}</span>
                           </p>
                         </div>
 
                         <div className="pt-2.5 border-t border-gray-100 flex items-center justify-between">
                           <div>
-                            <span className="text-sm font-extrabold text-[#E5501A]">
+                            <span className="text-sm font-extrabold text-[#FF5A36]">
                               ₹{rentVal.toLocaleString('en-IN')}
                             </span>
                             <span className="text-[11px] text-gray-400 font-medium"> / month</span>
                           </div>
-                          <span className="text-xs font-bold text-[#E5501A] group-hover:underline flex items-center gap-1">
+                          <span className="text-xs font-bold text-[#FF5A36] group-hover:underline flex items-center gap-1">
                             <span>View Details</span>
                             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                           </span>
@@ -877,21 +868,21 @@ export default function MatchDetail() {
 
           {/* 3. Basic Info (Owner Hosting Overview vs Seeker Roommate Overview) */}
           <div className="space-y-4">
-            <h2 className="text-base sm:text-lg font-bold text-[#1A1A2E]">
+            <h2 className="text-base sm:text-lg font-bold text-[#1E2229]">
               {isOwner ? 'Hosting & Property Overview' : 'Basic Info'}
             </h2>
             {isOwner ? (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-4 gap-x-6 text-left">
                 <div>
                   <span className="text-xs text-gray-400 font-medium block mb-1">Host Role</span>
-                  <span className="text-sm font-bold text-[#1A1A2E]">
+                  <span className="text-sm font-bold text-[#1E2229]">
                     Room Provider
                   </span>
                 </div>
 
                 <div>
                   <span className="text-xs text-gray-400 font-medium block mb-1">Monthly Rent</span>
-                  <span className="text-sm font-bold text-[#E5501A]">
+                  <span className="text-sm font-bold text-[#FF5A36]">
                     {listing
                       ? `₹ ${rentShare.toLocaleString('en-IN')}/mo`
                       : 'Contact Host'}
@@ -900,7 +891,7 @@ export default function MatchDetail() {
 
                 <div>
                   <span className="text-xs text-gray-400 font-medium block mb-1">Security Deposit</span>
-                  <span className="text-sm font-bold text-[#1A1A2E]">
+                  <span className="text-sm font-bold text-[#1E2229]">
                     {listing?.deposit
                       ? `₹ ${listing.deposit.toLocaleString('en-IN')}`
                       : (listing ? 'Contact Host' : 'Not specified')}
@@ -909,35 +900,35 @@ export default function MatchDetail() {
 
                 <div>
                   <span className="text-xs text-gray-400 font-medium block mb-1">Property Type</span>
-                  <span className="text-sm font-bold text-[#1A1A2E]">
+                  <span className="text-sm font-bold text-[#1E2229]">
                     {listing?.flatType || listing?.propertyType || (isOwner ? 'Apartment' : 'Not specified')}
                   </span>
                 </div>
 
                 <div>
                   <span className="text-xs text-gray-400 font-medium block mb-1">Preferred Tenant</span>
-                  <span className="text-sm font-bold text-[#1A1A2E]">
+                  <span className="text-sm font-bold text-[#1E2229]">
                     {listing?.genderPreference ? `${listing.genderPreference} preferred` : 'Any (Male / Female)'}
                   </span>
                 </div>
 
                 <div>
                   <span className="text-xs text-gray-400 font-medium block mb-1">Furnishing</span>
-                  <span className="text-sm font-bold text-[#1A1A2E]">
+                  <span className="text-sm font-bold text-[#1E2229]">
                     {listing?.furnishing || (isOwner ? 'Semi-Furnished' : 'Not specified')}
                   </span>
                 </div>
 
                 <div>
                   <span className="text-xs text-gray-400 font-medium block mb-1">Available From</span>
-                  <span className="text-sm font-bold text-[#1A1A2E]">
+                  <span className="text-sm font-bold text-[#1E2229]">
                     {listing?.availableFrom || 'Immediately'}
                   </span>
                 </div>
 
                 <div>
                   <span className="text-xs text-gray-400 font-medium block mb-1">Host on NestMate</span>
-                  <span className="text-sm font-bold text-[#1A1A2E]">
+                  <span className="text-sm font-bold text-[#1E2229]">
                     {memberDuration}
                   </span>
                 </div>
@@ -946,7 +937,7 @@ export default function MatchDetail() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-4 gap-x-6 text-left">
                 <div>
                   <span className="text-xs text-gray-400 font-medium block mb-1">Gender</span>
-                  <span className="text-sm font-bold text-[#1A1A2E]">
+                  <span className="text-sm font-bold text-[#1E2229]">
                     {p.gender ? (p.gender.toLowerCase() === 'female' ? '♀ Female' : '♂ Male') : 'Any'}
                   </span>
                 </div>
@@ -955,7 +946,7 @@ export default function MatchDetail() {
                   <span className="text-xs text-gray-400 font-medium block mb-1">
                     {listing ? 'Approx Rent' : 'Budget'}
                   </span>
-                  <span className="text-sm font-bold text-[#1A1A2E]">
+                  <span className="text-sm font-bold text-[#1E2229]">
                     {listing
                       ? `₹ ${rentShare.toLocaleString('en-IN')}`
                       : p.budget
@@ -966,28 +957,28 @@ export default function MatchDetail() {
 
                 <div>
                   <span className="text-xs text-gray-400 font-medium block mb-1">Occupancy</span>
-                  <span className="text-sm font-bold text-[#1A1A2E]">
+                  <span className="text-sm font-bold text-[#1E2229]">
                     {listing?.flatType || p.preferredRoomType || 'Single'}
                   </span>
                 </div>
 
                 <div>
                   <span className="text-xs text-gray-400 font-medium block mb-1">Looking For</span>
-                  <span className="text-sm font-bold text-[#1A1A2E]">
+                  <span className="text-sm font-bold text-[#1E2229]">
                     {listing ? ((listing as any).propertyType || 'Roommate') : 'Any'}
                   </span>
                 </div>
 
                 <div>
                   <span className="text-xs text-gray-400 font-medium block mb-1">Occupation</span>
-                  <span className="text-sm font-bold text-[#1A1A2E] truncate block">
+                  <span className="text-sm font-bold text-[#1E2229] truncate block">
                     {p.profession || 'Working Professional'}
                   </span>
                 </div>
 
                 <div>
                   <span className="text-xs text-gray-400 font-medium block mb-1">Member Since</span>
-                  <span className="text-sm font-bold text-[#1A1A2E]">
+                  <span className="text-sm font-bold text-[#1E2229]">
                     {memberDuration}
                   </span>
                 </div>
@@ -1002,11 +993,11 @@ export default function MatchDetail() {
             <>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-base sm:text-lg font-bold text-[#1A1A2E]">Pictures</h2>
+                  <h2 className="text-base sm:text-lg font-bold text-[#1E2229]">Pictures</h2>
                   {listing && (
                     <button
                       onClick={() => navigate(`/room/${listing.id}`)}
-                      className="text-xs font-bold text-[#E5501A] hover:underline cursor-pointer"
+                      className="text-xs font-bold text-[#FF5A36] hover:underline cursor-pointer"
                     >
                       View listing →
                     </button>
@@ -1069,7 +1060,7 @@ export default function MatchDetail() {
 
           {/* 5. Trust & Verification (Original Trust Signals) */}
           <div className="space-y-4">
-            <h2 className="text-base sm:text-lg font-bold text-[#1A1A2E]">Trust &amp; Verification</h2>
+            <h2 className="text-base sm:text-lg font-bold text-[#1E2229]">Trust &amp; Verification</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-left">
               <div className={`p-3 rounded-2xl border flex items-center gap-2.5 text-xs font-bold ${
                 isIdentityVerified ? 'bg-emerald-50/70 border-emerald-200 text-emerald-800' : 'bg-[#FAF8F5] border-gray-150 text-gray-500'
@@ -1101,7 +1092,7 @@ export default function MatchDetail() {
 
           {/* 6. Preferences (Original Illustrated Badges) */}
           <div className="space-y-4">
-            <h2 className="text-base sm:text-lg font-bold text-[#1A1A2E]">Preferences</h2>
+            <h2 className="text-base sm:text-lg font-bold text-[#1E2229]">Preferences</h2>
             {preferencesList.length > 0 ? (
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-4 text-center">
                 {preferencesList.map((pref, idx) => (
@@ -1126,12 +1117,12 @@ export default function MatchDetail() {
           {hasLifestylePreferences && (
             <>
               <div className="space-y-4">
-                <h2 className="text-base sm:text-lg font-bold text-[#1A1A2E]">Living Habits &amp; Schedule</h2>
+                <h2 className="text-base sm:text-lg font-bold text-[#1E2229]">Living Habits &amp; Schedule</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
                   {resolvedPreferences.sleep_schedule && (
                     <div className="p-3 rounded-2xl bg-[#F5F8F6] border border-gray-150">
                       <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Sleep Schedule</span>
-                      <span className="font-bold text-xs text-[#1A1A2E]">
+                      <span className="font-bold text-xs text-[#1E2229]">
                         {resolvedPreferences.sleep_schedule === 'early_bird' ? 'Early Bird (10 PM)' : 'Night Owl (1 AM+)'}
                       </span>
                     </div>
@@ -1140,7 +1131,7 @@ export default function MatchDetail() {
                   {resolvedPreferences.cleanliness && (
                     <div className="p-3 rounded-2xl bg-[#F5F8F6] border border-gray-150">
                       <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Cleanliness</span>
-                      <span className="font-bold text-xs text-[#1A1A2E]">
+                      <span className="font-bold text-xs text-[#1E2229]">
                         {resolvedPreferences.cleanliness === 'very' ? 'Very Clean' : 'Moderate'}
                       </span>
                     </div>
@@ -1149,7 +1140,7 @@ export default function MatchDetail() {
                   {resolvedPreferences.smoking && (
                     <div className="p-3 rounded-2xl bg-[#F5F8F6] border border-gray-150">
                       <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Smoking</span>
-                      <span className="font-bold text-xs text-[#1A1A2E]">
+                      <span className="font-bold text-xs text-[#1E2229]">
                         {resolvedPreferences.smoking === 'never' ? 'Non-Smoker' : 'Occasional'}
                       </span>
                     </div>
@@ -1158,7 +1149,7 @@ export default function MatchDetail() {
                   {resolvedPreferences.food_pref && (
                     <div className="p-3 rounded-2xl bg-[#F5F8F6] border border-gray-150">
                       <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Diet</span>
-                      <span className="font-bold text-xs text-[#1A1A2E]">
+                      <span className="font-bold text-xs text-[#1E2229]">
                         {resolvedPreferences.food_pref === 'veg' ? 'Pure Vegetarian' : 'Non-Vegetarian'}
                       </span>
                     </div>
@@ -1167,7 +1158,7 @@ export default function MatchDetail() {
                   {resolvedPreferences.guests && (
                     <div className="p-3 rounded-2xl bg-[#F5F8F6] border border-gray-150">
                       <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Guests</span>
-                      <span className="font-bold text-xs text-[#1A1A2E]">
+                      <span className="font-bold text-xs text-[#1E2229]">
                         {resolvedPreferences.guests === 'rarely' ? 'Rare Guests' : 'Guests Welcome'}
                       </span>
                     </div>
@@ -1176,7 +1167,7 @@ export default function MatchDetail() {
                   {resolvedPreferences.pets && (
                     <div className="p-3 rounded-2xl bg-[#F5F8F6] border border-gray-150">
                       <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Pets</span>
-                      <span className="font-bold text-xs text-[#1A1A2E]">
+                      <span className="font-bold text-xs text-[#1E2229]">
                         {resolvedPreferences.pets === 'yes' ? 'Pet Friendly' : 'No Pets'}
                       </span>
                     </div>
@@ -1185,7 +1176,7 @@ export default function MatchDetail() {
                   {resolvedPreferences.work_schedule && (
                     <div className="p-3 rounded-2xl bg-[#F5F8F6] border border-gray-150">
                       <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Work Style</span>
-                      <span className="font-bold text-xs text-[#1A1A2E]">
+                      <span className="font-bold text-xs text-[#1E2229]">
                         {resolvedPreferences.work_schedule === 'wfh' ? 'Work From Home' : 'Office Going'}
                       </span>
                     </div>
@@ -1194,7 +1185,7 @@ export default function MatchDetail() {
                   {resolvedPreferences.social_vibe && (
                     <div className="p-3 rounded-2xl bg-[#F5F8F6] border border-gray-150">
                       <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Social Vibe</span>
-                      <span className="font-bold text-xs text-[#1A1A2E]">
+                      <span className="font-bold text-xs text-[#1E2229]">
                         {resolvedPreferences.social_vibe === 'quiet' ? 'Quiet & Chill' : 'Social & Outgoing'}
                       </span>
                     </div>
@@ -1208,7 +1199,7 @@ export default function MatchDetail() {
 
           {/* 8. Highlights (Pill Badges with Checkmark) */}
           <div className="space-y-4">
-            <h2 className="text-base sm:text-lg font-bold text-[#1A1A2E]">Highlights</h2>
+            <h2 className="text-base sm:text-lg font-bold text-[#1E2229]">Highlights</h2>
             {highlightsList.length > 0 ? (
               <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
                 {highlightsList.map((highlight, idx) => (
@@ -1232,7 +1223,7 @@ export default function MatchDetail() {
           {listing?.amenities && listing.amenities.length > 0 && (
             <>
               <div className="space-y-4">
-                <h2 className="text-base sm:text-lg font-bold text-[#1A1A2E]">Amenities</h2>
+                <h2 className="text-base sm:text-lg font-bold text-[#1E2229]">Amenities</h2>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 text-center">
                   {listing.amenities.map((amenity: string, idx: number) => (
                     <div key={idx} className="flex flex-col items-center">
@@ -1255,7 +1246,7 @@ export default function MatchDetail() {
           {listing?.houseRules && listing.houseRules.length > 0 && (
             <>
               <div className="space-y-4">
-                <h2 className="text-base sm:text-lg font-bold text-[#1A1A2E]">House Rules &amp; Guidelines</h2>
+                <h2 className="text-base sm:text-lg font-bold text-[#1E2229]">House Rules &amp; Guidelines</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {listing.houseRules.map((rule: string, idx: number) => (
                     <div key={idx} className="flex items-center gap-2 p-2.5 rounded-xl bg-[#F5F8F6] border border-gray-150 text-xs text-gray-700">
@@ -1272,7 +1263,7 @@ export default function MatchDetail() {
 
           {/* 11. Description / About */}
           <div className="space-y-3">
-            <h2 className="text-base sm:text-lg font-bold text-[#1A1A2E]">
+            <h2 className="text-base sm:text-lg font-bold text-[#1E2229]">
               {isOwner ? `About Host ${p.name}` : `About ${p.name}`}
             </h2>
             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
@@ -1289,12 +1280,12 @@ export default function MatchDetail() {
           {/* 12. Neighborhood & Transit (Original Locality & Commute Details) */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base sm:text-lg font-bold text-[#1A1A2E]">Neighborhood &amp; Transit</h2>
+              <h2 className="text-base sm:text-lg font-bold text-[#1E2229]">Neighborhood &amp; Transit</h2>
               <a
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([userLocality, userCity].filter(Boolean).join(', ') || 'India')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs font-bold text-[#E5501A] hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-xs font-bold text-[#FF5A36] hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <span>Google Maps</span>
                 <ExternalLink className="w-3 h-3" />
@@ -1314,10 +1305,10 @@ export default function MatchDetail() {
                   </div>
                   <div>
                     <span className="text-[10px] uppercase font-bold text-gray-400 block">Metro Connectivity</span>
-                    <span className="text-xs font-bold text-[#1A1A2E] group-hover:text-[#E5501A] transition-colors">Find Stations</span>
+                    <span className="text-xs font-bold text-[#1E2229] group-hover:text-[#FF5A36] transition-colors">Find Stations</span>
                   </div>
                 </div>
-                <ExternalLink className="w-3 h-3 text-gray-400 group-hover:text-[#E5501A]" />
+                <ExternalLink className="w-3 h-3 text-gray-400 group-hover:text-[#FF5A36]" />
               </a>
 
               <a
@@ -1332,10 +1323,10 @@ export default function MatchDetail() {
                   </div>
                   <div>
                     <span className="text-[10px] uppercase font-bold text-gray-400 block">Public Transport</span>
-                    <span className="text-xs font-bold text-[#1A1A2E] group-hover:text-[#E5501A] transition-colors">Find Bus Stops</span>
+                    <span className="text-xs font-bold text-[#1E2229] group-hover:text-[#FF5A36] transition-colors">Find Bus Stops</span>
                   </div>
                 </div>
-                <ExternalLink className="w-3 h-3 text-gray-400 group-hover:text-[#E5501A]" />
+                <ExternalLink className="w-3 h-3 text-gray-400 group-hover:text-[#FF5A36]" />
               </a>
 
               <a
@@ -1350,10 +1341,10 @@ export default function MatchDetail() {
                   </div>
                   <div>
                     <span className="text-[10px] uppercase font-bold text-gray-400 block">Local Market</span>
-                    <span className="text-xs font-bold text-[#1A1A2E] group-hover:text-[#E5501A] transition-colors">Find Markets</span>
+                    <span className="text-xs font-bold text-[#1E2229] group-hover:text-[#FF5A36] transition-colors">Find Markets</span>
                   </div>
                 </div>
-                <ExternalLink className="w-3 h-3 text-gray-400 group-hover:text-[#E5501A]" />
+                <ExternalLink className="w-3 h-3 text-gray-400 group-hover:text-[#FF5A36]" />
               </a>
             </div>
           </div>
@@ -1401,7 +1392,7 @@ export default function MatchDetail() {
           <button
             type="button"
             onClick={() => navigate('/edit-profile')}
-            className="w-full max-w-[280px] h-11 px-5 rounded-full font-bold text-xs sm:text-sm bg-[#E5501A] hover:bg-[#D0400B] text-white shadow-md shadow-[#E5501A]/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+            className="w-full max-w-[280px] h-11 px-5 rounded-full font-bold text-xs sm:text-sm bg-[#FF5A36] hover:bg-[#E54E2B] text-white shadow-md shadow-[#FF5A36]/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
           >
             <User className="w-4 h-4" />
             <span>Edit My Profile</span>
@@ -1412,7 +1403,7 @@ export default function MatchDetail() {
               type="button"
               onClick={handleConnectOrChat}
               disabled={connecting || connectState === 'pending_sent'}
-              className="flex-1 max-w-[200px] h-11 px-5 rounded-full font-bold text-xs sm:text-sm bg-[#E5501A] hover:bg-[#D0400B] text-white shadow-md shadow-[#E5501A]/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-85"
+              className="flex-1 max-w-[200px] h-11 px-5 rounded-full font-bold text-xs sm:text-sm bg-[#FF5A36] hover:bg-[#E54E2B] text-white shadow-md shadow-[#FF5A36]/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-85"
             >
               {connecting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -1426,15 +1417,6 @@ export default function MatchDetail() {
                   </span>
                 </>
               )}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleCallUser}
-              className="flex-1 max-w-[200px] h-11 px-5 rounded-full font-bold text-xs sm:text-sm bg-[#E5501A] hover:bg-[#D0400B] text-white shadow-md shadow-[#E5501A]/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
-            >
-              <Phone className="w-4 h-4" />
-              <span>{isOwner ? 'Call Host' : 'Call'}</span>
             </button>
           </>
         )}
@@ -1555,7 +1537,7 @@ export default function MatchDetail() {
                   aria-label={`View photo ${i + 1}`}
                   className={`shrink-0 w-16 h-12 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
                     i === activeRoomImgIdx
-                      ? 'border-[#E5501A] scale-105 shadow-md shadow-[#E5501A]/30'
+                      ? 'border-[#FF5A36] scale-105 shadow-md shadow-[#FF5A36]/30'
                       : 'border-white/20 opacity-50 hover:opacity-80'
                   }`}
                 >

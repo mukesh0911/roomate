@@ -249,7 +249,7 @@ export default function SettingsPage() {
       aria-checked={active}
       aria-label={label || (active ? 'On' : 'Off')}
       onClick={onClick}
-      className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${active ? 'bg-[#E5501A]' : 'bg-gray-200'}`}
+      className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${active ? 'bg-[#FF5A36]' : 'bg-gray-200'}`}
     >
       <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${active ? 'left-6' : 'left-1'}`} />
     </button>
@@ -262,7 +262,7 @@ export default function SettingsPage() {
       subtitle="Manage your profile identity, privacy preferences, and notification channels."
       actions={
         <div className="flex items-center gap-3">
-          {saving && <span className="text-xs text-[#E5501A] font-semibold animate-pulse">Saving...</span>}
+          {saving && <span className="text-xs text-[#FF5A36] font-semibold animate-pulse">Saving...</span>}
           <div className="flex items-center gap-2 bg-white px-3.5 py-1.5 rounded-full border border-gray-200 shadow-2xs">
             <Moon className="w-3.5 h-3.5 text-gray-500" />
             <span className="text-xs font-semibold text-gray-700">Dark Mode</span>
@@ -284,8 +284,8 @@ export default function SettingsPage() {
             onClick={() => setActiveTab(tab.key)}
             className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all flex-1 justify-center ${
               activeTab === tab.key
-                ? 'bg-white shadow-xs text-[#E5501A]'
-                : 'text-gray-600 hover:text-[#1A1A2E]'
+                ? 'bg-white shadow-xs text-[#FF5A36]'
+                : 'text-gray-600 hover:text-[#1E2229]'
             }`}
           >
             <tab.icon className="w-4 h-4" />
@@ -298,11 +298,11 @@ export default function SettingsPage() {
       {activeTab === 'account' && (
         <div className="space-y-6">
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-xs space-y-6">
-            <h3 className="font-serif font-medium text-xl text-[#1A1A2E]">Account Information</h3>
+            <h3 className="font-serif font-medium text-xl text-[#1E2229]">Account Information</h3>
 
             <div className="flex flex-col items-center justify-center py-2">
               <div className="relative group">
-                <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center text-2xl font-serif font-bold text-[#E5501A] overflow-hidden border-4 border-white shadow-sm">
+                <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center text-2xl font-serif font-bold text-[#FF5A36] overflow-hidden border-4 border-white shadow-sm">
                   {(profile?.avatar || user?.photoURL) && !avatarImgError ? (
                     <img
                       src={profile?.avatar || user?.photoURL || ''}
@@ -314,7 +314,7 @@ export default function SettingsPage() {
                     (profile?.name || user?.displayName ? (profile?.name || user?.displayName)![0].toUpperCase() : '?')
                   )}
                 </div>
-                <label className="absolute bottom-0 right-0 w-8 h-8 bg-[#E5501A] text-white rounded-full flex items-center justify-center cursor-pointer shadow-md hover:bg-[#D0400B] transition-colors">
+                <label className="absolute bottom-0 right-0 w-8 h-8 bg-[#FF5A36] text-white rounded-full flex items-center justify-center cursor-pointer shadow-md hover:bg-[#E54E2B] transition-colors">
                   {avatarUploading ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Camera className="w-4 h-4 text-white" />}
                   <input type="file" accept="image/*" className="hidden" onChange={handleAvatarSelect} disabled={avatarUploading} />
                 </label>
@@ -325,11 +325,11 @@ export default function SettingsPage() {
                 )}
               </div>
               <div className="mt-3 flex items-center gap-1.5">
-                <p className="font-serif font-medium text-lg text-[#1A1A2E]">{profile?.name || user?.displayName || 'NestMate User'}</p>
+                <p className="font-serif font-medium text-lg text-[#1E2229]">{profile?.name || user?.displayName || 'NestMate User'}</p>
                 {profile?.isVerified && <ShieldCheck className="w-4 h-4 text-emerald-600" />}
               </div>
               <span className={`inline-block mt-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
-                profile?.role === 'owner' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-[#FFF2EB] text-[#E5501A] border-[#E5501A]/20'
+                profile?.role === 'owner' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-[#FFF2EB] text-[#FF5A36] border-[#FF5A36]/20'
               }`}>
                 {profile?.role === 'owner' ? 'Property Host' : 'Flat Seeker'}
               </span>
@@ -337,17 +337,17 @@ export default function SettingsPage() {
 
             <div className="space-y-4 pt-2">
               <div>
-                <label className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2">Registered Phone</label>
+                <label className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2">Registered Phone</label>
                 <input type="text" value={profile?.phone ? '+91 ' + profile.phone.slice(-10) : user?.phoneNumber || 'Not registered'} disabled className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-gray-500 font-medium" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2">Email Address</label>
+                <label className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2">Email Address</label>
                 <input type="email" value={profile?.email || user?.email || 'Not specified'} disabled className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-gray-500 font-medium" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2">Full Display Name</label>
+                <label className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2">Full Display Name</label>
                 <input type="text" value={profile?.name || ''} disabled className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-gray-500 font-medium" />
-                <p className="text-xs text-gray-400 mt-1.5">Edit your bio and lifestyle answers anytime on your <button onClick={() => navigate('/edit-profile')} className="text-[#E5501A] font-semibold underline">Profile Page</button>.</p>
+                <p className="text-xs text-gray-400 mt-1.5">Edit your bio and lifestyle answers anytime on your <button onClick={() => navigate('/edit-profile')} className="text-[#FF5A36] font-semibold underline">Profile Page</button>.</p>
               </div>
             </div>
           </div>
@@ -356,12 +356,12 @@ export default function SettingsPage() {
           <div className="bg-white rounded-3xl p-6 sm:p-7 border border-gray-100 shadow-xs">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
-                <h3 className="font-serif font-medium text-base text-[#1A1A2E]">Switch Account Mode</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Current Mode: <span className="font-semibold text-[#1A1A2E] capitalize">{profile?.role === 'owner' ? 'Host / Owner' : 'Flat Seeker'}</span></p>
+                <h3 className="font-serif font-medium text-base text-[#1E2229]">Switch Account Mode</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Current Mode: <span className="font-semibold text-[#1E2229] capitalize">{profile?.role === 'owner' ? 'Host / Owner' : 'Flat Seeker'}</span></p>
               </div>
               <button
                 onClick={() => setShowSwitchRoleModal(true)}
-                className="px-5 py-2.5 border border-gray-200 text-[#1A1A2E] rounded-full text-xs font-semibold hover:border-[#E5501A] hover:text-[#E5501A] transition-all cursor-pointer shadow-2xs flex items-center gap-1.5"
+                className="px-5 py-2.5 border border-gray-200 text-[#1E2229] rounded-full text-xs font-semibold hover:border-[#FF5A36] hover:text-[#FF5A36] transition-all cursor-pointer shadow-2xs flex items-center gap-1.5"
               >
                 <ArrowRightLeft className="w-3.5 h-3.5" />
                 Switch to {profile?.role === 'seeker' ? 'Owner Mode' : 'Seeker Mode'}
@@ -373,11 +373,11 @@ export default function SettingsPage() {
           <div className={`rounded-3xl p-6 sm:p-7 border transition-all shadow-xs ${profile?.isVerified ? 'border-emerald-200 bg-emerald-50/50' : 'border-gray-100 bg-white'}`}>
             <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
               <div className="flex items-center gap-3.5">
-                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${profile?.isVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-[#FFF2EB] text-[#E5501A]'}`}>
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${profile?.isVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-[#FFF2EB] text-[#FF5A36]'}`}>
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-serif font-medium text-base text-[#1A1A2E]">Trust & Identity Verification</h3>
+                  <h3 className="font-serif font-medium text-base text-[#1E2229]">Trust & Identity Verification</h3>
                   <p className="text-xs text-gray-500">{profile?.isVerified ? 'Your official government ID is verified' : 'Get the official verified badge for your profile'}</p>
                 </div>
               </div>
@@ -394,7 +394,7 @@ export default function SettingsPage() {
                       toast.info('Please submit your ID document on the profile page.');
                     }
                   }}
-                  className="px-5 py-2 bg-[#E5501A] hover:bg-[#D0400B] text-white rounded-full text-xs font-semibold transition-all shadow-xs shadow-[#E5501A]/20"
+                  className="px-5 py-2 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full text-xs font-semibold transition-all shadow-xs shadow-[#FF5A36]/20"
                 >
                   Get Verified
                 </button>
@@ -417,12 +417,12 @@ export default function SettingsPage() {
 
           {/* Download My Data */}
           <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-xs space-y-3">
-            <h3 className="font-serif font-medium text-lg text-[#1A1A2E]">Data Portability</h3>
+            <h3 className="font-serif font-medium text-lg text-[#1E2229]">Data Portability</h3>
             <p className="text-xs text-gray-500 leading-relaxed">Download a complete backup of your profile details, property listings, match history, and in-app threads as encrypted JSON.</p>
             <button
               onClick={handleDownloadData}
               disabled={downloading}
-              className="w-full py-3 border border-gray-200 text-[#1A1A2E] rounded-full text-xs font-semibold hover:bg-gray-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3 border border-gray-200 text-[#1E2229] rounded-full text-xs font-semibold hover:bg-gray-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 text-gray-500" />}
               {downloading ? 'Preparing export...' : 'Export My Data Archive'}
@@ -449,7 +449,7 @@ export default function SettingsPage() {
       {activeTab === 'privacy' && (
         <div className="space-y-6">
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-xs space-y-5">
-            <h3 className="font-serif font-medium text-xl text-[#1A1A2E]">Profile Visibility & Privacy</h3>
+            <h3 className="font-serif font-medium text-xl text-[#1E2229]">Profile Visibility & Privacy</h3>
             <div className="space-y-4 divide-y divide-gray-100">
               {[
                 { key: 'profilePublic' as const, label: 'Public Profile Visibility', desc: 'Allow other verified roommates and hosts to view your profile card' },
@@ -458,7 +458,7 @@ export default function SettingsPage() {
               ].map((item, idx) => (
                 <div key={item.key} className={`flex items-center justify-between ${idx > 0 ? 'pt-4' : ''}`}>
                   <div>
-                    <p className="text-sm font-semibold text-[#1A1A2E]">{item.label}</p>
+                    <p className="text-sm font-semibold text-[#1E2229]">{item.label}</p>
                     <p className="text-xs text-gray-500 mt-0.5">{item.desc}</p>
                   </div>
                   <ToggleSwitch active={toggles[item.key]} onClick={() => toggle(item.key)} />
@@ -473,7 +473,7 @@ export default function SettingsPage() {
       {activeTab === 'notifications' && (
         <div className="space-y-6">
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-xs space-y-5">
-            <h3 className="font-serif font-medium text-xl text-[#1A1A2E]">Push & Alert Preferences</h3>
+            <h3 className="font-serif font-medium text-xl text-[#1E2229]">Push & Alert Preferences</h3>
             <div className="space-y-4 divide-y divide-gray-100">
               {[
                 { key: 'pushMatches' as const, label: 'High Compatibility Matches', desc: 'Notify me when a 85%+ lifestyle match publishes in my area' },
@@ -482,7 +482,7 @@ export default function SettingsPage() {
               ].map((item, idx) => (
                 <div key={item.key} className={`flex items-center justify-between ${idx > 0 ? 'pt-4' : ''}`}>
                   <div>
-                    <p className="text-sm font-semibold text-[#1A1A2E]">{item.label}</p>
+                    <p className="text-sm font-semibold text-[#1E2229]">{item.label}</p>
                     <p className="text-xs text-gray-500 mt-0.5">{item.desc}</p>
                   </div>
                   <ToggleSwitch active={toggles[item.key]} onClick={() => toggle(item.key)} />
@@ -497,21 +497,21 @@ export default function SettingsPage() {
       {activeTab === 'appearance' && (
         <div className="space-y-6">
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-xs space-y-5">
-            <h3 className="font-serif font-medium text-xl text-[#1A1A2E]">Interface Theme</h3>
+            <h3 className="font-serif font-medium text-xl text-[#1E2229]">Interface Theme</h3>
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => !toggles.darkMode || toggle('darkMode')}
-                className={`p-5 rounded-3xl border-2 transition-all flex flex-col items-center justify-center gap-2.5 ${!toggles.darkMode ? 'border-[#E5501A] bg-[#FFF2EB]/50' : 'border-gray-200'}`}
+                className={`p-5 rounded-3xl border-2 transition-all flex flex-col items-center justify-center gap-2.5 ${!toggles.darkMode ? 'border-[#FF5A36] bg-[#FFF2EB]/50' : 'border-gray-200'}`}
               >
-                <div className="w-10 h-10 bg-[#FBF9F6] rounded-full border border-gray-200 shadow-2xs" />
-                <p className="text-sm font-semibold text-[#1A1A2E]">Ivory Light</p>
+                <div className="w-10 h-10 bg-[#FBFBFC] rounded-full border border-gray-200 shadow-2xs" />
+                <p className="text-sm font-semibold text-[#1E2229]">Ivory Light</p>
               </button>
               <button
                 onClick={() => toggles.darkMode || toggle('darkMode')}
-                className={`p-5 rounded-3xl border-2 transition-all flex flex-col items-center justify-center gap-2.5 ${toggles.darkMode ? 'border-[#E5501A] bg-[#FFF2EB]/50' : 'border-gray-200'}`}
+                className={`p-5 rounded-3xl border-2 transition-all flex flex-col items-center justify-center gap-2.5 ${toggles.darkMode ? 'border-[#FF5A36] bg-[#FFF2EB]/50' : 'border-gray-200'}`}
               >
-                <div className="w-10 h-10 bg-[#1A1A2E] rounded-full shadow-2xs" />
-                <p className="text-sm font-semibold text-[#1A1A2E]">Obsidian Dark</p>
+                <div className="w-10 h-10 bg-[#1E2229] rounded-full shadow-2xs" />
+                <p className="text-sm font-semibold text-[#1E2229]">Obsidian Dark</p>
               </button>
             </div>
           </div>
@@ -536,10 +536,10 @@ export default function SettingsPage() {
             >
               <X className="w-5 h-5" />
             </button>
-            <div className="w-14 h-14 bg-[#FFF2EB] rounded-2xl flex items-center justify-center mx-auto text-[#E5501A]">
+            <div className="w-14 h-14 bg-[#FFF2EB] rounded-2xl flex items-center justify-center mx-auto text-[#FF5A36]">
               <ArrowRightLeft className="w-7 h-7" />
             </div>
-            <h2 className="font-serif font-medium text-2xl text-center text-[#1A1A2E]">
+            <h2 className="font-serif font-medium text-2xl text-center text-[#1E2229]">
               Switch to {profile?.role === 'seeker' ? 'Host Mode' : 'Seeker Mode'}?
             </h2>
             <p className="text-xs text-gray-500 text-center leading-relaxed">
@@ -558,7 +558,7 @@ export default function SettingsPage() {
               <button
                 onClick={handleConfirmSwitchRole}
                 disabled={saving}
-                className="flex-1 py-3 bg-[#E5501A] hover:bg-[#D0400B] text-white rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs shadow-[#E5501A]/20"
+                className="flex-1 py-3 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs shadow-[#FF5A36]/20"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRightLeft className="w-4 h-4" />}
                 {saving ? 'Switching...' : 'Confirm Switch'}
@@ -589,7 +589,7 @@ export default function SettingsPage() {
             <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto text-red-600">
               <Trash2 className="w-7 h-7" />
             </div>
-            <h2 className="font-serif font-medium text-2xl text-center text-[#1A1A2E]">Delete Account?</h2>
+            <h2 className="font-serif font-medium text-2xl text-center text-[#1E2229]">Delete Account?</h2>
             <p className="text-xs text-gray-500 text-center leading-relaxed">
               This permanently removes your identity, properties, shared chats and messages, reviews, reports, and uploaded files. Other participants will also lose shared conversation history. Type <strong className="text-red-600">DELETE</strong> to authorize.
             </p>

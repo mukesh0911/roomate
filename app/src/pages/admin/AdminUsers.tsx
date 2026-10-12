@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
 import type { UserProfile } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -30,7 +30,7 @@ export default function AdminUsers() {
     user: UserProfile & { status?: string };
   } | null>(null);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const u = await getAllUsers();
       setUsers(u as (UserProfile & { status?: string })[]);
@@ -40,7 +40,7 @@ export default function AdminUsers() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAllUsers]);
 
   useEffect(() => {
     document.title = 'User Registry | NestMate Admin';
@@ -48,7 +48,7 @@ export default function AdminUsers() {
 
   useEffect(() => {
     fetchUsers();
-  }, [getAllUsers]);
+  }, [fetchUsers]);
 
   // Escape key & body scroll lock for selectedUser drawer or confirmModal
   useEffect(() => {

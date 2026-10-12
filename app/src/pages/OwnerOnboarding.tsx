@@ -95,7 +95,7 @@ export default function OwnerOnboarding() {
     if ((authProfile as any)?.ownerType) {
       setOwnerType((authProfile as any).ownerType);
     }
-  }, [authProfile]);
+  }, [authProfile, ownerName]);
 
   // If owner has already completed onboarding upon initial mount, redirect to dashboard
   useEffect(() => {
@@ -236,7 +236,7 @@ export default function OwnerOnboarding() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FBF9F6] sm:bg-[#0E101A] flex flex-col justify-center items-center py-0 sm:py-14 lg:py-16 px-0 sm:px-6 lg:px-8 select-none font-sans text-slate-800">
+    <div className="min-h-screen bg-[#FBFBFC] sm:bg-[#0E101A] flex flex-col justify-center items-center py-0 sm:py-14 lg:py-16 px-0 sm:px-6 lg:px-8 select-none font-sans text-slate-800">
       {/* Ambient background lighting on desktop */}
       <div className="hidden sm:block absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[500px] bg-gradient-to-b from-orange-500/15 via-amber-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
       <div className="hidden sm:block absolute bottom-0 right-10 w-[750px] h-[450px] bg-[#1E3A5F]/25 rounded-full blur-3xl pointer-events-none" />
@@ -262,8 +262,8 @@ export default function OwnerOnboarding() {
 
         {/* Clean, Editorial Header with proper spacing */}
         <div className="text-center pt-2 sm:pt-0 mb-10 sm:mb-12">
-          <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#FFF2EB] border border-[#E5501A]/20 text-[#E5501A] text-xs font-semibold mb-3.5 shadow-[0_1px_3px_rgba(229,80,26,0.06)]">
-            <Building2 className="w-3.5 h-3.5 text-[#E5501A]" />
+          <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#FFF2EB] border border-[#FF5A36]/20 text-[#FF5A36] text-xs font-semibold mb-3.5 shadow-[0_1px_3px_rgba(229,80,26,0.06)]">
+            <Building2 className="w-3.5 h-3.5 text-[#FF5A36]" />
             <span>NestMate Owner Setup</span>
           </div>
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-display font-medium text-slate-900 tracking-tight">
@@ -296,14 +296,14 @@ export default function OwnerOnboarding() {
                 onClick={() => setOwnerType('owner_flatmate')}
                 className={`p-5 sm:p-6 rounded-2xl border transition-all duration-200 cursor-pointer ${
                   ownerType === 'owner_flatmate'
-                    ? 'border-[#E5501A] bg-gradient-to-br from-[#FFFBF9] via-[#FFF8F4] to-[#FFF1EA] shadow-[0_4px_16px_rgba(229,80,26,0.12),0_12px_32px_-6px_rgba(229,80,26,0.16)] ring-1 ring-[#E5501A]/20'
+                    ? 'border-[#FF5A36] bg-gradient-to-br from-[#FFFBF9] via-[#FFF8F4] to-[#FFF1EA] shadow-[0_4px_16px_rgba(229,80,26,0.12),0_12px_32px_-6px_rgba(229,80,26,0.16)] ring-1 ring-[#FF5A36]/20'
                     : 'border-slate-200/85 bg-white shadow-[0_2px_6px_rgba(0,0,0,0.02),0_8px_20px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04),0_16px_32px_-8px_rgba(0,0,0,0.08)] hover:border-slate-300'
                 }`}
               >
                 <div className="flex items-start gap-4">
                   <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all ${
                     ownerType === 'owner_flatmate'
-                      ? 'bg-[#FFF0E8] text-[#E5501A] shadow-[0_2px_8px_rgba(229,80,26,0.15)]'
+                      ? 'bg-[#FFF0E8] text-[#FF5A36] shadow-[0_2px_8px_rgba(229,80,26,0.15)]'
                       : 'bg-slate-100/90 text-slate-500 shadow-2xs'
                   }`}>
                     <Home className="w-5 h-5" />
@@ -322,14 +322,14 @@ export default function OwnerOnboarding() {
                 onClick={() => setOwnerType('landlord')}
                 className={`p-5 sm:p-6 rounded-2xl border transition-all duration-200 cursor-pointer ${
                   ownerType === 'landlord'
-                    ? 'border-[#E5501A] bg-gradient-to-br from-[#FFFBF9] via-[#FFF8F4] to-[#FFF1EA] shadow-[0_4px_16px_rgba(229,80,26,0.12),0_12px_32px_-6px_rgba(229,80,26,0.16)] ring-1 ring-[#E5501A]/20'
+                    ? 'border-[#FF5A36] bg-gradient-to-br from-[#FFFBF9] via-[#FFF8F4] to-[#FFF1EA] shadow-[0_4px_16px_rgba(229,80,26,0.12),0_12px_32px_-6px_rgba(229,80,26,0.16)] ring-1 ring-[#FF5A36]/20'
                     : 'border-slate-200/85 bg-white shadow-[0_2px_6px_rgba(0,0,0,0.02),0_8px_20px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04),0_16px_32px_-8px_rgba(0,0,0,0.08)] hover:border-slate-300'
                 }`}
               >
                 <div className="flex items-start gap-4">
                   <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all ${
                     ownerType === 'landlord'
-                      ? 'bg-[#FFF0E8] text-[#E5501A] shadow-[0_2px_8px_rgba(229,80,26,0.15)]'
+                      ? 'bg-[#FFF0E8] text-[#FF5A36] shadow-[0_2px_8px_rgba(229,80,26,0.15)]'
                       : 'bg-slate-100/90 text-slate-500 shadow-2xs'
                   }`}>
                     <Building2 className="w-5 h-5" />
@@ -351,7 +351,7 @@ export default function OwnerOnboarding() {
             {/* LEFT COLUMN: PROPERTY & SPACE BASICS */}
             <div className="space-y-7 sm:space-y-8">
               <div className="flex items-center gap-2.5 pb-2.5 border-b border-slate-100">
-                <Building2 className="w-4 h-4 text-[#E5501A]" />
+                <Building2 className="w-4 h-4 text-[#FF5A36]" />
                 <h2 className="text-sm font-semibold text-slate-900 tracking-wide">
                   Property & Space Basics
                 </h2>
@@ -363,7 +363,7 @@ export default function OwnerOnboarding() {
                   <label className="block text-xs font-semibold text-slate-700">
                     Your display name*
                   </label>
-                  <div className="relative flex items-center bg-white border border-slate-200/90 rounded-xl px-4 py-3 sm:py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.02),inset_0_1px_2px_rgba(0,0,0,0.02)] focus-within:border-[#E5501A] focus-within:ring-4 focus-within:ring-[#E5501A]/10 focus-within:shadow-[0_2px_8px_rgba(229,80,26,0.08)] transition-all">
+                  <div className="relative flex items-center bg-white border border-slate-200/90 rounded-xl px-4 py-3 sm:py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.02),inset_0_1px_2px_rgba(0,0,0,0.02)] focus-within:border-[#FF5A36] focus-within:ring-4 focus-within:ring-[#FF5A36]/10 focus-within:shadow-[0_2px_8px_rgba(229,80,26,0.08)] transition-all">
                     <User className="w-4 h-4 text-slate-400 shrink-0 mr-2.5" />
                     <input
                       type="text"
@@ -379,7 +379,7 @@ export default function OwnerOnboarding() {
                   <label className="block text-xs font-semibold text-slate-700">
                     City in India*
                   </label>
-                  <div className="relative flex items-center bg-white border border-slate-200/90 rounded-xl px-4 py-3 sm:py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.02),inset_0_1px_2px_rgba(0,0,0,0.02)] focus-within:border-[#E5501A] focus-within:ring-4 focus-within:ring-[#E5501A]/10 focus-within:shadow-[0_2px_8px_rgba(229,80,26,0.08)] transition-all">
+                  <div className="relative flex items-center bg-white border border-slate-200/90 rounded-xl px-4 py-3 sm:py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.02),inset_0_1px_2px_rgba(0,0,0,0.02)] focus-within:border-[#FF5A36] focus-within:ring-4 focus-within:ring-[#FF5A36]/10 focus-within:shadow-[0_2px_8px_rgba(229,80,26,0.08)] transition-all">
                     <Building2 className="w-4 h-4 text-slate-400 shrink-0 mr-2.5" />
                     <select
                       value={city}
@@ -403,8 +403,8 @@ export default function OwnerOnboarding() {
                   <label className="block text-xs font-semibold text-slate-700">
                     Locality / Area*
                   </label>
-                  <div className="relative flex items-center bg-white border border-slate-200/90 rounded-xl px-4 py-3 sm:py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.02),inset_0_1px_2px_rgba(0,0,0,0.02)] focus-within:border-[#E5501A] focus-within:ring-4 focus-within:ring-[#E5501A]/10 focus-within:shadow-[0_2px_8px_rgba(229,80,26,0.08)] transition-all">
-                    <MapPin className="w-4 h-4 text-[#E5501A] shrink-0 mr-2.5" />
+                  <div className="relative flex items-center bg-white border border-slate-200/90 rounded-xl px-4 py-3 sm:py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.02),inset_0_1px_2px_rgba(0,0,0,0.02)] focus-within:border-[#FF5A36] focus-within:ring-4 focus-within:ring-[#FF5A36]/10 focus-within:shadow-[0_2px_8px_rgba(229,80,26,0.08)] transition-all">
+                    <MapPin className="w-4 h-4 text-[#FF5A36] shrink-0 mr-2.5" />
                     <input
                       type="text"
                       value={locality}
@@ -446,7 +446,7 @@ export default function OwnerOnboarding() {
                           onClick={() => setLocality(loc)}
                           className={`px-2.5 py-1 text-xs rounded-full border transition-colors cursor-pointer ${
                             locality.toLowerCase() === loc.toLowerCase()
-                              ? 'bg-[#FFF2EB] border-[#E5501A] text-[#E5501A] font-semibold'
+                              ? 'bg-[#FFF2EB] border-[#FF5A36] text-[#FF5A36] font-semibold'
                               : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
                           }`}
                         >
@@ -461,7 +461,7 @@ export default function OwnerOnboarding() {
                   <label className="block text-xs font-semibold text-slate-700">
                     Approx monthly rent (₹)*
                   </label>
-                  <div className="relative flex items-center bg-white border border-slate-200/90 rounded-xl px-4 py-3 sm:py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.02),inset_0_1px_2px_rgba(0,0,0,0.02)] focus-within:border-[#E5501A] focus-within:ring-4 focus-within:ring-[#E5501A]/10 focus-within:shadow-[0_2px_8px_rgba(229,80,26,0.08)] transition-all">
+                  <div className="relative flex items-center bg-white border border-slate-200/90 rounded-xl px-4 py-3 sm:py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.02),inset_0_1px_2px_rgba(0,0,0,0.02)] focus-within:border-[#FF5A36] focus-within:ring-4 focus-within:ring-[#FF5A36]/10 focus-within:shadow-[0_2px_8px_rgba(229,80,26,0.08)] transition-all">
                     <span className="text-slate-400 font-medium mr-2 text-sm">₹</span>
                     <input
                       type="number"
@@ -520,7 +520,7 @@ export default function OwnerOnboarding() {
                       }}
                       className={`py-2 px-4 rounded-full border text-xs transition-all cursor-pointer ${
                         flatType === type
-                          ? 'border-[#E5501A] bg-[#FFF2EB] text-[#E5501A] font-semibold shadow-[0_2px_8px_rgba(229,80,26,0.12)]'
+                          ? 'border-[#FF5A36] bg-[#FFF2EB] text-[#FF5A36] font-semibold shadow-[0_2px_8px_rgba(229,80,26,0.12)]'
                           : 'border-slate-200/90 bg-white text-slate-600 shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:border-slate-300 hover:shadow-[0_2px_6px_rgba(0,0,0,0.04)]'
                       }`}
                     >
@@ -601,19 +601,19 @@ export default function OwnerOnboarding() {
                         onClick={() => toggleAmenity(item.id)}
                         className={`py-3 px-2 rounded-2xl flex flex-col items-center justify-center text-center transition-all duration-200 cursor-pointer border ${
                           isSelected
-                            ? 'border-[#E5501A] bg-gradient-to-b from-[#FFFBF9] to-[#FFF2EB] shadow-[0_4px_14px_rgba(229,80,26,0.12),0_1px_2px_rgba(229,80,26,0.08)]'
+                            ? 'border-[#FF5A36] bg-gradient-to-b from-[#FFFBF9] to-[#FFF2EB] shadow-[0_4px_14px_rgba(229,80,26,0.12),0_1px_2px_rgba(229,80,26,0.08)]'
                             : 'border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_-2px_rgba(0,0,0,0.03)] hover:border-slate-300 hover:shadow-[0_4px_14px_rgba(0,0,0,0.06)] hover:-translate-y-0.5'
                         }`}
                       >
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                           isSelected
-                            ? 'bg-[#FFF0E8] text-[#E5501A] border border-[#E5501A]/25 shadow-xs'
+                            ? 'bg-[#FFF0E8] text-[#FF5A36] border border-[#FF5A36]/25 shadow-xs'
                             : 'bg-slate-50 text-slate-500 border border-slate-200/60 shadow-[0_1px_2px_rgba(0,0,0,0.03)]'
                         }`}>
                           <IconComponent className="w-4 h-4" />
                         </div>
                         <span className={`text-[11px] mt-2 ${
-                          isSelected ? 'text-[#E5501A] font-semibold' : 'text-slate-600 font-medium'
+                          isSelected ? 'text-[#FF5A36] font-semibold' : 'text-slate-600 font-medium'
                         }`}>
                           {item.label}
                         </span>
@@ -627,7 +627,7 @@ export default function OwnerOnboarding() {
             {/* RIGHT COLUMN: HOUSEHOLD NORMS & RULES */}
             <div className="space-y-7 sm:space-y-8">
               <div className="flex items-center gap-2.5 pb-2.5 border-b border-slate-100">
-                <Sparkles className="w-4 h-4 text-[#E5501A]" />
+                <Sparkles className="w-4 h-4 text-[#FF5A36]" />
                 <h2 className="text-sm font-semibold text-slate-900 tracking-wide">
                   Household Norms & Lifestyle Fit
                 </h2>
@@ -746,7 +746,7 @@ export default function OwnerOnboarding() {
                       onClick={() => setDrinkingPolicy(p => p === 'social_ok' ? 'no_drinking' : 'social_ok')}
                       className={`py-2 px-1.5 rounded-lg text-[11px] font-medium transition-all text-center border cursor-pointer ${
                         drinkingPolicy === 'social_ok'
-                          ? 'bg-[#FFF2EB] border-[#E5501A]/35 text-[#E5501A] font-semibold shadow-[0_1px_4px_rgba(229,80,26,0.1)]'
+                          ? 'bg-[#FFF2EB] border-[#FF5A36]/35 text-[#FF5A36] font-semibold shadow-[0_1px_4px_rgba(229,80,26,0.1)]'
                           : 'bg-white border-slate-200 text-slate-600 shadow-2xs'
                       }`}
                     >
@@ -757,7 +757,7 @@ export default function OwnerOnboarding() {
                       onClick={() => setGuestPolicy(p => p === 'guests_welcome' ? 'no_overnight' : 'guests_welcome')}
                       className={`py-2 px-1.5 rounded-lg text-[11px] font-medium transition-all text-center border cursor-pointer ${
                         guestPolicy === 'guests_welcome'
-                          ? 'bg-[#FFF2EB] border-[#E5501A]/35 text-[#E5501A] font-semibold shadow-[0_1px_4px_rgba(229,80,26,0.1)]'
+                          ? 'bg-[#FFF2EB] border-[#FF5A36]/35 text-[#FF5A36] font-semibold shadow-[0_1px_4px_rgba(229,80,26,0.1)]'
                           : 'bg-white border-slate-200 text-slate-600 shadow-2xs'
                       }`}
                     >
@@ -832,7 +832,7 @@ export default function OwnerOnboarding() {
                         onClick={() => toggleRule(rule)}
                         className={`py-2 px-3.5 rounded-full border text-xs transition-all duration-150 cursor-pointer inline-flex items-center gap-1.5 ${
                           isChecked
-                            ? 'border-[#E5501A] bg-[#FFF2EB] text-[#E5501A] font-semibold shadow-[0_2px_6px_rgba(229,80,26,0.12)]'
+                            ? 'border-[#FF5A36] bg-[#FFF2EB] text-[#FF5A36] font-semibold shadow-[0_2px_6px_rgba(229,80,26,0.12)]'
                             : 'border-slate-200 bg-white text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:border-slate-300 hover:shadow-[0_2px_6px_rgba(0,0,0,0.05)] hover:bg-slate-50/60'
                         }`}
                       >
@@ -845,7 +845,7 @@ export default function OwnerOnboarding() {
 
                 {/* Custom rule input with proper padding and non-clipped Add button */}
                 <div className="flex items-center gap-2.5 pt-1.5">
-                  <div className="relative flex-1 min-w-0 flex items-center bg-white border border-slate-200/90 rounded-xl px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.02),inset_0_1px_2px_rgba(0,0,0,0.02)] focus-within:border-[#E5501A] focus-within:ring-4 focus-within:ring-[#E5501A]/10 focus-within:shadow-[0_2px_8px_rgba(229,80,26,0.08)] transition-all">
+                  <div className="relative flex-1 min-w-0 flex items-center bg-white border border-slate-200/90 rounded-xl px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.02),inset_0_1px_2px_rgba(0,0,0,0.02)] focus-within:border-[#FF5A36] focus-within:ring-4 focus-within:ring-[#FF5A36]/10 focus-within:shadow-[0_2px_8px_rgba(229,80,26,0.08)] transition-all">
                     <input
                       type="text"
                       value={customRuleInput}
@@ -893,14 +893,14 @@ export default function OwnerOnboarding() {
           <div className="bg-gradient-to-r from-slate-50/90 via-white to-[#FFF9F6] border border-slate-200/90 rounded-2xl p-5 sm:p-6 space-y-3.5 shadow-[0_2px_10px_rgba(0,0,0,0.02),0_8px_24px_-8px_rgba(0,0,0,0.04)]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <ShieldCheck className="w-4.5 h-4.5 text-[#E5501A]" />
+                <ShieldCheck className="w-4.5 h-4.5 text-[#FF5A36]" />
                 <span className="text-xs sm:text-sm font-semibold text-slate-900">
                   NestMate Publishing Trust Standards
                 </span>
               </div>
               <Link
                 to="/trust"
-                className="text-xs font-medium text-[#E5501A] hover:underline inline-flex items-center gap-0.5"
+                className="text-xs font-medium text-[#FF5A36] hover:underline inline-flex items-center gap-0.5"
               >
                 <span>Trust & Safety Center</span>
                 <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -909,15 +909,15 @@ export default function OwnerOnboarding() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 text-xs text-slate-600">
               <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-[#E5501A] shrink-0 font-bold" />
+                <Check className="w-4 h-4 text-[#FF5A36] shrink-0 font-bold" />
                 <span>Tier 2 Govt ID Proof Required</span>
               </div>
               <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-[#E5501A] shrink-0 font-bold" />
+                <Check className="w-4 h-4 text-[#FF5A36] shrink-0 font-bold" />
                 <span>Moderation Verified in &lt;24h</span>
               </div>
               <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-[#E5501A] shrink-0 font-bold" />
+                <Check className="w-4 h-4 text-[#FF5A36] shrink-0 font-bold" />
                 <span>100% Zero Brokerage Platform</span>
               </div>
             </div>
@@ -930,7 +930,7 @@ export default function OwnerOnboarding() {
               type="button"
               onClick={() => handleFinish('listing')}
               disabled={loading}
-              className="w-full sm:w-auto min-w-[300px] sm:min-w-[320px] px-9 py-4 rounded-full bg-gradient-to-r from-[#E5501A] to-[#F26428] hover:from-[#D0400B] hover:to-[#E5501A] text-white font-bold text-sm sm:text-base transition-all duration-200 shadow-[0_4px_16px_rgba(229,80,26,0.22),0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-[0_6px_22px_rgba(229,80,26,0.32),0_2px_5px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] inline-flex items-center justify-center gap-2.5 mx-auto cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto min-w-[300px] sm:min-w-[320px] px-9 py-4 rounded-full bg-gradient-to-r from-[#FF5A36] to-[#F26428] hover:from-[#E54E2B] hover:to-[#FF5A36] text-white font-bold text-sm sm:text-base transition-all duration-200 shadow-[0_4px_16px_rgba(229,80,26,0.22),0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-[0_6px_22px_rgba(229,80,26,0.32),0_2px_5px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] inline-flex items-center justify-center gap-2.5 mx-auto cursor-pointer disabled:opacity-50"
             >
               {loading ? (
                 <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -969,7 +969,7 @@ export default function OwnerOnboarding() {
                 <button
                   type="button"
                   onClick={() => navigate('/onboarding/seeker')}
-                  className="font-semibold text-[#E5501A] hover:underline cursor-pointer inline-flex items-center gap-0.5"
+                  className="font-semibold text-[#FF5A36] hover:underline cursor-pointer inline-flex items-center gap-0.5"
                 >
                   <span>Switch to Seeker Onboarding</span>
                   <ChevronRight className="w-3 h-3 stroke-[2.5]" />

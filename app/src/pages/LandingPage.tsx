@@ -2,16 +2,19 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useStore } from '@/store/useStore';
+import { DEMO_MODE_ENABLED } from '@/lib/runtimeConfig';
 
 // Landing modular components
 import LandingNavbar from '@/components/landing/LandingNavbar';
 import HeroSection from '@/components/landing/HeroSection';
-import StatsStrip from '@/components/landing/StatsStrip';
+import PopularCitiesSection from '@/components/landing/PopularCitiesSection';
 import LivingOptionsSection from '@/components/landing/LivingOptionsSection';
+import StatsStrip from '@/components/landing/StatsStrip';
 import TrustSection from '@/components/landing/TrustSection';
 import CommunityTestimonialSection from '@/components/landing/CommunityTestimonialSection';
 import HowItWorksSection from '@/components/landing/HowItWorksSection';
 import FeaturedListingsSection from '@/components/landing/FeaturedListingsSection';
+import RentalGuideFaqSection from '@/components/landing/RentalGuideFaqSection';
 import FinalCTASection from '@/components/landing/FinalCTASection';
 import LandingFooter from '@/components/landing/LandingFooter';
 
@@ -31,47 +34,50 @@ export default function LandingPage() {
     } else {
       openAuthModal({
         title: 'Post Your Room Listing',
-        subtitle: 'Sign in or use quick demo account to list your room.',
+        subtitle: DEMO_MODE_ENABLED
+          ? 'Sign in or use the local demo to evaluate the owner workflow.'
+          : 'Sign in to create and manage your room listing.',
         redirect: '/owner-dashboard',
       });
     }
   };
 
   return (
-    <div
-      className="min-h-screen text-[#1A1A2E] font-sans selection:bg-[#E5501A]/20 selection:text-[#E5501A] overflow-x-hidden w-full max-w-full"
-      style={{
-        background: `linear-gradient(160deg, #F7F3ED 0%, #FBF9F6 40%, #F5F0EA 100%)`,
-      }}
-    >
+    <div className="min-h-screen text-[#1E2229] font-sans selection:bg-[#FF5A36]/20 selection:text-[#FF5A36] overflow-x-hidden w-full max-w-full bg-[#FBFBFC]">
       {/* 1. Premium Navigation */}
       <LandingNavbar onListSpace={handleListSpace} />
 
-      {/* 2. Hero Section + Hero Search Module + Trust Micro-bar */}
+      {/* 2. Hero Section + Hero Search Module + Popular Cities Quicklinks */}
       <HeroSection />
 
-      {/* 3. Living Options (4 Cards: Private Rooms, Shared Rooms, PGs & Hostels, Coliving Spaces) */}
+      {/* 3. Popular Cities 12-Grid (Delhi, Mumbai, Bengaluru, Pune, etc.) */}
+      <PopularCitiesSection />
+
+      {/* 4. Living Options (4 Category Cards: Private Rooms, Shared Rooms, PGs & Hostels, Coliving) */}
       <LivingOptionsSection />
 
-      {/* 4. Statistics Strip (50K+, 25K+, 100+, 4.8/5) */}
+      {/* 6. Statistics Strip (Live DB counts + verified members) */}
       <StatsStrip />
 
-      {/* 5. Why NestMate / More than a platform, a community */}
+      {/* 7. Why NestMate / More than a platform, a community */}
       <TrustSection />
 
-      {/* 6. Community Testimonial & Story Collage */}
+      {/* 8. Community Testimonial & Story Collage */}
       <CommunityTestimonialSection />
 
-      {/* 7. How It Works (4 Steps with Vector Illustrations & Dashed Arrows) */}
+      {/* 9. How It Works (4 Steps with Clear Badges & Process) */}
       <HowItWorksSection />
 
-      {/* 8. Featured Listings Carousel */}
+      {/* 10. Featured Listings Carousel */}
       <FeaturedListingsSection />
 
-      {/* 9. Final CTA Banner: Ready to find your people? */}
+      {/* 11. SEO Rental Guide & FAQ Accordion - FlatMate Reference */}
+      <RentalGuideFaqSection />
+
+      {/* 12. Final CTA Banner: Ready to find your people? */}
       <FinalCTASection />
 
-      {/* 10. Premium Footer */}
+      {/* 13. Comprehensive 5-Column Footer */}
       <LandingFooter onListSpace={handleListSpace} />
     </div>
   );

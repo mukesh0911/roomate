@@ -117,7 +117,7 @@ export default function ChatPage() {
       unsub();
       window.clearTimeout(timeout);
     };
-  }, [user?.uid]);
+  }, [activeRoom, subscribeToChatRooms, user?.uid]);
 
   // BUG-6 FIX: Use a ref so subscription callbacks always see the current activeRoom
   // instead of a stale closure value.
@@ -151,12 +151,13 @@ export default function ChatPage() {
       }
     });
     return () => { }; // cleanup handled by roomIds check above + unmount effect
-  }, [chatRooms, user?.uid]);
+  }, [chatRooms, subscribeToMessages, user?.uid]);
 
   // Cleanup all unread subscriptions on unmount
   useEffect(() => {
+    const currentUnsubscribers = unsubscribersRef.current;
     return () => {
-      Object.values(unsubscribersRef.current).forEach(unsub => unsub());
+      Object.values(currentUnsubscribers).forEach(unsub => unsub());
     };
   }, []);
 
@@ -165,7 +166,7 @@ export default function ChatPage() {
     if (!activeRoom) return;
     const unsub = subscribeToMessages(activeRoom, setMessages);
     return () => unsub();
-  }, [activeRoom]);
+  }, [activeRoom, subscribeToMessages]);
 
   // Clear typing on room change
   useEffect(() => {
@@ -174,7 +175,7 @@ export default function ChatPage() {
         setTyping(activeRoom, user.uid, false);
       }
     };
-  }, [activeRoom, user?.uid]);
+  }, [activeRoom, setTyping, user?.uid]);
 
   // Fetch profiles
   useEffect(() => {
@@ -208,7 +209,7 @@ export default function ChatPage() {
       if (changed) { setProfiles(newProfiles); setOwnerListings(newListings); }
     };
     fetchProfiles();
-  }, [chatRooms, user?.uid]);
+  }, [chatRooms, ownerListings, profiles, user?.uid]);
 
   // Scroll to bottom
   useEffect(() => {
@@ -220,7 +221,7 @@ export default function ChatPage() {
     if (activeRoom && user?.uid) {
       markMessagesRead(activeRoom, user.uid);
     }
-  }, [activeRoom, messages.length, user?.uid]);
+  }, [activeRoom, markMessagesRead, messages.length, user?.uid]);
 
   // Helper: get online status from lastActiveAt
   const getOnlineStatus = (profile: UserProfile | null | undefined): { isOnline: boolean; lastSeen: string } => {
@@ -393,7 +394,7 @@ export default function ChatPage() {
 
   if (!user?.uid) {
     return (
-      <div className="h-app-mobile md:h-app-desktop -mb-[calc(68px+env(safe-area-inset-bottom,0px))] md:mb-0 flex items-center justify-center bg-[#FBF9F6] px-4">
+      <div className="h-app-mobile md:h-app-desktop -mb-[calc(68px+env(safe-area-inset-bottom,0px))] md:mb-0 flex items-center justify-center bg-[#FBFBFC] px-4">
         <StateEmpty
           icon={MessageCircle}
           title="Sign in to view messages"
@@ -409,15 +410,15 @@ export default function ChatPage() {
       <div className={`w-full sm:w-[320px] border-r border-gray-200/80 bg-white flex-col ${isMobileChatOpen ? 'hidden sm:flex' : 'flex'}`}>
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-serif font-medium text-xl text-[#1A1A2E]">Messages</h2>
+            <h2 className="font-serif font-medium text-xl text-[#1E2229]">Messages</h2>
             {chatRooms.length > 0 && (
-              <span className="bg-[#E5501A] text-white text-xs font-bold px-2.5 py-0.5 rounded-full">{chatRooms.length}</span>
+              <span className="bg-[#FF5A36] text-white text-xs font-bold px-2.5 py-0.5 rounded-full">{chatRooms.length}</span>
             )}
           </div>
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input type="text" value={searchChat} onChange={e => setSearchChat(e.target.value)}
-              placeholder="Search conversations..." className="w-full pl-10 pr-4 py-2 bg-gray-50/80 border border-gray-200 rounded-full text-xs outline-none focus:border-[#E5501A] transition-all text-[#1A1A2E]" />
+              placeholder="Search conversations..." className="w-full pl-10 pr-4 py-2 bg-gray-50/80 border border-gray-200 rounded-full text-xs outline-none focus:border-[#FF5A36] transition-all text-[#1E2229]" />
           </div>
         </div>
 
@@ -433,7 +434,7 @@ export default function ChatPage() {
               <button
                 type="button"
                 onClick={() => navigate('/explore?tab=roommates')}
-                className="text-xs text-[#E5501A] font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer"
+                className="text-xs text-[#FF5A36] font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
                 <span>Browse Roommates</span>
                 <ChevronLeft className="w-3 h-3 rotate-180" />
@@ -452,7 +453,7 @@ export default function ChatPage() {
                   navigate(`/chat/${room.id}`, { replace: true });
                 }}
                 className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left cursor-pointer ${
-                  activeRoom === room.id ? 'bg-[#FFF2EB] border border-[#E5501A]/30' : 'hover:bg-gray-50 border border-transparent'
+                  activeRoom === room.id ? 'bg-[#FFF2EB] border border-[#FF5A36]/30' : 'hover:bg-gray-50 border border-transparent'
                 }`}
               >
                 <div className="relative w-11 h-11 flex-shrink-0">
@@ -481,14 +482,14 @@ export default function ChatPage() {
                         <span className="text-[10px] text-ink/40">{formatTime(room.lastMessageAt)}</span>
                       )}
                       {getUnreadCount(room) > 0 && (
-                        <span className="w-5 h-5 bg-[#E5501A] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                        <span className="w-5 h-5 bg-[#FF5A36] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                           {getUnreadCount(room) > 9 ? '9+' : getUnreadCount(room)}
                         </span>
                       )}
                     </div>
                   </div>
                   {typing ? (
-                    <p className="text-xs text-[#E5501A] italic flex items-center gap-1">
+                    <p className="text-xs text-[#FF5A36] italic flex items-center gap-1">
                       Typing<span className="typing-dots">...</span>
                     </p>
                   ) : (
@@ -502,7 +503,7 @@ export default function ChatPage() {
       </div>
 
       {/* Chat Window */}
-      <div className={`flex-1 flex-col bg-[#FBF9F6] ${isMobileChatOpen ? 'flex' : 'hidden sm:flex'}`}>
+      <div className={`flex-1 flex-col bg-[#FBFBFC] ${isMobileChatOpen ? 'flex' : 'hidden sm:flex'}`}>
         {activeChatRoom ? (
           <>
             {/* Header */}
@@ -599,6 +600,12 @@ export default function ChatPage() {
               </div>
             </div>
 
+            {/* Scam Alert Safety Banner — FlatMate (23).png Reference */}
+            <div className="bg-amber-50/90 border-b border-amber-200/80 px-4 py-2 flex items-center gap-2 text-xs text-amber-900 shrink-0">
+              <span className="text-amber-600 font-bold shrink-0">⚠️ Safety Warning:</span>
+              <span className="truncate">Never transfer token money or deposit before visiting the property in person and verifying documents.</span>
+            </div>
+
             {/* Privacy / Phone Numbers Bar */}
             {phonesShared ? (
               <div className="bg-emerald-50 border-b border-emerald-100 px-3 sm:px-4 py-2 flex items-center justify-center gap-2 sm:gap-4">
@@ -647,7 +654,7 @@ export default function ChatPage() {
 
                 return (
                   <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl ${isMe ? 'bg-[#E5501A] text-white rounded-br-xs shadow-xs' : 'bg-white border border-gray-100 text-[#1A1A2E] shadow-xs rounded-bl-xs'
+                    <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl ${isMe ? 'bg-[#FF5A36] text-white rounded-br-xs shadow-xs' : 'bg-white border border-gray-100 text-[#1E2229] shadow-xs rounded-bl-xs'
                       }`}>
                       {msg.imageUrl && (
                         <div className="mb-2 rounded-lg overflow-hidden">
@@ -726,7 +733,7 @@ export default function ChatPage() {
                   type="button"
                   onClick={() => setShowEmojiPicker(prev => !prev)}
                   className={`p-2 transition-colors shrink-0 cursor-pointer rounded-full ${
-                    showEmojiPicker ? 'text-[#E5501A] bg-[#FFF2EB]' : 'text-gray-400 hover:text-gray-600'
+                    showEmojiPicker ? 'text-[#FF5A36] bg-[#FFF2EB]' : 'text-gray-400 hover:text-gray-600'
                   }`}
                   aria-label="Add emoji"
                   title="Add emoji"
@@ -734,20 +741,20 @@ export default function ChatPage() {
                   <Smile className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
                 <label className="p-2 text-gray-400 hover:text-gray-600 cursor-pointer transition-colors shrink-0" aria-label="Attach image">
-                  {imageUploading ? <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin text-[#E5501A]" /> : <Paperclip className="w-5 h-5 sm:w-6 sm:h-6" />}
+                  {imageUploading ? <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin text-[#FF5A36]" /> : <Paperclip className="w-5 h-5 sm:w-6 sm:h-6" />}
                   <input type="file" accept="image/*" className="hidden" onChange={handleImageSelect} disabled={imageUploading} />
                 </label>
-                <div className="flex-1 min-w-0 bg-gray-50/80 border border-gray-200 rounded-full focus-within:border-[#E5501A] focus-within:ring-2 focus-within:ring-[#E5501A]/10 focus-within:bg-white transition-all flex items-center shadow-2xs">
+                <div className="flex-1 min-w-0 bg-gray-50/80 border border-gray-200 rounded-full focus-within:border-[#FF5A36] focus-within:ring-2 focus-within:ring-[#FF5A36]/10 focus-within:bg-white transition-all flex items-center shadow-2xs">
                   <input type="text" value={input}
                     onChange={e => handleInputChange(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleSend()}
                     placeholder="Type a message..."
                     aria-label="Message"
-                    className="w-full bg-transparent px-4 py-2.5 sm:py-3 text-sm outline-none truncate text-[#1A1A2E] placeholder:text-gray-400" />
+                    className="w-full bg-transparent px-4 py-2.5 sm:py-3 text-sm outline-none truncate text-[#1E2229] placeholder:text-gray-400" />
                 </div>
                 <button onClick={handleSend} disabled={!input.trim()}
                   aria-label="Send message"
-                  className="p-2.5 sm:p-3 bg-[#E5501A] text-white rounded-full disabled:opacity-30 disabled:scale-95 hover:bg-[#D0400B] transition-all flex items-center justify-center shadow-sm shadow-[#E5501A]/20 shrink-0">
+                  className="p-2.5 sm:p-3 bg-[#FF5A36] text-white rounded-full disabled:opacity-30 disabled:scale-95 hover:bg-[#E54E2B] transition-all flex items-center justify-center shadow-sm shadow-[#FF5A36]/20 shrink-0">
                   <Send className="w-4 h-4 sm:w-5 sm:h-5 ml-0.5" />
                 </button>
               </div>

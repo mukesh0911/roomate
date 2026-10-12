@@ -175,7 +175,7 @@ export default function ProfileCompleteness({
 
   const barColor =
     pct >= 85 ? 'bg-emerald-500' :
-      pct >= 60 ? 'bg-[#E5501A]' :
+      pct >= 60 ? 'bg-[#FF5A36]' :
         'bg-amber-400';
 
   if (compact) {
@@ -188,7 +188,7 @@ export default function ProfileCompleteness({
           {firstNudge && (
             <button
               onClick={() => navigate(firstNudge.actionPath)}
-              className="text-[10px] text-[#E5501A] font-semibold hover:underline cursor-pointer"
+              className="text-[10px] text-[#FF5A36] font-semibold hover:underline cursor-pointer"
             >
               {firstNudge.actionLabel} →
             </button>
@@ -214,14 +214,14 @@ export default function ProfileCompleteness({
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h3 className="font-serif font-medium text-base text-[#1A1A2E]">Profile Completeness</h3>
+          <h3 className="font-serif font-medium text-base text-[#1E2229]">Profile Completeness</h3>
           <p className="text-xs text-gray-400 font-medium">
             {pct < 100
               ? `${100 - pct} points left to reach 100%`
               : 'Your profile is complete!'}
           </p>
         </div>
-        <div className={`text-2xl font-bold ${pct >= 85 ? 'text-emerald-600' : pct >= 60 ? 'text-[#E5501A]' : 'text-amber-500'
+        <div className={`text-2xl font-bold ${pct >= 85 ? 'text-emerald-600' : pct >= 60 ? 'text-[#FF5A36]' : 'text-amber-500'
           }`}>
           {pct}%
         </div>
@@ -242,12 +242,12 @@ export default function ProfileCompleteness({
             key={field.id}
             className={`flex items-center gap-3 p-3 rounded-2xl transition-all ${field.done
               ? 'opacity-60 bg-gray-50/60 border border-transparent'
-              : 'bg-[#FFF2EB]/40 border border-[#E5501A]/15 cursor-pointer hover:bg-[#FFF2EB]/80'
+              : 'bg-[#FFF2EB]/40 border border-[#FF5A36]/15 cursor-pointer hover:bg-[#FFF2EB]/80'
               }`}
             onClick={field.done ? undefined : () => navigate(field.actionPath)}
           >
             {/* Icon */}
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${field.done ? 'bg-emerald-50 text-emerald-600' : 'bg-[#FFF2EB] text-[#E5501A]'
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${field.done ? 'bg-emerald-50 text-emerald-600' : 'bg-[#FFF2EB] text-[#FF5A36]'
               }`}>
               {field.done ? (
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -258,7 +258,7 @@ export default function ProfileCompleteness({
 
             {/* Label + desc */}
             <div className="flex-1 min-w-0">
-              <p className={`text-xs font-semibold ${field.done ? 'text-gray-400 line-through' : 'text-[#1A1A2E]'}`}>
+              <p className={`text-xs font-semibold ${field.done ? 'text-gray-400 line-through' : 'text-[#1E2229]'}`}>
                 {field.label}
               </p>
               {!field.done && (
@@ -274,7 +274,7 @@ export default function ProfileCompleteness({
                 +{field.weight}
               </span>
             ) : (
-              <ChevronRight className="w-4 h-4 text-[#E5501A]/60 flex-shrink-0" />
+              <ChevronRight className="w-4 h-4 text-[#FF5A36]/60 flex-shrink-0" />
             )}
           </div>
         ))}

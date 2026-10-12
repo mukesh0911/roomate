@@ -232,7 +232,9 @@ export function useConnections() {
             deleteDoc(doc(db, 'acceptedPairs', `${fromUserId}_${toUserId}`)),
             deleteDoc(doc(db, 'acceptedPairs', `${toUserId}_${fromUserId}`)),
           ]);
-        } catch {}
+        } catch {
+          // Pair documents can already be absent; the connection state remains authoritative.
+        }
       }
     }
     await updateDoc(doc(db, 'connections', connectionId), {
@@ -251,7 +253,9 @@ export function useConnections() {
             deleteDoc(doc(db, 'acceptedPairs', `${fromUserId}_${toUserId}`)),
             deleteDoc(doc(db, 'acceptedPairs', `${toUserId}_${fromUserId}`)),
           ]);
-        } catch {}
+        } catch {
+          // Pair documents can already be absent; the connection state remains authoritative.
+        }
       }
     }
     await updateDoc(doc(db, 'connections', connectionId), {

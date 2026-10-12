@@ -119,7 +119,7 @@ export default function RoomCard({
         {/* Top-Left Property Type Badge (1BHK / 2BHK / 3BHK / PG) */}
         {propertyBadge && (
           <div className="absolute top-3 left-3 z-10 pointer-events-none">
-            <span className="bg-white text-[#1A1A2E] text-xs font-bold px-3 py-1 rounded-full shadow-xs tracking-wide">
+            <span className="bg-white text-[#1E2229] text-xs font-semibold px-3 py-1 rounded-full shadow-xs tracking-wide">
               {propertyBadge}
             </span>
           </div>
@@ -133,7 +133,7 @@ export default function RoomCard({
             className="absolute top-3 right-3 w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full bg-white text-gray-600 hover:text-red-500 shadow-sm transition-all z-10 cursor-pointer hover:scale-105"
           >
             {isSaving ? (
-              <Loader2 className="w-4 h-4 animate-spin text-[#E5501A]" />
+              <Loader2 className="w-4 h-4 animate-spin text-[#FF5A36]" />
             ) : (
               <Heart
                 className={`w-4 h-4 transition-all ${
@@ -160,14 +160,14 @@ export default function RoomCard({
             <button
               onClick={handlePrevImage}
               aria-label="Previous photo"
-              className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-white/90 text-[#1A1A2E] shadow-md hover:bg-white transition-all z-10 cursor-pointer"
+              className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-white/90 text-[#1E2229] shadow-md hover:bg-white transition-all z-10 cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={handleNextImage}
               aria-label="Next photo"
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-white/90 text-[#1A1A2E] shadow-md hover:bg-white transition-all z-10 cursor-pointer"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-white/90 text-[#1E2229] shadow-md hover:bg-white transition-all z-10 cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -178,38 +178,43 @@ export default function RoomCard({
       {/* Bottom Content Area */}
       <div className="p-4 flex flex-col justify-between flex-1 space-y-3">
         <div>
-          {/* Locality, City Title */}
-          <h3 className="font-bold text-[#1A1A2E] text-base leading-snug truncate tracking-tight mb-1.5">
-            {locality}, {city}
+          {/* Real Listing Title */}
+          <h3 className="font-bold text-[#1E2229] text-sm sm:text-base leading-snug line-clamp-1 tracking-tight mb-1">
+            {room.title || `1 Room in ${propertyBadge || 'Apartment'}`}
           </h3>
 
-          {/* Sublocality with Location Pin */}
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium truncate mb-2.5">
-            <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-            <span className="truncate">{locality}</span>
+          {/* Locality & City with Location Pin */}
+          <div className="flex items-center gap-1 text-xs text-slate-500 font-normal truncate mb-2.5">
+            <MapPin className="w-3.5 h-3.5 text-[#FF5A36] shrink-0" />
+            <span className="truncate">{locality}{city && city !== locality ? `, ${city}` : ''}</span>
           </div>
 
           {/* Accommodation Type, Furnishing & Flatmates Needed Row */}
-          {(accommodationType || furnishing || room.partnersNeeded || (room as any).flatmatesNeeded) && (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-600 font-medium">
+          {(accommodationType || furnishing || room.preferredGender || room.partnersNeeded || (room as any).flatmatesNeeded) && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] sm:text-xs text-slate-600 font-normal">
               {accommodationType && (
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <Bed className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                <div className="flex items-center gap-1 shrink-0">
+                  <Bed className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   <span>{accommodationType}</span>
                 </div>
               )}
               {furnishing && (
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <HomeIcon className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                <div className="flex items-center gap-1 shrink-0">
+                  <HomeIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   <span>{furnishing}</span>
                 </div>
               )}
+              {room.preferredGender && (
+                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-semibold">
+                  For {room.preferredGender}
+                </span>
+              )}
               {(room.partnersNeeded || (room as any).flatmatesNeeded) ? (
-                <div className="flex items-center gap-1.5 shrink-0 text-emerald-700 font-semibold">
+                <div className="flex items-center gap-1 shrink-0 text-emerald-700 font-medium">
                   <Users className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span>
                     {room.partnersNeeded || (room as any).flatmatesNeeded}{' '}
-                    {(room.partnersNeeded || (room as any).flatmatesNeeded) === 1 ? 'roommate' : 'roommates'} needed
+                    {(room.partnersNeeded || (room as any).flatmatesNeeded) === 1 ? 'roommate' : 'roommates'}
                   </span>
                 </div>
               ) : null}
@@ -222,13 +227,13 @@ export default function RoomCard({
           <div>
             {rentAmount > 0 ? (
               <div className="flex items-baseline">
-                <span className="text-lg sm:text-xl font-bold text-[#1A1A2E] tracking-tight">
+                <span className="text-lg sm:text-xl font-bold text-[#1E2229] tracking-tight">
                   ₹{rentAmount.toLocaleString()}
                 </span>
-                <span className="text-xs text-gray-500 font-normal ml-1">/mo</span>
+                <span className="text-xs text-slate-400 font-normal ml-1">/mo</span>
               </div>
             ) : (
-              <span className="text-xs font-bold text-gray-400">Rent on request</span>
+              <span className="text-xs font-medium text-slate-400">Rent on request</span>
             )}
           </div>
 
@@ -238,7 +243,7 @@ export default function RoomCard({
               e.stopPropagation();
               handleCardClick();
             }}
-            className="border border-[#E5501A] text-[#E5501A] hover:bg-[#E5501A] hover:text-white px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1 shrink-0 cursor-pointer active:scale-95"
+            className="border border-[#FF5A36] text-[#FF5A36] hover:bg-[#FF5A36] hover:text-white px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1 shrink-0 cursor-pointer active:scale-95"
           >
             <span>View Details</span>
             <span>→</span>

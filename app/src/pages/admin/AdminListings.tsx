@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
 import { toast } from 'sonner';
 import {
@@ -45,7 +45,7 @@ export default function AdminListings() {
   // Deletion modal
   const [deleteTarget, setDeleteTarget] = useState<ListingRow | null>(null);
 
-  const fetchListings = async () => {
+  const fetchListings = useCallback(async () => {
     try {
       const l = await getAllListings();
       setListings(l as ListingRow[]);
@@ -55,7 +55,7 @@ export default function AdminListings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAllListings]);
 
   useEffect(() => {
     document.title = 'Listings Directory | NestMate Admin';
@@ -63,7 +63,7 @@ export default function AdminListings() {
 
   useEffect(() => {
     fetchListings();
-  }, [getAllListings]);
+  }, [fetchListings]);
 
   // Escape key and body scroll lock for detail modal and deleteTarget modal
   useEffect(() => {

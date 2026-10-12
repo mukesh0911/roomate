@@ -33,7 +33,7 @@ export default function TrustSection() {
       title: 'No Brokerage',
       desc: 'Direct connections.',
       icon: IndianRupee,
-      iconBg: 'bg-orange-50 text-[#E5501A]',
+      iconBg: 'bg-orange-50 text-[#FF5A36]',
     },
     {
       title: 'Lifestyle Matching',
@@ -55,13 +55,13 @@ export default function TrustSection() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
           {/* Left Column (Editorial Context & CTAs) */}
           <div className="lg:col-span-5 text-left">
-            <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-[#E5501A] uppercase mb-1.5 sm:mb-3 block">
+            <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-[#FF5A36] uppercase mb-1.5 sm:mb-3 block">
               WHY NESTMATE
             </span>
 
-            <h2 className="text-[28px] sm:text-4xl md:text-5xl font-serif font-medium text-[#1A1A2E] leading-tight mb-3 sm:mb-5 tracking-tight">
+            <h2 className="text-[28px] sm:text-4xl md:text-5xl font-serif font-medium text-[#1E2229] leading-tight mb-3 sm:mb-5 tracking-tight">
               More than a platform,<br />
-              <span className="text-[#E5501A] italic">a community.</span>
+              <span className="text-[#FF5A36] italic">a community.</span>
             </h2>
 
             <p className="text-[13px] sm:text-base text-gray-600 mb-6 sm:mb-8 leading-relaxed max-w-md">
@@ -72,7 +72,7 @@ export default function TrustSection() {
             <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap items-center sm:gap-3">
               <Link
                 to="/login"
-                className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 sm:py-3 rounded-full bg-[#1A1A2E] hover:bg-black text-white text-xs sm:text-sm font-semibold shadow-xs transition-all text-center"
+                className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 sm:py-3 rounded-full bg-[#1E2229] hover:bg-black text-white text-xs sm:text-sm font-semibold shadow-xs transition-all text-center"
               >
                 <span>Get Started</span>
                 <span>→</span>
@@ -80,9 +80,9 @@ export default function TrustSection() {
 
               <Link
                 to="/about"
-                className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-full border border-gray-200 hover:border-gray-300 bg-white text-xs sm:text-sm font-semibold text-[#1A1A2E] hover:bg-gray-50 transition-all shadow-xs text-center"
+                className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-full border border-gray-200 hover:border-gray-300 bg-white text-xs sm:text-sm font-semibold text-[#1E2229] hover:bg-gray-50 transition-all shadow-xs text-center"
               >
-                <Play className="w-3 h-3 fill-[#1A1A2E] text-[#1A1A2E]" />
+                <Play className="w-3 h-3 fill-[#1E2229] text-[#1E2229]" />
                 <span>Our Story</span>
               </Link>
             </div>
@@ -101,7 +101,7 @@ export default function TrustSection() {
                       <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-xs sm:text-base font-bold text-[#1A1A2E] leading-snug mb-0.5">
+                      <h3 className="text-xs sm:text-base font-bold text-[#1E2229] leading-snug mb-0.5">
                         {feat.title}
                       </h3>
                       <p className="text-[11px] sm:text-sm text-gray-500 leading-tight sm:leading-relaxed">

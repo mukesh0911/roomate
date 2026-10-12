@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Star, Phone, MessageSquare, CheckCircle2, Image as ImageIcon, Heart, Sparkles } from 'lucide-react';
+import { MapPin, Star, MessageSquare, CheckCircle2, Image as ImageIcon, Heart, Sparkles } from 'lucide-react';
 import type { Listing } from '@/hooks/useListings';
 import { getListingPhotos } from '@/lib/displayTruth';
 import { useStore } from '@/store/useStore';
@@ -8,7 +8,6 @@ import { useStore } from '@/store/useStore';
 interface CompactRoomCardProps {
   room: Listing;
   onClick?: () => void;
-  onCall?: (room: Listing) => void;
   onChat?: (room: Listing) => void;
   onToggleSave?: (room: Listing) => void;
   isSaved?: boolean;
@@ -20,7 +19,6 @@ interface CompactRoomCardProps {
 export default function CompactRoomCard({
   room,
   onClick,
-  onCall,
   onChat,
   onToggleSave,
   isSaved = false,
@@ -102,7 +100,7 @@ export default function CompactRoomCard({
 
           {/* Top-Left Badge (e.g. 2BHK / PG) */}
           <div className="absolute top-2 left-2 z-10">
-            <span className="bg-[#1A1A2E]/80 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-xs">
+            <span className="bg-[#1E2229]/85 backdrop-blur-xs text-white text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-xs">
               {propertyBadge}
             </span>
           </div>
@@ -130,41 +128,41 @@ export default function CompactRoomCard({
         {/* Right Details Column */}
         <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch py-0.5">
           <div>
-            {/* Title */}
-            <h3 className="font-bold text-base sm:text-lg text-[#1A1A2E] group-hover:text-[#E5501A] transition-colors truncate">
+            {/* Title - line-clamp-2 allows full title to breathe without awkward ellipsis */}
+            <h3 className="font-semibold text-sm sm:text-base text-[#1E2229] group-hover:text-[#FF5A36] transition-colors line-clamp-2 leading-snug">
               {room.title || `${room.locality || 'Koramangala'}, ${room.city || 'Bengaluru'}`}
             </h3>
 
             {/* Location with Pin */}
-            <div className="flex items-center gap-1 text-xs text-gray-500 font-medium mt-0.5 truncate">
-              <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 font-normal mt-1 truncate">
+              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <span className="truncate">{localityText}</span>
             </div>
 
             {/* Rent */}
-            <div className="mt-1.5 flex items-baseline gap-1">
-              <span className="text-base sm:text-lg font-extrabold text-[#1A1A2E]">
+            <div className="mt-2 flex items-baseline gap-1">
+              <span className="text-base sm:text-lg font-bold text-[#1E2229]">
                 ₹ {rentAmount.toLocaleString('en-IN')}
               </span>
-              <span className="text-xs text-gray-400 font-medium">Rent</span>
+              <span className="text-xs text-slate-400 font-normal ml-0.5">Rent</span>
             </div>
           </div>
 
           {/* 2-Column Info Grid: Room Type | Looking for */}
-          <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-gray-100">
+          <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-gray-100/90 text-left">
             <div>
-              <span className="text-[10px] text-gray-400 font-medium block">
+              <span className="text-[11px] text-slate-400 font-medium block">
                 Room Type
               </span>
-              <span className="text-xs sm:text-sm font-semibold text-[#1A1A2E] truncate block">
+              <span className="text-xs sm:text-sm font-medium text-[#1E2229] block mt-0.5">
                 {accommodationType}
               </span>
             </div>
             <div>
-              <span className="text-[10px] text-gray-400 font-medium block">
+              <span className="text-[11px] text-slate-400 font-medium block">
                 Looking for
               </span>
-              <span className="text-xs sm:text-sm font-semibold text-[#1A1A2E] truncate block">
+              <span className="text-xs sm:text-sm font-medium text-[#1E2229] block mt-0.5">
                 {flatmatesText}
               </span>
             </div>
@@ -173,23 +171,23 @@ export default function CompactRoomCard({
       </div>
 
       {/* Bottom Row: Dashed Divider + Search Distance + Match + Two Circular Action Buttons */}
-      <div className="border-t border-dashed border-gray-200 mt-3 pt-2.5 flex items-center justify-between gap-2">
-        {/* Distance from search */}
-        <div className="text-xs text-gray-500 font-medium truncate">
-          <span>{distanceKm} km <span className="text-gray-400">from your search</span></span>
+      <div className="border-t border-dashed border-gray-200/80 mt-3 pt-2.5 flex items-center justify-between gap-2">
+        {/* Distance from search - whitespace-nowrap prevents truncation into '0 km from your se...' */}
+        <div className="text-xs text-slate-500 font-normal whitespace-nowrap shrink-0">
+          <span>{distanceKm} km from search</span>
         </div>
 
         {/* Match Score & Action Buttons */}
-        <div className="flex items-center gap-3 shrink-0">
-          {/* Match Score: Real dynamic score when computed; sign-in prompt when guest */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          {/* Match Score */}
           {compatibilityScore !== undefined ? (
             compatibilityScore > 0 ? (
-              <div className="flex items-center gap-1 text-xs font-semibold text-gray-600">
-                <Star className="w-3.5 h-3.5 text-gray-400 fill-gray-200" />
+              <div className="flex items-center gap-1 text-xs font-medium text-slate-600">
+                <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
                 <span>{compatibilityScore}% Match</span>
               </div>
             ) : (
-              <span className="text-[11px] font-medium text-gray-400">Available</span>
+              <span className="text-[11px] text-slate-400 font-normal">Available</span>
             )
           ) : (
             <button
@@ -202,51 +200,40 @@ export default function CompactRoomCard({
                   redirect: `/room/${room.id}`,
                 });
               }}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-500 hover:text-[#E5501A] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-[#FF5A36] transition-colors cursor-pointer"
               title="Sign in to calculate personalized compatibility"
             >
-              <Sparkles className="w-3 h-3 text-[#E5501A]" />
-              <span>Sign in to match</span>
+              <Sparkles className="w-3 h-3 text-[#FF5A36]" />
+              <span>Match</span>
             </button>
           )}
 
-          {/* Three Circular Buttons: [ ❤️ ], [ 📞 ] and [ 💬 ] */}
-          <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+          {/* Action Buttons: [ ❤️ ] and [ 💬 ] */}
+          <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
             {/* Save Button */}
             {onToggleSave && (
               <button
                 type="button"
                 onClick={() => onToggleSave(room)}
-                className={`w-8 h-8 rounded-full border border-gray-200/90 flex items-center justify-center transition-colors cursor-pointer shadow-2xs active:scale-95 ${
-                  isSaved ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-[#F3F4F6] text-gray-500 hover:bg-gray-200'
+                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-slate-200/90 flex items-center justify-center transition-all cursor-pointer shadow-2xs active:scale-95 ${
+                  isSaved ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-white text-slate-500 hover:text-[#1E2229] hover:bg-slate-50 hover:border-slate-300'
                 }`}
                 title={isSaved ? "Remove from saved" : "Save room"}
                 aria-label={isSaved ? "Remove from saved" : "Save room"}
               >
-                <Heart className={`w-4 h-4 ${isSaved ? 'fill-current text-rose-600' : 'text-gray-500'}`} />
+                <Heart className={`w-3.5 h-3.5 ${isSaved ? 'fill-current text-rose-600' : 'text-slate-500'}`} />
               </button>
             )}
-
-            {/* Call Button */}
-            <button
-              type="button"
-              onClick={() => (onCall ? onCall(room) : handleCardClick())}
-              className="w-8 h-8 rounded-full bg-[#F3F4F6] border border-gray-200/90 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors cursor-pointer shadow-2xs active:scale-95"
-              title="Call Owner"
-              aria-label="Call Owner"
-            >
-              <Phone className="w-4 h-4 text-gray-500" />
-            </button>
 
             {/* Chat Button */}
             <button
               type="button"
               onClick={() => (onChat ? onChat(room) : handleCardClick())}
-              className="w-8 h-8 rounded-full bg-[#F3F4F6] border border-gray-200/90 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors cursor-pointer shadow-2xs active:scale-95"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-500 hover:text-[#1E2229] hover:border-slate-300 flex items-center justify-center transition-all cursor-pointer shadow-2xs active:scale-95"
               title="Chat with Owner"
               aria-label="Chat with Owner"
             >
-              <MessageSquare className="w-4 h-4 text-gray-500" />
+              <MessageSquare className="w-3.5 h-3.5 text-slate-500 stroke-[1.8]" />
             </button>
           </div>
         </div>

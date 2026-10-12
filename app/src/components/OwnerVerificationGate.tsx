@@ -73,18 +73,18 @@ function StatusConfig(status: OwnerVerificationStatus | null | undefined) {
       };
     case 'RESUBMISSION_REQUIRED':
       return {
-        icon: <RefreshCcw className="w-7 h-7 text-[#E5501A]" />,
+        icon: <RefreshCcw className="w-7 h-7 text-[#FF5A36]" />,
         bg: 'bg-[#FFF2EB]',
-        border: 'border-[#E5501A]/20',
-        badge: 'bg-[#FFF2EB] text-[#E5501A] border-[#E5501A]/30',
+        border: 'border-[#FF5A36]/20',
+        badge: 'bg-[#FFF2EB] text-[#FF5A36] border-[#FF5A36]/30',
         title: 'Resubmission Required',
       };
     default:
       return {
-        icon: <Shield className="w-7 h-7 text-[#1A1A2E]/70" />,
+        icon: <Shield className="w-7 h-7 text-[#1E2229]/70" />,
         bg: 'bg-white',
         border: 'border-gray-200/80',
-        badge: 'bg-gray-100 text-[#1A1A2E] border-gray-200',
+        badge: 'bg-gray-100 text-[#1E2229] border-gray-200',
         title: 'Verification Required',
       };
   }
@@ -147,9 +147,9 @@ export default function OwnerVerificationGate({
 
   if (verificationLoading) {
     return (
-      <div className={`flex items-center justify-center py-16 ${variant === 'fullscreen' ? 'min-h-screen bg-[#FBF9F6]' : ''}`}>
+      <div className={`flex items-center justify-center py-16 ${variant === 'fullscreen' ? 'min-h-screen bg-[#FBFBFC]' : ''}`}>
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-9 h-9 animate-spin text-[#E5501A]" />
+          <Loader2 className="w-9 h-9 animate-spin text-[#FF5A36]" />
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Checking verification status...</p>
         </div>
       </div>
@@ -208,7 +208,7 @@ export default function OwnerVerificationGate({
   // ─── Main render ──────────────────────────────────────────────────────────
 
   const containerClass = variant === 'fullscreen'
-    ? 'min-h-screen bg-[#FBF9F6] flex items-start justify-center p-6 pt-12 md:pt-16'
+    ? 'min-h-screen bg-[#FBFBFC] flex items-start justify-center p-6 pt-12 md:pt-16'
     : '';
 
   return (
@@ -223,7 +223,7 @@ export default function OwnerVerificationGate({
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                <h2 className="font-serif font-medium text-xl text-[#1A1A2E]">{cfg.title}</h2>
+                <h2 className="font-serif font-medium text-xl text-[#1E2229]">{cfg.title}</h2>
                 <span className={`text-xs font-bold px-3 py-1 rounded-full border ${cfg.badge}`}>
                   {verificationStatusLabel(currentStatus)}
                 </span>
@@ -231,7 +231,7 @@ export default function OwnerVerificationGate({
 
               {listingTitle && (
                 <p className="text-xs text-gray-500 mb-2">
-                  Target Listing: <span className="font-semibold text-[#1A1A2E]">{listingTitle}</span>
+                  Target Listing: <span className="font-semibold text-[#1E2229]">{listingTitle}</span>
                 </p>
               )}
 
@@ -246,7 +246,7 @@ export default function OwnerVerificationGate({
                     <AlertTriangle className="w-3.5 h-3.5" />
                     Reviewer Note
                   </p>
-                  <p className="text-sm text-[#1A1A2E] leading-relaxed">{verification.reviewNote}</p>
+                  <p className="text-sm text-[#1E2229] leading-relaxed">{verification.reviewNote}</p>
                 </div>
               )}
 
@@ -262,7 +262,7 @@ export default function OwnerVerificationGate({
             {onDismiss && (
               <button
                 onClick={onDismiss}
-                className="shrink-0 p-2 hover:bg-black/5 rounded-full text-gray-400 hover:text-[#1A1A2E] transition-colors"
+                className="shrink-0 p-2 hover:bg-black/5 rounded-full text-gray-400 hover:text-[#1E2229] transition-colors"
                 title="Dismiss"
               >
                 <X className="w-5 h-5" />
@@ -275,7 +275,7 @@ export default function OwnerVerificationGate({
             {canSubmit && !showForm && (
               <button
                 onClick={() => { setShowForm(true); setSubmitError(''); }}
-                className="flex items-center gap-2 px-6 py-3 bg-[#E5501A] text-white rounded-full font-semibold text-sm hover:bg-[#D0400B] active:scale-[0.98] transition-all shadow-sm shadow-[#E5501A]/20"
+                className="flex items-center gap-2 px-6 py-3 bg-[#FF5A36] text-white rounded-full font-semibold text-sm hover:bg-[#E54E2B] active:scale-[0.98] transition-all shadow-sm shadow-[#FF5A36]/20"
               >
                 <ShieldCheck className="w-4 h-4" />
                 {currentStatus === 'NOT_STARTED' ? 'Begin Verification' : 'Resubmit Documents'}
@@ -284,7 +284,7 @@ export default function OwnerVerificationGate({
             )}
             {isPending && (
               <div className="flex items-center gap-2 text-sm text-gray-600 font-medium bg-white/60 px-4 py-2 rounded-full border border-gray-200/60">
-                <Loader2 className="w-4 h-4 animate-spin text-[#E5501A]" />
+                <Loader2 className="w-4 h-4 animate-spin text-[#FF5A36]" />
                 Under manual review — typically verified within 12–24 hours
               </div>
             )}
@@ -311,8 +311,8 @@ export default function OwnerVerificationGate({
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8 space-y-6 animate-in fade-in duration-200">
             <div className="flex items-center justify-between pb-4 border-b border-gray-100">
               <div>
-                <h3 className="font-serif font-medium text-xl text-[#1A1A2E] flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-full bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center text-sm">
+                <h3 className="font-serif font-medium text-xl text-[#1E2229] flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-full bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center text-sm">
                     <FileText className="w-4 h-4" />
                   </span>
                   Submit Identity Verification
@@ -328,16 +328,16 @@ export default function OwnerVerificationGate({
             </div>
 
             {/* Honest disclaimer notice */}
-            <div className="bg-[#FFF2EB]/60 border border-[#E5501A]/15 rounded-2xl p-4 flex items-start gap-3">
-              <Info className="w-5 h-5 text-[#E5501A] shrink-0 mt-0.5" />
-              <p className="text-xs text-[#1A1A2E]/80 leading-relaxed font-sans">
-                <strong className="text-[#1A1A2E] font-semibold">Privacy Guarantee:</strong> We verify your legal identity to protect prospective roommates from scammers. We do not claim or verify real estate deed ownership. Documents are encrypted and handled exclusively by authorized NestMate safety reviewers.
+            <div className="bg-[#FFF2EB]/60 border border-[#FF5A36]/15 rounded-2xl p-4 flex items-start gap-3">
+              <Info className="w-5 h-5 text-[#FF5A36] shrink-0 mt-0.5" />
+              <p className="text-xs text-[#1E2229]/80 leading-relaxed font-sans">
+                <strong className="text-[#1E2229] font-semibold">Privacy Guarantee:</strong> We verify your legal identity to protect prospective roommates from scammers. We do not claim or verify real estate deed ownership. Documents are encrypted and handled exclusively by authorized NestMate safety reviewers.
               </p>
             </div>
 
             {/* Full legal name */}
             <div>
-              <label className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2">
+              <label className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2">
                 Full Name (as printed on your ID) *
               </label>
               <input
@@ -345,13 +345,13 @@ export default function OwnerVerificationGate({
                 value={declaredName}
                 onChange={e => setDeclaredName(e.target.value)}
                 placeholder="e.g. Rajesh Kumar Sharma"
-                className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] placeholder:text-gray-400 focus:outline-none focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 transition-all"
+                className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-[#1E2229] placeholder:text-gray-400 focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 transition-all"
               />
             </div>
 
             {/* Document type selection cards */}
             <div>
-              <label className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2.5">
+              <label className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2.5">
                 Select Document Type *
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -364,16 +364,16 @@ export default function OwnerVerificationGate({
                       onClick={() => setDocType(dt.value)}
                       className={`p-3.5 rounded-2xl text-left border transition-all flex flex-col justify-between ${
                         isSelected
-                          ? 'border-[#E5501A] bg-[#FFF2EB] text-[#1A1A2E] shadow-2xs'
-                          : 'border-gray-200 bg-white hover:border-[#E5501A]/40 text-gray-700'
+                          ? 'border-[#FF5A36] bg-[#FFF2EB] text-[#1E2229] shadow-2xs'
+                          : 'border-gray-200 bg-white hover:border-[#FF5A36]/40 text-gray-700'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className={`text-sm font-semibold ${isSelected ? 'text-[#E5501A]' : 'text-[#1A1A2E]'}`}>
+                        <span className={`text-sm font-semibold ${isSelected ? 'text-[#FF5A36]' : 'text-[#1E2229]'}`}>
                           {dt.label}
                         </span>
                         <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                          isSelected ? 'border-[#E5501A] bg-[#E5501A]' : 'border-gray-300'
+                          isSelected ? 'border-[#FF5A36] bg-[#FF5A36]' : 'border-gray-300'
                         }`}>
                           {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                         </div>
@@ -389,7 +389,7 @@ export default function OwnerVerificationGate({
 
             {/* Document upload dropzone */}
             <div>
-              <label className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2">
+              <label className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2">
                 Upload Document File *
               </label>
               <input
@@ -403,13 +403,13 @@ export default function OwnerVerificationGate({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full py-8 px-4 border-2 border-dashed border-gray-200 rounded-3xl flex flex-col items-center justify-center gap-2.5 hover:border-[#E5501A]/60 hover:bg-[#FFF2EB]/30 transition-all group cursor-pointer"
+                  className="w-full py-8 px-4 border-2 border-dashed border-gray-200 rounded-3xl flex flex-col items-center justify-center gap-2.5 hover:border-[#FF5A36]/60 hover:bg-[#FFF2EB]/30 transition-all group cursor-pointer"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-gray-100 group-hover:bg-[#FFF2EB] flex items-center justify-center text-gray-500 group-hover:text-[#E5501A] transition-colors">
+                  <div className="w-12 h-12 rounded-2xl bg-gray-100 group-hover:bg-[#FFF2EB] flex items-center justify-center text-gray-500 group-hover:text-[#FF5A36] transition-colors">
                     <Upload className="w-6 h-6" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-semibold text-[#1A1A2E]">
+                    <p className="text-sm font-semibold text-[#1E2229]">
                       Click to browse or drop document here
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">
@@ -425,11 +425,11 @@ export default function OwnerVerificationGate({
                     </div>
                   ) : (
                     <div className="flex items-center gap-3.5 p-3 bg-white rounded-2xl border border-gray-100">
-                      <div className="w-10 h-10 rounded-xl bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center shrink-0">
                         <FileText className="w-5 h-5" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-[#1A1A2E] truncate">{docFile.name}</p>
+                        <p className="text-sm font-semibold text-[#1E2229] truncate">{docFile.name}</p>
                         <p className="text-xs text-gray-500">{(docFile.size / 1024 / 1024).toFixed(2)} MB</p>
                       </div>
                     </div>
@@ -449,7 +449,7 @@ export default function OwnerVerificationGate({
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="text-xs text-[#E5501A] font-semibold hover:underline"
+                      className="text-xs text-[#FF5A36] font-semibold hover:underline"
                     >
                       Change document
                     </button>
@@ -463,11 +463,11 @@ export default function OwnerVerificationGate({
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs text-gray-500 font-medium">
                   <span>Uploading encrypted file...</span>
-                  <span className="text-[#E5501A] font-bold">{uploadProgress}%</span>
+                  <span className="text-[#FF5A36] font-bold">{uploadProgress}%</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-[#E5501A] rounded-full transition-all duration-300"
+                    className="h-full bg-[#FF5A36] rounded-full transition-all duration-300"
                     style={{ width: `${uploadProgress}%` }}
                   />
                 </div>
@@ -488,7 +488,7 @@ export default function OwnerVerificationGate({
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting || !docFile || !declaredName.trim()}
-                className="w-full py-3.5 bg-[#E5501A] text-white rounded-full font-semibold text-sm hover:bg-[#D0400B] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm shadow-[#E5501A]/20"
+                className="w-full py-3.5 bg-[#FF5A36] text-white rounded-full font-semibold text-sm hover:bg-[#E54E2B] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm shadow-[#FF5A36]/20"
               >
                 {submitting ? (
                   <>
@@ -512,7 +512,7 @@ export default function OwnerVerificationGate({
         {/* What happens next step timeline */}
         {(currentStatus === 'NOT_STARTED' || currentStatus === 'SUBMITTED' || currentStatus === 'UNDER_REVIEW') && !showForm && !submitSuccess && (
           <div className="bg-white rounded-3xl border border-gray-100 p-6 md:p-8 shadow-xs">
-            <h4 className="font-serif font-medium text-lg text-[#1A1A2E] mb-5">How NestMate Verification Works</h4>
+            <h4 className="font-serif font-medium text-lg text-[#1E2229] mb-5">How NestMate Verification Works</h4>
             <div className="space-y-4">
               {[
                 {
@@ -538,12 +538,12 @@ export default function OwnerVerificationGate({
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                     item.done
                       ? 'bg-emerald-500 text-white shadow-xs'
-                      : 'bg-[#FFF2EB] text-[#E5501A] border border-[#E5501A]/20'
+                      : 'bg-[#FFF2EB] text-[#FF5A36] border border-[#FF5A36]/20'
                   }`}>
                     {item.done ? <CheckCircle2 className="w-4 h-4" /> : item.step}
                   </div>
                   <div>
-                    <p className={`text-sm font-semibold ${item.done ? 'text-emerald-800' : 'text-[#1A1A2E]'}`}>
+                    <p className={`text-sm font-semibold ${item.done ? 'text-emerald-800' : 'text-[#1E2229]'}`}>
                       {item.label}
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5">{item.desc}</p>

@@ -38,7 +38,7 @@ interface StateSkeletonGridProps {
 export function StateSkeletonGrid({ count = 6, className }: StateSkeletonGridProps) {
   return (
     <div
-      className={cn('grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4', className)}
+      className={cn('grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5', className)}
       role="status"
       aria-label="Loading content"
     >

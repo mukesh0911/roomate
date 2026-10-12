@@ -85,7 +85,9 @@ export default function OTPVerify() {
     setError('');
     try {
       const { isNew, role, onboardingComplete } = await verifyOTP(verificationId, finalCode);
-      try { sessionStorage.removeItem('nestmate_otp_pending'); } catch {}
+      try { sessionStorage.removeItem('nestmate_otp_pending'); } catch {
+        // Storage can be unavailable in privacy-restricted browser contexts.
+      }
       setLoading(false);
       if (isNew || !role) {
         navigate('/role-select');
@@ -101,7 +103,9 @@ export default function OTPVerify() {
   };
 
   const handleResend = () => {
-    try { sessionStorage.removeItem('nestmate_otp_pending'); } catch {}
+    try { sessionStorage.removeItem('nestmate_otp_pending'); } catch {
+      // Navigation must still work when session storage is unavailable.
+    }
     navigate('/login', { state: { phone } });
   };
 
@@ -111,7 +115,9 @@ export default function OTPVerify() {
         {/* Back */}
         <button
           onClick={() => {
-            try { sessionStorage.removeItem('nestmate_otp_pending'); } catch {}
+            try { sessionStorage.removeItem('nestmate_otp_pending'); } catch {
+              // Navigation must still work when session storage is unavailable.
+            }
             navigate('/login');
           }}
           className="flex items-center gap-2 text-sm text-ink/60 hover:text-ink mb-6 transition-colors"

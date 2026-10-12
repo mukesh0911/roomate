@@ -149,10 +149,15 @@ export default function HeroMatchShowcase() {
   useEffect(() => {
     if (showConnectModal) return;
     const timer = setInterval(() => {
-      handleNext();
+      setAnimating(true);
+      setIsLiked(false);
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % filteredProfiles.length);
+        setAnimating(false);
+      }, 180);
     }, 8000);
     return () => clearInterval(timer);
-  }, [currentIndex, activeCategory, showConnectModal]);
+  }, [filteredProfiles.length, showConnectModal]);
 
   return (
     <div className="w-full max-w-[440px] mx-auto flex flex-col items-center gap-3 sm:gap-4 min-w-0">

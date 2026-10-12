@@ -191,7 +191,7 @@ export default function ApplicantCompare() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FBF9F6] pb-24">
+    <div className="min-h-screen bg-[#FBFBFC] pb-24">
       {/* Confirm Select Modal */}
       {confirmSelectModal && selectedCandidate && (
         <div
@@ -210,11 +210,11 @@ export default function ApplicantCompare() {
             <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto border border-emerald-200 shadow-2xs">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h2 className="font-serif font-medium text-2xl text-[#1A1A2E]">
+            <h2 className="font-serif font-medium text-2xl text-[#1E2229]">
               Select {selectedCandidate.name}?
             </h2>
             <p className="text-sm text-gray-600 leading-relaxed font-sans">
-              Confirming selection will mark your room as <strong className="text-[#1A1A2E]">Filled</strong>, send polite updates to other pending applicants, and enable direct lease coordination.
+              Confirming selection will mark your room as <strong className="text-[#1E2229]">Filled</strong>, send polite updates to other pending applicants, and enable direct lease coordination.
             </p>
             <div className="flex gap-3 pt-2">
               <button
@@ -227,7 +227,7 @@ export default function ApplicantCompare() {
               <button
                 type="button"
                 onClick={handleExecuteFill}
-                className="flex-1 py-3 bg-[#E5501A] hover:bg-[#D0400B] text-white rounded-full text-xs font-semibold shadow-sm shadow-[#E5501A]/20 transition-all cursor-pointer"
+                className="flex-1 py-3 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full text-xs font-semibold shadow-sm shadow-[#FF5A36]/20 transition-all cursor-pointer"
               >
                 Confirm Roommate
               </button>
@@ -241,22 +241,22 @@ export default function ApplicantCompare() {
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <button
             onClick={() => navigate('/owner-dashboard')}
-            className="flex items-center gap-2 text-xs font-semibold text-gray-600 hover:text-[#1A1A2E] bg-white px-3.5 py-1.5 rounded-full border border-gray-200 shadow-2xs transition-all"
+            className="flex items-center gap-2 text-xs font-semibold text-gray-600 hover:text-[#1E2229] bg-white px-3.5 py-1.5 rounded-full border border-gray-200 shadow-2xs transition-all"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Dashboard</span>
           </button>
 
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-full bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center">
               <Users className="w-4 h-4" />
             </div>
-            <h1 className="font-serif font-medium text-base sm:text-lg text-[#1A1A2E]">
+            <h1 className="font-serif font-medium text-base sm:text-lg text-[#1E2229]">
               Compare Applicants
             </h1>
           </div>
 
-          <span className="text-xs font-bold text-[#E5501A] bg-[#FFF2EB] border border-[#E5501A]/20 px-3 py-1 rounded-full">
+          <span className="text-xs font-bold text-[#FF5A36] bg-[#FFF2EB] border border-[#FF5A36]/20 px-3 py-1 rounded-full">
             {candidates.length} Candidate{candidates.length === 1 ? '' : 's'}
           </span>
         </div>
@@ -265,7 +265,7 @@ export default function ApplicantCompare() {
       <div className="max-w-6xl mx-auto px-4 pt-8">
         {loading ? (
           <div className="py-20 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-9 h-9 animate-spin text-[#E5501A]" />
+            <Loader2 className="w-9 h-9 animate-spin text-[#FF5A36]" />
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Analyzing applicants side-by-side...</p>
           </div>
         ) : candidates.length === 0 ? (
@@ -273,13 +273,13 @@ export default function ApplicantCompare() {
             <div className="w-16 h-16 rounded-3xl bg-gray-50 flex items-center justify-center mx-auto text-gray-400">
               <Users className="w-8 h-8" />
             </div>
-            <h2 className="font-serif font-medium text-2xl text-[#1A1A2E]">No Applicants to Compare</h2>
+            <h2 className="font-serif font-medium text-2xl text-[#1E2229]">No Applicants to Compare</h2>
             <p className="text-xs text-gray-500 leading-relaxed">
               When prospective tenants submit inquiries and connect with your property, you can compare up to 3 candidates here side-by-side.
             </p>
             <Link
               to="/owner-dashboard"
-              className="inline-flex items-center gap-2 bg-[#E5501A] hover:bg-[#D0400B] text-white py-3 px-6 rounded-full font-semibold text-xs shadow-sm shadow-[#E5501A]/20 transition-all"
+              className="inline-flex items-center gap-2 bg-[#FF5A36] hover:bg-[#E54E2B] text-white py-3 px-6 rounded-full font-semibold text-xs shadow-sm shadow-[#FF5A36]/20 transition-all"
             >
               Back to Owner Dashboard
             </Link>
@@ -309,7 +309,7 @@ export default function ApplicantCompare() {
                         onClick={() => setMobileActiveIndex(idx)}
                         className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl border text-xs font-bold transition-all shrink-0 cursor-pointer ${
                           isSelected
-                            ? 'bg-[#1A1A2E] text-white border-[#1A1A2E] shadow-xs'
+                            ? 'bg-[#1E2229] text-white border-[#1E2229] shadow-xs'
                             : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
                         }`}
                       >
@@ -322,7 +322,7 @@ export default function ApplicantCompare() {
                         </div>
                         <span className="truncate max-w-[110px]">{c.name}</span>
                         {isSelected && (
-                          <span className="w-2 h-2 rounded-full bg-[#E5501A]" />
+                          <span className="w-2 h-2 rounded-full bg-[#FF5A36]" />
                         )}
                       </button>
                     );
@@ -347,7 +347,7 @@ export default function ApplicantCompare() {
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <h3 className="font-serif font-medium text-lg text-[#1A1A2E] truncate">{c.name}</h3>
+                            <h3 className="font-serif font-medium text-lg text-[#1E2229] truncate">{c.name}</h3>
                             {c.isVerified && (
                               <span className="inline-flex items-center gap-1 font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 text-[10px]">
                                 <ShieldCheck className="w-3 h-3 text-emerald-600" /> Verified
@@ -361,53 +361,53 @@ export default function ApplicantCompare() {
                       </div>
 
                       {/* Candidate Index Badge */}
-                      <span className="text-[11px] font-extrabold text-[#E5501A] bg-[#FFF2EB] border border-[#E5501A]/20 px-2.5 py-1 rounded-full shrink-0">
+                      <span className="text-[11px] font-extrabold text-[#FF5A36] bg-[#FFF2EB] border border-[#FF5A36]/20 px-2.5 py-1 rounded-full shrink-0">
                         {mobileActiveIndex + 1} of {candidates.length}
                       </span>
                     </div>
 
                     {/* Bio if available */}
                     {c.bio && (
-                      <p className="text-xs text-gray-600 bg-[#FBF9F6] p-3 rounded-2xl border border-gray-100 leading-relaxed italic">
+                      <p className="text-xs text-gray-600 bg-[#FBFBFC] p-3 rounded-2xl border border-gray-100 leading-relaxed italic">
                         "{c.bio}"
                       </p>
                     )}
 
                     {/* Metric Comparison Key-Value Grid */}
                     <div className="grid grid-cols-2 gap-2.5">
-                      <div className="bg-[#FBF9F6] border border-gray-100 rounded-2xl p-3">
+                      <div className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-3">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Budget Range</p>
-                        <p className="text-sm font-bold text-[#E5501A] mt-0.5">
+                        <p className="text-sm font-bold text-[#FF5A36] mt-0.5">
                           {c.budget ? `₹${c.budget.toLocaleString()}/mo` : 'Flexible'}
                         </p>
                       </div>
 
-                      <div className="bg-[#FBF9F6] border border-gray-100 rounded-2xl p-3">
+                      <div className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-3">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Move-in Date</p>
-                        <p className="text-xs font-bold text-[#1A1A2E] mt-0.5 truncate">
+                        <p className="text-xs font-bold text-[#1E2229] mt-0.5 truncate">
                           {c.moveInDate || 'Immediate'}
                         </p>
                       </div>
 
-                      <div className="bg-[#FBF9F6] border border-gray-100 rounded-2xl p-3">
+                      <div className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-3">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Diet Preference</p>
-                        <p className="text-xs font-bold text-[#1A1A2E] mt-0.5 capitalize truncate">
+                        <p className="text-xs font-bold text-[#1E2229] mt-0.5 capitalize truncate">
                           {c.quizAnswers?.food_pref?.replace('_', ' ') || 'Any Diet'}
                         </p>
                       </div>
 
-                      <div className="bg-[#FBF9F6] border border-gray-100 rounded-2xl p-3">
+                      <div className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-3">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Smoking Habit</p>
-                        <p className="text-xs font-bold text-[#1A1A2E] mt-0.5 capitalize truncate">
+                        <p className="text-xs font-bold text-[#1E2229] mt-0.5 capitalize truncate">
                           {c.quizAnswers?.smoking || 'Non-smoker'}
                         </p>
                       </div>
 
-                      <div className="bg-[#FBF9F6] border border-gray-100 rounded-2xl p-3 col-span-2">
+                      <div className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-3 col-span-2">
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Sleep Schedule</p>
-                            <p className="text-xs font-bold text-[#1A1A2E] mt-0.5 capitalize">
+                            <p className="text-xs font-bold text-[#1E2229] mt-0.5 capitalize">
                               {c.quizAnswers?.sleep_time || 'Flexible'}
                             </p>
                           </div>
@@ -449,7 +449,7 @@ export default function ApplicantCompare() {
                       <button
                         type="button"
                         onClick={() => handleChatApplicant(c.applicantId)}
-                        className="p-3 rounded-2xl border border-gray-200 text-gray-600 hover:text-[#E5501A] hover:border-[#E5501A]/30 hover:bg-[#FFF2EB]/40 transition-colors shadow-2xs shrink-0 cursor-pointer"
+                        className="p-3 rounded-2xl border border-gray-200 text-gray-600 hover:text-[#FF5A36] hover:border-[#FF5A36]/30 hover:bg-[#FFF2EB]/40 transition-colors shadow-2xs shrink-0 cursor-pointer"
                         title="Chat with applicant"
                       >
                         <MessageCircle className="w-4 h-4" />
@@ -457,7 +457,7 @@ export default function ApplicantCompare() {
                       <button
                         type="button"
                         onClick={() => handleSelectCandidate(c)}
-                        className="flex-1 py-3.5 px-4 bg-[#E5501A] hover:bg-[#D0400B] text-white rounded-full text-xs font-bold shadow-xs shadow-[#E5501A]/20 transition-all active:scale-[0.98] cursor-pointer"
+                        className="flex-1 py-3.5 px-4 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full text-xs font-bold shadow-xs shadow-[#FF5A36]/20 transition-all active:scale-[0.98] cursor-pointer"
                       >
                         Select {c.name.split(' ')[0]} as Roommate
                       </button>
@@ -469,7 +469,7 @@ export default function ApplicantCompare() {
               {/* Side-by-Side Quick Summary Card for 2+ candidates */}
               {candidates.length > 1 && (
                 <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-4 space-y-3">
-                  <h4 className="font-serif font-medium text-sm text-[#1A1A2E]">Side-by-Side Summary</h4>
+                  <h4 className="font-serif font-medium text-sm text-[#1E2229]">Side-by-Side Summary</h4>
                   <div className="divide-y divide-gray-100 text-xs">
                     {candidates.map((c, idx) => (
                       <div
@@ -493,12 +493,12 @@ export default function ApplicantCompare() {
                             )}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-xs text-[#1A1A2E] truncate font-bold">{c.name}</p>
+                            <p className="text-xs text-[#1E2229] truncate font-bold">{c.name}</p>
                             <p className="text-[10px] text-gray-400 truncate">{c.moveInDate || 'Immediate'}</p>
                           </div>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-xs font-bold text-[#E5501A]">{c.budget ? `₹${c.budget.toLocaleString()}` : 'Flexible'}</p>
+                          <p className="text-xs font-bold text-[#FF5A36]">{c.budget ? `₹${c.budget.toLocaleString()}` : 'Flexible'}</p>
                           <p className="text-[10px] text-gray-500 capitalize">{c.quizAnswers?.food_pref?.replace('_', ' ') || 'Any'}</p>
                         </div>
                       </div>
@@ -518,7 +518,7 @@ export default function ApplicantCompare() {
                     <span>Identity Trust</span>
                   </div>
                   <div className="h-12 flex items-center border-b border-gray-100">
-                    <IndianRupee className="w-3.5 h-3.5 mr-2 text-[#E5501A] shrink-0" />
+                    <IndianRupee className="w-3.5 h-3.5 mr-2 text-[#FF5A36] shrink-0" />
                     <span>Budget Range</span>
                   </div>
                   <div className="h-12 flex items-center border-b border-gray-100">
@@ -542,7 +542,7 @@ export default function ApplicantCompare() {
                     <span>Sleep Schedule</span>
                   </div>
                   <div className="h-16 flex items-center">
-                    <Sparkles className="w-3.5 h-3.5 mr-2 text-[#E5501A] shrink-0" />
+                    <Sparkles className="w-3.5 h-3.5 mr-2 text-[#FF5A36] shrink-0" />
                     <span>Final Decision</span>
                   </div>
                 </div>
@@ -567,7 +567,7 @@ export default function ApplicantCompare() {
                           <User className="w-8 h-8 text-gray-400" />
                         )}
                       </div>
-                      <h3 className="font-serif font-medium text-base text-[#1A1A2E] truncate w-full">{c.name}</h3>
+                      <h3 className="font-serif font-medium text-base text-[#1E2229] truncate w-full">{c.name}</h3>
                       <span className="text-xs text-gray-400 font-medium">{c.age ? `${c.age} yrs` : 'Age Unspecified'}</span>
                     </div>
 
@@ -583,7 +583,7 @@ export default function ApplicantCompare() {
                     </div>
 
                     {/* Budget Fit */}
-                    <div className="h-12 flex items-center border-b border-gray-100 text-sm font-semibold text-[#1A1A2E]">
+                    <div className="h-12 flex items-center border-b border-gray-100 text-sm font-semibold text-[#1E2229]">
                       {c.budget ? `₹${c.budget.toLocaleString()}/mo` : 'Flexible Budget'}
                     </div>
 
@@ -617,7 +617,7 @@ export default function ApplicantCompare() {
                       <button
                         type="button"
                         onClick={() => handleChatApplicant(c.applicantId)}
-                        className="p-3 rounded-2xl border border-gray-200 text-gray-600 hover:text-[#E5501A] hover:border-[#E5501A]/30 hover:bg-[#FFF2EB]/40 transition-colors shadow-2xs cursor-pointer"
+                        className="p-3 rounded-2xl border border-gray-200 text-gray-600 hover:text-[#FF5A36] hover:border-[#FF5A36]/30 hover:bg-[#FFF2EB]/40 transition-colors shadow-2xs cursor-pointer"
                         title="Chat with applicant"
                       >
                         <MessageCircle className="w-4 h-4" />
@@ -625,7 +625,7 @@ export default function ApplicantCompare() {
                       <button
                         type="button"
                         onClick={() => handleSelectCandidate(c)}
-                        className="flex-1 py-3 px-4 bg-[#E5501A] hover:bg-[#D0400B] text-white rounded-full text-xs font-semibold shadow-xs shadow-[#E5501A]/20 transition-all active:scale-[0.98] cursor-pointer"
+                        className="flex-1 py-3 px-4 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full text-xs font-semibold shadow-xs shadow-[#FF5A36]/20 transition-all active:scale-[0.98] cursor-pointer"
                       >
                         Select Roommate
                       </button>

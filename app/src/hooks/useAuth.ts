@@ -235,7 +235,9 @@ export function useAuth() {
         'expired-callback': () => {
           try {
             window.recaptchaVerifier?.clear();
-          } catch {}
+          } catch {
+            // The verifier may already have released its iframe after expiry.
+          }
           window.recaptchaVerifier = null;
         },
       });
@@ -254,7 +256,9 @@ export function useAuth() {
       if (window.recaptchaVerifier) {
         try {
           window.recaptchaVerifier.clear();
-        } catch {}
+        } catch {
+          // A previously cleared verifier is safe to replace.
+        }
         window.recaptchaVerifier = null;
       }
       window.recaptchaVerifier = new RecaptchaVerifier(auth, containerEl, {
@@ -263,7 +267,9 @@ export function useAuth() {
         'expired-callback': () => {
           try {
             window.recaptchaVerifier?.clear();
-          } catch {}
+          } catch {
+            // The verifier may already have released its iframe after expiry.
+          }
           window.recaptchaVerifier = null;
         },
         'hl': 'en',
@@ -294,7 +300,7 @@ export function useAuth() {
       console.error('Unable to refresh profile:', err);
     }
     return null;
-  }, [user]);
+  }, [setProfile, user]);
 
   /**
    * Send OTP to the given phone number (E.164 format, e.g. +919876543210)
@@ -324,7 +330,9 @@ export function useAuth() {
       // Clean up captcha on failure so user can retry immediately without being stuck
       try {
         window.recaptchaVerifier?.clear();
-      } catch {}
+      } catch {
+        // Cleanup is best-effort; the authentication error below is authoritative.
+      }
       window.recaptchaVerifier = null;
 
       let msg = err.message || 'Failed to send OTP';
@@ -341,7 +349,7 @@ export function useAuth() {
       setError(msg);
       throw new Error(msg);
     }
-  }, [initRecaptcha]);
+  }, [initRecaptcha, setError]);
 
   /**
    * Sign in with email + password.
@@ -422,7 +430,7 @@ export function useAuth() {
         throw thrownError;
       }
     },
-    []
+    [setError, setProfile, setUser]
   );
 
   /**
@@ -482,7 +490,7 @@ export function useAuth() {
         throw new Error(msg);
       }
     },
-    []
+    [setError, setProfile, setUser]
   );
 
   /**
@@ -500,7 +508,7 @@ export function useAuth() {
       setError(msg);
       throw new Error(msg);
     }
-  }, []);
+  }, [setError]);
 
   // ── Phone OTP (kept for future re-enable) ────────────────────
   /**
@@ -574,7 +582,7 @@ export function useAuth() {
         throw new Error(msg);
       }
     },
-    []
+    [setError, setProfile, setUser]
   );
 
   /**
@@ -658,7 +666,7 @@ export function useAuth() {
       setError(msg);
       throw new Error(msg);
     }
-  }, []);
+  }, [setError, setProfile, setUser]);
 
   const logout = useCallback(async () => {
     await signOut(auth);
@@ -666,7 +674,7 @@ export function useAuth() {
     setProfile(null);
     window.recaptchaVerifier = null;
     useStore.getState().resetAll();
-  }, []);
+  }, [setProfile, setUser]);
 
   /**
    * Verify OTP and link/save phone to the currently signed-in Google user.
@@ -690,7 +698,7 @@ export function useAuth() {
         await savePrivateUserData(currentUser.uid, { phone });
         await setDoc(
           doc(db, 'users', currentUser.uid),
-          { phoneVerified: true, phone, updatedAt: serverTimestamp() },
+          { phoneVerified: true, phone: '', updatedAt: serverTimestamp() },
           { merge: true }
         );
 
@@ -703,7 +711,7 @@ export function useAuth() {
         throw new Error(msg);
       }
     },
-    [refreshProfile]
+    [refreshProfile, setError]
   );
 
   return {

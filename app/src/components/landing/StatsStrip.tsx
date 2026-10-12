@@ -55,7 +55,7 @@ export default function StatsStrip() {
         : 'Available',
       label: 'Rooms & PGs Listed',
       icon: Home,
-      iconBg: 'bg-orange-50 text-[#E5501A]',
+      iconBg: 'bg-orange-50 text-[#FF5A36]',
     },
     {
       value: '100%',
@@ -90,7 +90,7 @@ export default function StatsStrip() {
                     <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <div className="min-w-0 text-left">
-                    <div className="text-base sm:text-2xl font-bold text-[#1A1A2E] tracking-tight">
+                    <div className="text-base sm:text-2xl font-bold text-[#1E2229] tracking-tight">
                       {stat.value}
                     </div>
                     <div className="text-[10px] sm:text-xs text-gray-500 font-medium leading-tight mt-0.5 truncate">
@@ -104,10 +104,10 @@ export default function StatsStrip() {
 
           {/* Desktop handwritten note with underline (untouched on desktop) */}
           <div className="hidden xl:flex flex-col items-center pl-6 shrink-0 relative">
-            <span className="font-script text-2xl text-[#1A1A2E] select-none -rotate-3">
+            <span className="font-script text-2xl text-[#1E2229] select-none -rotate-3">
               A happier way to live
             </span>
-            <svg className="w-32 h-2 text-[#E5501A] -mt-0.5 -rotate-2" viewBox="0 0 120 8" fill="none">
+            <svg className="w-32 h-2 text-[#FF5A36] -mt-0.5 -rotate-2" viewBox="0 0 120 8" fill="none">
               <path d="M2 5C35 2 75 7 118 3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
           </div>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { UserProfile } from '@/hooks/useAuth';
 import type { Listing } from '@/hooks/useListings';
-import { MapPin, Star, MessageSquare, Phone, Check } from 'lucide-react';
+import { MapPin, Star, MessageSquare, Check } from 'lucide-react';
 import { getUserIntent, getPreferredRoommateGender, getUserInitials } from '@/lib/userIntent';
 
 interface OwnerSeekerCardProps {
@@ -10,7 +10,6 @@ interface OwnerSeekerCardProps {
   score?: number;
   ownerListing?: Listing | null;
   onChat: (seekerUid: string) => void;
-  onCall: (seeker: UserProfile) => void;
   distanceText?: string;
 }
 
@@ -19,7 +18,6 @@ export default function OwnerSeekerCard({
   score = 0,
   ownerListing,
   onChat,
-  onCall,
   distanceText,
 }: OwnerSeekerCardProps) {
   const navigate = useNavigate();
@@ -90,7 +88,7 @@ export default function OwnerSeekerCard({
                 className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide ${
                   intent.badgeVariant === 'room_available'
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
-                    : 'bg-orange-50 text-[#E5501A] border border-orange-200/80'
+                    : 'bg-orange-50 text-[#FF5A36] border border-orange-200/80'
                 }`}
               >
                 {intent.badgeText}
@@ -98,45 +96,45 @@ export default function OwnerSeekerCard({
             </div>
 
             {/* User Name */}
-            <h3 className="font-bold text-base sm:text-lg md:text-xl text-[#1A1A2E] group-hover:text-[#E5501A] transition-colors truncate">
+            <h3 className="font-semibold text-base sm:text-lg text-[#1E2229] group-hover:text-[#FF5A36] transition-colors line-clamp-1">
               {seeker.name || 'Room Seeker'}
             </h3>
 
             {/* Location with MapPin */}
-            <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium mt-1 truncate">
-              <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 font-normal mt-1 truncate">
+              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <span className="truncate">{localityText}</span>
             </div>
 
             {/* Financial: Truthful Budget vs Rent */}
             <div className="mt-2 flex items-baseline gap-1.5">
-              <span className="text-base sm:text-lg md:text-xl font-black text-[#1A1A2E] tracking-tight">
+              <span className="text-base sm:text-lg font-bold text-[#1E2229]">
                 {budgetText}
               </span>
-              <span className="text-xs font-semibold text-gray-500">
+              <span className="text-xs text-slate-500 font-normal">
                 {intent.priceLabel}
               </span>
-              <span className="text-[10px] font-normal text-gray-400">
+              <span className="text-[10px] text-slate-400 font-normal">
                 /{intent.priceSubtext}
               </span>
             </div>
           </div>
 
           {/* Requirement and Preferred Roommate Two-Column Grid */}
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-3 pt-0.5 border-t border-gray-100">
+          <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-gray-100/90 text-left">
             <div className="min-w-0">
-              <span className="text-xs text-gray-400 font-normal block mb-0.5 truncate whitespace-nowrap">
+              <span className="text-[11px] text-slate-400 font-medium block">
                 {intent.requirementLabel}
               </span>
-              <span className="text-sm sm:text-base font-bold text-[#1A1A2E] truncate block">
+              <span className="text-xs sm:text-sm font-semibold text-[#1E2229] block mt-0.5">
                 {intent.requirementValue}
               </span>
             </div>
             <div className="min-w-0">
-              <span className="text-xs text-gray-400 font-normal block mb-0.5 truncate whitespace-nowrap" title="Roommate Preference">
+              <span className="text-[11px] text-slate-400 font-medium block" title="Roommate Preference">
                 {intent.preferenceLabel}
               </span>
-              <span className="text-sm sm:text-base font-bold text-[#1A1A2E] truncate block">
+              <span className="text-xs sm:text-sm font-semibold text-[#1E2229] block mt-0.5">
                 {preferredGender.label}
               </span>
             </div>
@@ -150,39 +148,28 @@ export default function OwnerSeekerCard({
       {/* Bottom Row: Distance / Search on Left, Match + Action Buttons on Right */}
       <div className="flex items-center justify-between gap-2" onClick={e => e.stopPropagation()}>
         {/* Left: Distance from search */}
-        <div className="text-xs sm:text-sm text-gray-400 font-medium truncate">
-          <span>{distanceText || '0 km from your search'}</span>
+        <div className="text-xs text-slate-500 font-normal whitespace-nowrap shrink-0">
+          <span>{distanceText || '0 km from search'}</span>
         </div>
 
         {/* Right: Star Match Score + Call + Message Buttons */}
-        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           {score > 0 && (
-            <div className="flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-700">
-              <Star className="w-4 h-4 text-gray-400 stroke-[1.8]" />
+            <div className="flex items-center gap-1 text-xs font-semibold text-slate-700">
+              <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400 stroke-[1.8]" />
               <span>{score}% Match</span>
             </div>
           )}
-
-          {/* Circular Phone Button */}
-          <button
-            type="button"
-            onClick={() => onCall(seeker)}
-            className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs"
-            title="Call Seeker"
-            aria-label="Call Seeker"
-          >
-            <Phone className="w-4 h-4 text-gray-600 stroke-[1.8]" />
-          </button>
 
           {/* Circular Message Button */}
           <button
             type="button"
             onClick={() => onChat(seeker.uid)}
-            className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-500 hover:text-[#1E2229] hover:border-slate-300 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs"
             title="Message Seeker"
             aria-label="Message Seeker"
           >
-            <MessageSquare className="w-4 h-4 text-gray-600 stroke-[1.8]" />
+            <MessageSquare className="w-3.5 h-3.5 text-slate-500 stroke-[1.8]" />
           </button>
         </div>
       </div>

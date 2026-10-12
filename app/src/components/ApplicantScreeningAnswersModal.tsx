@@ -75,7 +75,7 @@ export default function ApplicantScreeningAnswersModal({
         aria-modal="true"
       >
         {/* Header */}
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-[#FBF9F6]">
+        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-[#FBFBFC]">
           <div className="flex items-center gap-3">
             {applicantAvatar ? (
               <img
@@ -84,12 +84,12 @@ export default function ApplicantScreeningAnswersModal({
                 className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs"
               />
             ) : (
-              <div className="w-12 h-12 rounded-full bg-orange-100 text-[#E5501A] flex items-center justify-center font-bold text-lg">
+              <div className="w-12 h-12 rounded-full bg-orange-100 text-[#FF5A36] flex items-center justify-center font-bold text-lg">
                 {applicantName.charAt(0)}
               </div>
             )}
             <div>
-              <h3 className="font-serif text-lg font-bold text-[#1A1A2E]">{applicantName}</h3>
+              <h3 className="font-serif text-lg font-bold text-[#1E2229]">{applicantName}</h3>
               <p className="text-xs text-slate-500 font-medium">Screening Questionnaire Responses</p>
             </div>
           </div>
@@ -129,7 +129,7 @@ export default function ApplicantScreeningAnswersModal({
                         {item.displayVal}
                       </span>
                     ) : (
-                      <p className="text-sm font-bold text-[#1A1A2E] bg-white p-2.5 rounded-xl border border-slate-200/80">
+                      <p className="text-sm font-bold text-[#1E2229] bg-white p-2.5 rounded-xl border border-slate-200/80">
                         {item.displayVal}
                       </p>
                     )}
@@ -154,7 +154,7 @@ export default function ApplicantScreeningAnswersModal({
                 onAccept();
                 onClose();
               }}
-              className="px-5 py-2 rounded-full bg-[#E5501A] hover:bg-[#D0400B] text-white text-xs font-semibold shadow-xs transition-all"
+              className="px-5 py-2 rounded-full bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs font-semibold shadow-xs transition-all"
             >
               Accept Applicant
             </button>

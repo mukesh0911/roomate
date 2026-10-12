@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { X, Phone, MessageCircle, ShieldCheck, Clock, Copy, Check, Loader2 } from 'lucide-react';
+import { X, MessageCircle, ShieldCheck, Clock, Copy, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import FlatmateAvatar from './FlatmateAvatar';
 import { useAuth } from '@/hooks/useAuth';
@@ -131,13 +131,13 @@ export default function ContactModal({ isOpen, onClose, profile }: ContactModalP
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <h3 id="contact-modal-title" className="font-bold text-lg text-[#1A1A2E] truncate">{profile.name}</h3>
+              <h3 id="contact-modal-title" className="font-bold text-lg text-[#1E2229] truncate">{profile.name}</h3>
               {profile.isVerified && (
                 <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
               )}
             </div>
             <p className="text-xs text-gray-500 truncate">{displayLocation}</p>
-            <p className="text-xs font-bold text-[#E5501A] mt-0.5">
+            <p className="text-xs font-bold text-[#FF5A36] mt-0.5">
               {profile.budget ? `₹ ${profile.budget.toLocaleString('en-IN')} / month` : 'Flexible budget'}
             </p>
           </div>
@@ -147,7 +147,7 @@ export default function ContactModal({ isOpen, onClose, profile }: ContactModalP
           {hasPhone && (
             <div className="flex items-center justify-between">
               <span className="text-gray-500">Phone Number</span>
-              <span className="font-bold text-[#1A1A2E] text-sm tracking-wide">
+              <span className="font-bold text-[#1E2229] text-sm tracking-wide">
                 {phoneNumber}
               </span>
             </div>
@@ -193,37 +193,28 @@ export default function ContactModal({ isOpen, onClose, profile }: ContactModalP
             </a>
           )}
 
-          {hasPhone ? (
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                onClick={handleCopy}
-                className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold text-xs transition-colors cursor-pointer"
-              >
-                {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                <span>{copied ? 'Copied' : 'Copy'}</span>
-              </button>
-              <a
-                href={`tel:${phoneNumber}`}
-                className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#E5501A] hover:bg-[#D0400B] text-white font-semibold text-xs transition-colors cursor-pointer shadow-xs shadow-[#E5501A]/20"
-              >
-                <Phone className="w-4 h-4" />
-                <span>Call Now</span>
-              </a>
-            </div>
-          ) : (
+          {hasPhone && (
             <button
-              onClick={handleMessageChat}
-              disabled={isStartingChat}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#1A1A2E] hover:bg-[#2A2A44] text-white font-semibold text-xs transition-colors cursor-pointer shadow-xs disabled:opacity-70"
+              onClick={handleCopy}
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold text-xs transition-colors cursor-pointer"
             >
-              {isStartingChat ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <MessageCircle className="w-4 h-4 text-emerald-400" />
-              )}
-              <span>Message on NestMate Chat</span>
+              {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+              <span>{copied ? 'Phone Number Copied' : 'Copy Phone Number'}</span>
             </button>
           )}
+
+          <button
+            onClick={handleMessageChat}
+            disabled={isStartingChat}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#FF5A36] hover:bg-[#E54E2B] text-white font-semibold text-xs transition-colors cursor-pointer shadow-xs disabled:opacity-70"
+          >
+            {isStartingChat ? (
+              <Loader2 className="w-4 h-4 animate-spin text-white" />
+            ) : (
+              <MessageCircle className="w-4 h-4 text-white" />
+            )}
+            <span>Chat on NestMate</span>
+          </button>
         </div>
       </div>
     </div>,

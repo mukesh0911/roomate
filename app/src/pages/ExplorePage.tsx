@@ -15,7 +15,8 @@ import type { UserProfile } from '@/hooks/useAuth';
 import {
   MapPin, SlidersHorizontal, Compass, Bed, Users, Building2,
   ChevronRight, ChevronDown, Check, X, Search, Heart, UserCheck,
-  Phone, ArrowUpDown, LayoutGrid, List, Sparkles, ShieldAlert, Loader2
+  ArrowUpDown, LayoutGrid, List, Sparkles, ShieldAlert, Loader2,
+  FileText
 } from 'lucide-react';
 import BrowseRooms from './BrowseRooms';
 import BrowseSeekers from './BrowseSeekers';
@@ -24,7 +25,6 @@ import type { AdvancedFilterState } from '@/components/AdvancedFiltersModal';
 import CreateTeamModal from '@/components/CreateTeamModal';
 import CompactRoomCard from '@/components/CompactRoomCard';
 import DashboardSeekerCard from '@/components/DashboardSeekerCard';
-import ContactModal from '@/components/ContactModal';
 import StateEmpty from '@/components/StateEmpty';
 import { cities } from '@/lib/staticData';
 import { toast } from 'sonner';
@@ -62,7 +62,7 @@ export default function ExplorePage() {
     } else if (currentUser?.city && !filters.city && !urlCity) {
       setSelectedCity(currentUser.city);
     }
-  }, [urlCity, currentUser?.city, filters.city, updateFilters]);
+  }, [urlCity, currentUser?.city, filters.city, selectedCity, updateFilters]);
 
   const [isCityOpen, setIsCityOpen] = useState(false);
   const [citySearch, setCitySearch] = useState('');
@@ -77,13 +77,12 @@ export default function ExplorePage() {
     if (qParam !== null && qParam !== searchQuery) {
       setSearchQuery(qParam);
     }
-  }, [searchParams]);
+  }, [searchParams, searchQuery]);
 
   const [sortBy, setSortBy] = useState<SortOption>('match');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [savedSubTab, setSavedSubTab] = useState<'rooms' | 'flatmates'>('rooms');
   const [connectionSubTab, setConnectionSubTab] = useState<'connected' | 'received' | 'sent'>('connected');
-  const [contactProfile, setContactProfile] = useState<UserProfile | null>(null);
 
   // Dynamic state for Saved & Connections
   const [savedRooms, setSavedRooms] = useState<Listing[]>([]);
@@ -381,52 +380,6 @@ export default function ExplorePage() {
     }
   };
 
-  // Call Owner / Flatmate Modal
-  const handleCallOwner = async (room: Listing) => {
-    if (!user?.uid) {
-      openAuthModal({
-        title: 'Sign in to Contact Owner',
-        subtitle: 'Sign in to view verified contact numbers.',
-        redirect: `/room/${room.id}`,
-      });
-      return;
-    }
-    try {
-      const ownerSnap = await getDoc(doc(db, 'users', room.ownerId));
-      const ownerData = ownerSnap.exists() ? ownerSnap.data() : null;
-      setContactProfile({
-        uid: room.ownerId,
-        name: room.ownerName || ownerData?.name || 'Property Owner',
-        phone: (room as any).contactPhone || ownerData?.phone || '',
-        locality: room.locality || room.city || selectedCity,
-        budget: room.partnerShare || room.totalRent || 0,
-        isVerified: room.ownerVerified || (room as any).isOwnerVerified || ownerData?.isVerified,
-        avatar: room.ownerAvatar || ownerData?.avatar,
-      } as any);
-    } catch {
-      setContactProfile({
-        uid: room.ownerId,
-        name: room.ownerName || 'Property Owner',
-        phone: (room as any).contactPhone || '',
-        locality: room.locality || room.city || selectedCity,
-        budget: room.partnerShare || room.totalRent || 0,
-        isVerified: room.ownerVerified || (room as any).isOwnerVerified,
-        avatar: room.ownerAvatar,
-      } as any);
-    }
-  };
-
-  const handleCallFlatmate = (p: UserProfile) => {
-    if (!user?.uid) {
-      openAuthModal({
-        title: 'Sign in to Call Roommate',
-        subtitle: 'Sign in to view contact details of verified roommates.',
-        redirect: `/match/${p.uid}`,
-      });
-      return;
-    }
-    setContactProfile(p);
-  };
 
   // Connection Request Actions
   const handleAcceptConnection = async (connId: string) => {
@@ -517,25 +470,25 @@ export default function ExplorePage() {
   const totalConnectionsCount = acceptedConnectedUids.length + receivedRequests.length;
 
   return (
-    <div className="min-h-screen bg-[#FBF9F6] pb-24 sm:pb-16 overflow-x-hidden">
+    <div className="min-h-screen bg-[#FBFBFC] pb-24 sm:pb-16 overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6">
 
         {/* Owner Mode Notice Banner */}
         {currentUser?.role === 'owner' && (
-          <div className="bg-[#FFF2EB] border border-[#E5501A]/20 rounded-2xl p-3.5 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-2xs">
-            <div className="flex items-center gap-2.5 text-[#1A1A2E]">
-              <div className="w-7 h-7 rounded-xl bg-[#E5501A] text-white flex items-center justify-center shrink-0">
+          <div className="bg-[#FFF2EB] border border-[#FF5A36]/20 rounded-2xl p-3.5 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-2xs">
+            <div className="flex items-center gap-2.5 text-[#1E2229]">
+              <div className="w-7 h-7 rounded-xl bg-[#FF5A36] text-white flex items-center justify-center shrink-0">
                 <Building2 className="w-4 h-4" />
               </div>
               <div>
-                <span className="font-bold text-[#E5501A] block">Owner Mode Active</span>
+                <span className="font-bold text-[#FF5A36] block">Owner Mode Active</span>
                 <span className="text-gray-600">You are browsing the public marketplace. Manage your rooms or view prospective tenants from your dashboard.</span>
               </div>
             </div>
             <button
               type="button"
               onClick={() => navigate('/owner-dashboard')}
-              className="px-4 py-2 rounded-xl bg-[#E5501A] hover:bg-[#D0400B] text-white font-bold shrink-0 cursor-pointer transition-transform active:scale-95 text-center"
+              className="px-4 py-2 rounded-xl bg-[#FF5A36] hover:bg-[#E54E2B] text-white font-bold shrink-0 cursor-pointer transition-transform active:scale-95 text-center"
             >
               Return to Owner Dashboard →
             </button>
@@ -553,8 +506,8 @@ export default function ExplorePage() {
                 onClick={() => setIsCityOpen(!isCityOpen)}
                 className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer"
               >
-                <MapPin className="w-5 h-5 text-[#E5501A] shrink-0" />
-                <span className="font-semibold text-sm sm:text-base text-[#1A1A2E] truncate">
+                <MapPin className="w-5 h-5 text-[#FF5A36] shrink-0" />
+                <span className="font-semibold text-sm sm:text-base text-[#1E2229] truncate">
                   {selectedCity}
                 </span>
                 <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isCityOpen ? 'rotate-180' : ''}`} />
@@ -581,7 +534,7 @@ export default function ExplorePage() {
                     placeholder="Search city..."
                     value={citySearch}
                     onChange={e => setCitySearch(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 bg-gray-50 rounded-xl text-xs border border-gray-200 outline-none focus:border-[#E5501A]"
+                    className="w-full pl-8 pr-3 py-1.5 bg-gray-50 rounded-xl text-xs border border-gray-200 outline-none focus:border-[#FF5A36]"
                     autoFocus
                   />
                 </div>
@@ -594,12 +547,12 @@ export default function ExplorePage() {
                       onClick={() => handleSelectCity(cityName)}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
                         selectedCity === cityName
-                          ? 'bg-[#FFF2EB] text-[#E5501A]'
+                          ? 'bg-[#FFF2EB] text-[#FF5A36]'
                           : 'text-gray-700 hover:bg-gray-50'
                       }`}
                     >
                       <span>{cityName}</span>
-                      {selectedCity === cityName && <Check className="w-3.5 h-3.5 text-[#E5501A]" />}
+                      {selectedCity === cityName && <Check className="w-3.5 h-3.5 text-[#FF5A36]" />}
                     </button>
                   ))}
                 </div>
@@ -615,7 +568,7 @@ export default function ExplorePage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={`Search locality or keywords in ${selectedCity}...`}
-              className="w-full text-xs font-medium text-[#1A1A2E] placeholder:text-gray-400 bg-transparent border-none outline-none"
+              className="w-full text-xs font-medium text-[#1E2229] placeholder:text-gray-400 bg-transparent border-none outline-none"
             />
             {searchQuery && (
               <button
@@ -637,7 +590,7 @@ export default function ExplorePage() {
               onClick={() => handleTabChange('rooms')}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 activeTab === 'rooms'
-                  ? 'bg-[#1A1A2E] text-white shadow-xs'
+                  ? 'bg-[#1E2229] text-white shadow-xs'
                   : 'bg-white border border-gray-200/80 text-gray-600'
               }`}
             >
@@ -651,7 +604,7 @@ export default function ExplorePage() {
               onClick={() => handleTabChange('roommates')}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 activeTab === 'roommates'
-                  ? 'bg-[#1A1A2E] text-white shadow-xs'
+                  ? 'bg-[#1E2229] text-white shadow-xs'
                   : 'bg-white border border-gray-200/80 text-gray-600'
               }`}
             >
@@ -665,7 +618,7 @@ export default function ExplorePage() {
               onClick={() => handleTabChange('pg')}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 activeTab === 'pg'
-                  ? 'bg-[#1A1A2E] text-white shadow-xs'
+                  ? 'bg-[#1E2229] text-white shadow-xs'
                   : 'bg-white border border-gray-200/80 text-gray-600'
               }`}
             >
@@ -679,7 +632,7 @@ export default function ExplorePage() {
               onClick={() => handleTabChange('saved')}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 activeTab === 'saved'
-                  ? 'bg-[#E5501A] text-white shadow-xs'
+                  ? 'bg-[#FF5A36] text-white shadow-xs'
                   : 'bg-white border border-gray-200/80 text-gray-600'
               }`}
             >
@@ -687,7 +640,7 @@ export default function ExplorePage() {
               <span>Saved</span>
               {totalSavedCount > 0 && (
                 <span className={`px-1.5 py-0.2 text-[10px] font-extrabold rounded-full ${
-                  activeTab === 'saved' ? 'bg-white text-[#E5501A]' : 'bg-[#FFF2EB] text-[#E5501A]'
+                  activeTab === 'saved' ? 'bg-white text-[#FF5A36]' : 'bg-[#FFF2EB] text-[#FF5A36]'
                 }`}>
                   {totalSavedCount}
                 </span>
@@ -721,7 +674,7 @@ export default function ExplorePage() {
               onClick={() => handleTabChange('all')}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 activeTab === 'all'
-                  ? 'bg-[#1A1A2E] text-white shadow-xs'
+                  ? 'bg-[#1E2229] text-white shadow-xs'
                   : 'bg-white border border-gray-200/80 text-gray-600'
               }`}
             >
@@ -743,9 +696,9 @@ export default function ExplorePage() {
                 <button
                   type="button"
                   onClick={() => setIsCityOpen(!isCityOpen)}
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all font-bold text-xs sm:text-sm text-[#1A1A2E] cursor-pointer"
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all font-bold text-xs sm:text-sm text-[#1E2229] cursor-pointer"
                 >
-                  <MapPin className="w-4 h-4 text-[#E5501A]" />
+                  <MapPin className="w-4 h-4 text-[#FF5A36]" />
                   <span>{selectedCity}</span>
                   <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isCityOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -760,7 +713,7 @@ export default function ExplorePage() {
                         placeholder="Search city..."
                         value={citySearch}
                         onChange={e => setCitySearch(e.target.value)}
-                        className="w-full pl-7 pr-2.5 py-1.5 bg-gray-50 rounded-lg text-xs border border-gray-200 outline-none focus:border-[#E5501A]"
+                        className="w-full pl-7 pr-2.5 py-1.5 bg-gray-50 rounded-lg text-xs border border-gray-200 outline-none focus:border-[#FF5A36]"
                         autoFocus
                       />
                     </div>
@@ -772,12 +725,12 @@ export default function ExplorePage() {
                           onClick={() => handleSelectCity(cityName)}
                           className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                             selectedCity === cityName
-                              ? 'bg-[#FFF2EB] text-[#E5501A]'
+                              ? 'bg-[#FFF2EB] text-[#FF5A36]'
                               : 'text-gray-700 hover:bg-gray-50'
                           }`}
                         >
                           <span>{cityName}</span>
-                          {selectedCity === cityName && <Check className="w-3.5 h-3.5 text-[#E5501A]" />}
+                          {selectedCity === cityName && <Check className="w-3.5 h-3.5 text-[#FF5A36]" />}
                         </button>
                       ))}
                     </div>
@@ -796,7 +749,7 @@ export default function ExplorePage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={`Search locality, landmark, area, or keywords in ${selectedCity}...`}
-                  className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm text-[#1A1A2E] placeholder:text-gray-400 bg-transparent border-none outline-none font-medium"
+                  className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm text-[#1E2229] placeholder:text-gray-400 bg-transparent border-none outline-none font-medium"
                 />
                 {searchQuery && (
                   <button
@@ -815,7 +768,7 @@ export default function ExplorePage() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  className="bg-gray-50 border border-gray-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-[#1A1A2E] outline-none focus:border-[#E5501A] cursor-pointer"
+                  className="bg-gray-50 border border-gray-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-[#1E2229] outline-none focus:border-[#FF5A36] cursor-pointer"
                 >
                   <option value="match">Best Match</option>
                   <option value="newest">Newest First</option>
@@ -829,7 +782,7 @@ export default function ExplorePage() {
                 <button
                   type="button"
                   onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${viewMode === 'grid' ? 'bg-white text-[#1A1A2E] shadow-2xs' : 'text-gray-400 hover:text-gray-700'}`}
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${viewMode === 'grid' ? 'bg-white text-[#1E2229] shadow-2xs' : 'text-gray-400 hover:text-gray-700'}`}
                   title="Grid view"
                 >
                   <LayoutGrid className="w-3.5 h-3.5" />
@@ -837,7 +790,7 @@ export default function ExplorePage() {
                 <button
                   type="button"
                   onClick={() => setViewMode('list')}
-                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${viewMode === 'list' ? 'bg-white text-[#1A1A2E] shadow-2xs' : 'text-gray-400 hover:text-gray-700'}`}
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${viewMode === 'list' ? 'bg-white text-[#1E2229] shadow-2xs' : 'text-gray-400 hover:text-gray-700'}`}
                   title="List view"
                 >
                   <List className="w-3.5 h-3.5" />
@@ -850,14 +803,14 @@ export default function ExplorePage() {
                 onClick={() => setShowFiltersModal(true)}
                 className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-bold transition-all shrink-0 cursor-pointer ${
                   hasActiveAdvFilters
-                    ? 'bg-[#FFF2EB] border-[#E5501A] text-[#E5501A]'
-                    : 'bg-gray-50 border-gray-200/90 text-[#1A1A2E] hover:bg-gray-100 hover:border-gray-300'
+                    ? 'bg-[#FFF2EB] border-[#FF5A36] text-[#FF5A36]'
+                    : 'bg-gray-50 border-gray-200/90 text-[#1E2229] hover:bg-gray-100 hover:border-gray-300'
                 }`}
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
                 <span>Filters</span>
                 {hasActiveAdvFilters && (
-                  <span className="w-2 h-2 rounded-full bg-[#E5501A]" />
+                  <span className="w-2 h-2 rounded-full bg-[#FF5A36]" />
                 )}
               </button>
             </div>
@@ -872,8 +825,8 @@ export default function ExplorePage() {
                   onClick={() => handleTabChange('rooms')}
                   className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     activeTab === 'rooms'
-                      ? 'bg-[#1A1A2E] text-white shadow-xs'
-                      : 'text-gray-600 hover:text-[#1A1A2E] hover:bg-gray-100/70'
+                      ? 'bg-[#1E2229] text-white shadow-xs'
+                      : 'text-gray-600 hover:text-[#1E2229] hover:bg-gray-100/70'
                   }`}
                 >
                   <Bed className="w-4 h-4" />
@@ -886,8 +839,8 @@ export default function ExplorePage() {
                   onClick={() => handleTabChange('roommates')}
                   className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     activeTab === 'roommates'
-                      ? 'bg-[#1A1A2E] text-white shadow-xs'
-                      : 'text-gray-600 hover:text-[#1A1A2E] hover:bg-gray-100/70'
+                      ? 'bg-[#1E2229] text-white shadow-xs'
+                      : 'text-gray-600 hover:text-[#1E2229] hover:bg-gray-100/70'
                   }`}
                 >
                   <Users className="w-4 h-4" />
@@ -900,8 +853,8 @@ export default function ExplorePage() {
                   onClick={() => handleTabChange('pg')}
                   className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     activeTab === 'pg'
-                      ? 'bg-[#1A1A2E] text-white shadow-xs'
-                      : 'text-gray-600 hover:text-[#1A1A2E] hover:bg-gray-100/70'
+                      ? 'bg-[#1E2229] text-white shadow-xs'
+                      : 'text-gray-600 hover:text-[#1E2229] hover:bg-gray-100/70'
                   }`}
                 >
                   <Building2 className="w-4 h-4" />
@@ -914,15 +867,15 @@ export default function ExplorePage() {
                   onClick={() => handleTabChange('saved')}
                   className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     activeTab === 'saved'
-                      ? 'bg-[#E5501A] text-white shadow-xs'
-                      : 'text-gray-600 hover:text-[#E5501A] hover:bg-rose-50/70'
+                      ? 'bg-[#FF5A36] text-white shadow-xs'
+                      : 'text-gray-600 hover:text-[#FF5A36] hover:bg-rose-50/70'
                   }`}
                 >
                   <Heart className={`w-4 h-4 ${activeTab === 'saved' ? 'fill-current' : ''}`} />
                   <span>Saved</span>
                   {totalSavedCount > 0 && (
                     <span className={`px-2 py-0.5 text-[10px] font-extrabold rounded-full ${
-                      activeTab === 'saved' ? 'bg-white text-[#E5501A]' : 'bg-[#FFF2EB] text-[#E5501A]'
+                      activeTab === 'saved' ? 'bg-white text-[#FF5A36]' : 'bg-[#FFF2EB] text-[#FF5A36]'
                     }`}>
                       {totalSavedCount}
                     </span>
@@ -956,8 +909,8 @@ export default function ExplorePage() {
                   onClick={() => handleTabChange('all')}
                   className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     activeTab === 'all'
-                      ? 'bg-[#1A1A2E] text-white shadow-xs'
-                      : 'text-gray-600 hover:text-[#1A1A2E] hover:bg-gray-100/70'
+                      ? 'bg-[#1E2229] text-white shadow-xs'
+                      : 'text-gray-600 hover:text-[#1E2229] hover:bg-gray-100/70'
                   }`}
                 >
                   <Compass className="w-4 h-4" />
@@ -974,7 +927,7 @@ export default function ExplorePage() {
                   onClick={() => setSavedSubTab('rooms')}
                   className={`flex-1 h-9 py-2 px-2.5 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap min-w-0 cursor-pointer ${
                     savedSubTab === 'rooms'
-                      ? 'bg-[#E5501A] text-white shadow-xs'
+                      ? 'bg-[#FF5A36] text-white shadow-xs'
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -994,7 +947,7 @@ export default function ExplorePage() {
                   onClick={() => setSavedSubTab('flatmates')}
                   className={`flex-1 h-9 py-2 px-2.5 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap min-w-0 cursor-pointer ${
                     savedSubTab === 'flatmates'
-                      ? 'bg-[#E5501A] text-white shadow-xs'
+                      ? 'bg-[#FF5A36] text-white shadow-xs'
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -1098,10 +1051,10 @@ export default function ExplorePage() {
                   {savedSubTab === 'rooms' ? (
                     loadingSavedRooms ? (
                       <div className="py-20 flex justify-center">
-                        <Loader2 className="w-8 h-8 text-[#E5501A] animate-spin" />
+                        <Loader2 className="w-8 h-8 text-[#FF5A36] animate-spin" />
                       </div>
                     ) : filteredSavedRooms.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
                         {filteredSavedRooms.map(room => (
                           <CompactRoomCard
                             key={room.id}
@@ -1111,7 +1064,6 @@ export default function ExplorePage() {
                             compatibilityScore={currentUser ? calculateRoomCompatibility(currentUser, room) : undefined}
                             distanceKm={0}
                             onClick={() => navigate(`/room/${room.id}`)}
-                            onCall={() => handleCallOwner(room)}
                             onChat={() => handleChatOwner(room)}
                           />
                         ))}
@@ -1125,7 +1077,7 @@ export default function ExplorePage() {
                           <button
                             type="button"
                             onClick={() => handleTabChange('rooms')}
-                            className="px-6 py-2.5 bg-[#E5501A] hover:bg-[#D0400B] text-white font-bold text-xs rounded-full shadow-xs cursor-pointer transition-colors"
+                            className="px-6 py-2.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white font-bold text-xs rounded-full shadow-xs cursor-pointer transition-colors"
                           >
                             Explore Rooms &amp; Flats
                           </button>
@@ -1136,10 +1088,10 @@ export default function ExplorePage() {
                   ) : (
                     loadingSavedProfiles ? (
                       <div className="py-20 flex justify-center">
-                        <Loader2 className="w-8 h-8 text-[#E5501A] animate-spin" />
+                        <Loader2 className="w-8 h-8 text-[#FF5A36] animate-spin" />
                       </div>
                     ) : filteredSavedFlatmates.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
                         {filteredSavedFlatmates.map(m => (
                           <DashboardSeekerCard
                             key={m.profile.uid}
@@ -1147,7 +1099,6 @@ export default function ExplorePage() {
                             isSaved={true}
                             onToggleSave={() => handleToggleSaveProfile(m.profile.uid || '')}
                             saving={savingId === m.profile.uid}
-                            onCall={handleCallFlatmate}
                             onChat={() => handleChatFlatmate(m.profile.uid || '')}
                             cState={getRelationshipState(user?.uid, m.profile.uid || '', myConnections, chatRoomMap)}
                             viewMode={viewMode}
@@ -1163,7 +1114,7 @@ export default function ExplorePage() {
                           <button
                             type="button"
                             onClick={() => handleTabChange('roommates')}
-                            className="px-6 py-2.5 bg-[#E5501A] hover:bg-[#D0400B] text-white font-bold text-xs rounded-full shadow-xs cursor-pointer transition-colors"
+                            className="px-6 py-2.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white font-bold text-xs rounded-full shadow-xs cursor-pointer transition-colors"
                           >
                             Browse Roommates
                           </button>
@@ -1178,14 +1129,13 @@ export default function ExplorePage() {
                 <div>
                   {connectionSubTab === 'connected' ? (
                     connectedProfiles.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
                         {connectedProfiles.map(m => (
                           <DashboardSeekerCard
                             key={m.profile.uid}
                             match={m}
                             isSaved={savedProfileIds.includes(m.profile.uid || '')}
                             onToggleSave={() => handleToggleSaveProfile(m.profile.uid || '')}
-                            onCall={handleCallFlatmate}
                             onChat={() => handleChatFlatmate(m.profile.uid || '')}
                             cState="chat"
                             viewMode={viewMode}
@@ -1201,7 +1151,7 @@ export default function ExplorePage() {
                           <button
                             type="button"
                             onClick={() => handleTabChange('roommates')}
-                            className="px-6 py-2.5 bg-[#E5501A] hover:bg-[#D0400B] text-white font-bold text-xs rounded-full shadow-xs cursor-pointer transition-colors"
+                            className="px-6 py-2.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white font-bold text-xs rounded-full shadow-xs cursor-pointer transition-colors"
                           >
                             Find Compatible Roommates
                           </button>
@@ -1211,7 +1161,7 @@ export default function ExplorePage() {
                     )
                   ) : connectionSubTab === 'received' ? (
                     receivedRequests.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
                         {receivedRequests.map(req => {
                           const m = connectedProfiles.find(p => p.profile.uid === req.fromUserId) || {
                             profile: { uid: req.fromUserId, name: 'Prospective Roommate', city: selectedCity, budget: 10000 } as any,
@@ -1241,7 +1191,7 @@ export default function ExplorePage() {
                     )
                   ) : (
                     sentRequests.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
                         {sentRequests.map(req => {
                           const m = connectedProfiles.find(p => p.profile.uid === req.toUserId) || {
                             profile: { uid: req.toUserId, name: 'Prospective Roommate', city: selectedCity, budget: 10000 } as any,
@@ -1268,7 +1218,7 @@ export default function ExplorePage() {
                           <button
                             type="button"
                             onClick={() => handleTabChange('roommates')}
-                            className="px-6 py-2.5 bg-[#E5501A] hover:bg-[#D0400B] text-white font-bold text-xs rounded-full shadow-xs cursor-pointer transition-colors"
+                            className="px-6 py-2.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white font-bold text-xs rounded-full shadow-xs cursor-pointer transition-colors"
                           >
                             Explore Roommates
                           </button>
@@ -1313,13 +1263,6 @@ export default function ExplorePage() {
         isOpen={showTeamModal}
         onClose={() => setShowTeamModal(false)}
         cityName={selectedCity}
-      />
-
-      {/* Call / Contact Modal */}
-      <ContactModal
-        isOpen={Boolean(contactProfile)}
-        onClose={() => setContactProfile(null)}
-        profile={contactProfile}
       />
     </div>
   );

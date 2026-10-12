@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
 import type { UserProfile } from '@/hooks/useAuth';
 import { getDoc, doc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
@@ -77,7 +77,7 @@ export default function AdminReports() {
   const [actionLoading, setActionLoading] = useState(false);
 
   // Load reports
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     try {
       const r = await getAllReports();
       setReports(r as Report[]);
@@ -86,7 +86,7 @@ export default function AdminReports() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAllReports]);
 
   useEffect(() => {
     document.title = 'User Reports | NestMate Admin';
@@ -94,7 +94,7 @@ export default function AdminReports() {
 
   useEffect(() => {
     fetchReports();
-  }, [getAllReports]);
+  }, [fetchReports]);
 
   // Escape key & body scroll lock for selected drawer or confirmAction modal
   useEffect(() => {
@@ -154,7 +154,7 @@ export default function AdminReports() {
     })();
 
     return () => { cancelled = true; };
-  }, [reports]);
+  }, [profiles, reports]);
 
   // Filtered + searched
   const filtered = useMemo(() => {

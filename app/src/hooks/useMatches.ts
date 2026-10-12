@@ -23,6 +23,7 @@ import { isDiscoverable } from '@/lib/listingFreshness';
 import { isAccountActive } from '@/lib/accountStatus';
 import { isDemoProfile } from '@/lib/demoUsers';
 import { isPubliclyVisibleProfile, isPubliclyVisibleListing } from '@/lib/marketplaceVisibility';
+import { areSameCityAlias, getCityQueryValues } from '@/lib/cityNormalization';
 
 export { calculateCompatibility, calculateProfileCompatibility, calculateRoomCompatibility, getRoomMatchReasons, getActiveStatus } from '@/lib/matching';
 
@@ -54,7 +55,7 @@ export function useMatches() {
    * Queries users in the same city, computes compatibility, sorts by score.
    */
   const findMatches = useCallback(
-    async (
+    async function findMatchesImpl(
       currentUser: UserProfile,
       uiCity?: string,
       filters?: any,
@@ -62,12 +63,15 @@ export function useMatches() {
       // Sprint 2E: cross-city expansion is EXPLICIT — the caller is notified
       // whenever a city-scoped search returned nothing and we widened it.
       onCrossCityFallback?: (requestedCity: string) => void
-    ): Promise<MatchedUser[]> => {
+    ): Promise<MatchedUser[]> {
       const targetCity = uiCity !== undefined ? uiCity : currentUser.city;
 
       const constraints: any[] = [where('onboardingComplete', '==', true)];
       if (targetCity) {
-        constraints.push(where('city', '==', targetCity));
+        const cityValues = getCityQueryValues(targetCity);
+        constraints.push(cityValues.length > 1
+          ? where('city', 'in', cityValues)
+          : where('city', '==', cityValues[0]));
       }
 
       // Role-based filtering:
@@ -90,6 +94,7 @@ export function useMatches() {
       constraints.push(limit(20));
 
       let candidateDocs: UserProfile[] = [];
+      let constrainedQueryFailed = false;
       try {
         const q = query(collection(db, 'users'), ...constraints);
         const snap = await getDocs(q);
@@ -106,15 +111,25 @@ export function useMatches() {
 
         candidateDocs = snap.docs.map((d) => ({ uid: d.id, ...d.data() } as UserProfile));
       } catch (err) {
+        constrainedQueryFailed = true;
         console.warn('Constrained findMatches query failed, using unconstrained fallback:', err);
       }
 
-      if (candidateDocs.length === 0 && !isLoadMore) {
+      // Full scans are a last-resort compatibility path for a missing index or
+      // transient query failure. A valid empty result must remain empty so the
+      // explicit cross-city fallback below can notify the UI.
+      if (constrainedQueryFailed && !isLoadMore) {
         try {
           const rawSnap = await getDocs(collection(db, 'users'));
           candidateDocs = rawSnap.docs
             .map((d) => ({ uid: d.id, ...d.data() } as UserProfile))
             .filter((u) => {
+              if (u.onboardingComplete !== true) return false;
+              if (targetCity) {
+                const candidateCity = (u.city || '').trim().toLowerCase();
+                const requestedCity = targetCity.trim().toLowerCase();
+                if (!areSameCityAlias(candidateCity, requestedCity)) return false;
+              }
               if (targetRole) {
                 const r = (u.role || '').toLowerCase();
                 return r === targetRole.toLowerCase();
@@ -141,14 +156,14 @@ export function useMatches() {
       if (targetRole === 'owner' || !targetRole || currentUser.role === 'seeker') {
 
         const lqConstraints: any[] = [where('status', '==', 'active')];
-        if (targetCity) lqConstraints.push(where('city', '==', targetCity));
+        if (targetCity) {
+          const cityValues = getCityQueryValues(targetCity);
+          lqConstraints.push(cityValues.length > 1
+            ? where('city', 'in', cityValues)
+            : where('city', '==', cityValues[0]));
+        }
         try {
-          let lsnap = await getDocs(query(collection(db, 'listings'), ...lqConstraints));
-          if (lsnap.docs.length === 0 && targetCity) {
-            // Fallback unconstrained listing query across all cities
-            lsnap = await getDocs(query(collection(db, 'listings'), where('status', '==', 'active')));
-          }
-
+          const lsnap = await getDocs(query(collection(db, 'listings'), ...lqConstraints));
           const existingOwnerIds = new Set(candidates.map(c => c.uid));
 
           for (const d of lsnap.docs) {
@@ -273,7 +288,7 @@ export function useMatches() {
         // other cities ONLY while telling the caller, so the UI can display:
         // "No matches in {city} yet — showing relevant people from other cities."
         onCrossCityFallback?.(targetCity);
-        return findMatches(currentUser, '', filters ? { ...filters, city: '' } : undefined, false);
+        return findMatchesImpl(currentUser, '', filters ? { ...filters, city: '' } : undefined, false);
       }
 
       // Sort by compatibility score first (primary), then Premium/Verified as tiebreakers.
@@ -364,28 +379,7 @@ export function useMatches() {
             let user: UserProfile | null = null;
             const snap = await getDoc(doc(db, 'users', id));
             if (snap.exists()) {
-              user = { uid: snap.id, ...snap.data() } as UserProfile;
-            } else {
-              // Fallback: Check if this ID is an owner of an active listing
-              try {
-                const lq = query(collection(db, 'listings'), where('ownerId', '==', id));
-                const lsnap = await getDocs(lq);
-                if (!lsnap.empty) {
-                  const ldata = lsnap.docs[0].data();
-                  user = {
-                    uid: id,
-                    name: ldata.ownerName || 'Property Host',
-                    role: 'owner',
-                    city: ldata.city || '',
-                    localities: [ldata.locality].filter(Boolean),
-                    bio: ldata.ownerBio || '',
-                    isVerified: !!ldata.isVerified,
-                    quizAnswers: ldata.ownerQuizAnswers || {},
-                  } as any;
-                }
-              } catch (e) {
-                console.warn('Fallback listing query failed for', id, e);
-              }
+              user = sanitizePublicProfile({ uid: snap.id, ...snap.data() }) as unknown as UserProfile;
             }
 
             if (!user) return null;
@@ -397,7 +391,8 @@ export function useMatches() {
                 const lq = query(collection(db, 'listings'), where('ownerId', '==', user.uid));
                 const lsnap = await getDocs(lq);
                 if (!lsnap.empty) {
-                  const activeDoc = lsnap.docs.find(d => d.data().status === 'active') || lsnap.docs[0];
+                  const activeDoc = lsnap.docs.find(d => isPubliclyVisibleListing({ id: d.id, ...d.data() }));
+                  if (!activeDoc) return null;
                   listingId = activeDoc.id;
                   listingData = { id: listingId, ...activeDoc.data() };
                 }

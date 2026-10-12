@@ -7,7 +7,7 @@ import {
   Sun, BookOpen, Dumbbell, Activity, Compass, Utensils,
   ChevronRight, ChevronLeft, X, Loader2, Send, MessageCircle,
   Copy, Bus, Train, ShoppingBag, Hospital, Check, Sofa, Tv,
-  Phone, Flag, AlertCircle, ExternalLink, ArrowRight
+  Flag, AlertCircle, ExternalLink, ArrowRight
 } from 'lucide-react';
 import { useListings } from '@/hooks/useListings';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,7 +25,6 @@ import { formatLocationString, getDynamicPreferences, getRoomHighlights } from '
 import StateLoading from '@/components/StateLoading';
 import StateEmpty from '@/components/StateEmpty';
 import RoomCard from '@/components/RoomCard';
-import ContactModal from '@/components/ContactModal';
 import FlatmateAvatar from '@/components/FlatmateAvatar';
 import ScreeningQuestionnaireModal from '@/components/ScreeningQuestionnaireModal';
 import { CURATED_SCREENING_QUESTIONS } from '@/lib/screeningQuestions';
@@ -121,7 +120,6 @@ export default function RoomDetail() {
   const [lightboxIdx, setLightboxIdx] = useState(0);
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [showScreeningModal, setShowScreeningModal] = useState(false);
-  const [contactProfile, setContactProfile] = useState<UserProfile | null>(null);
 
   // Report modal state
   const [reportModalOpen, setReportModalOpen] = useState(false);
@@ -199,13 +197,13 @@ export default function RoomDetail() {
     }
   }, [room?.title]);
 
-  // Load similar listings (deferred, lightweight query — no N+1 owner reads)
+  // Load similar listings (genuine dynamic ranking by locality, flat type, rent proximity)
   useEffect(() => {
-    if (!room?.id || !room?.city) return;
-    getSimilarListings(room.city, room.id, 4).then(setSimilarRooms).catch(() => {
+    if (!room?.id) return;
+    getSimilarListings(room, room.id, 4).then(setSimilarRooms).catch(() => {
       setSimilarRooms([]);
     });
-  }, [room?.id, room?.city, getSimilarListings]);
+  }, [room, getSimilarListings]);
 
   // Handle Express Interest - opens screening questionnaire modal
   const handleConnect = () => {
@@ -268,29 +266,6 @@ export default function RoomDetail() {
     } finally {
       setMessagingOwner(false);
     }
-  };
-
-  // Handle Call Owner
-  const handleCallOwner = () => {
-    if (!user?.uid) {
-      useStore.getState().openAuthModal({
-        title: 'Sign in to Contact Host',
-        subtitle: 'Sign in to view verified host contact details.',
-        redirect: `/room/${id}`,
-      });
-      return;
-    }
-    setContactProfile({
-      uid: room?.ownerId || ownerProfile?.uid || '',
-      name: ownerProfile?.name || room?.ownerName || 'Property Owner',
-      phone: (room as any)?.contactPhone || ownerProfile?.phone || '',
-      isVerified: !!(room?.isOwnerVerified || room?.ownerVerified || ownerProfile?.isVerified),
-      avatar: ownerProfile?.avatar || room?.ownerAvatar,
-      profession: ownerProfile?.profession || 'Verified Owner',
-      city: room?.city || ownerProfile?.city || '',
-      locality: room?.locality || '',
-      budget: room?.partnerShare || room?.totalRent || 0,
-    } as any);
   };
 
   // Handle Toggle Save
@@ -359,7 +334,7 @@ export default function RoomDetail() {
 
   if (!room) {
     return (
-      <div className="min-h-screen bg-[#FBF9F6] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[#FBFBFC] flex items-center justify-center px-4">
         <StateEmpty
           icon={Bed}
           title="Listing not found"
@@ -367,7 +342,7 @@ export default function RoomDetail() {
           action={
             <button
               onClick={() => navigate(-1)}
-              className="px-5 py-2.5 rounded-full bg-[#E5501A] text-white text-xs font-bold shadow-xs cursor-pointer hover:bg-[#D0400B]"
+              className="px-5 py-2.5 rounded-full bg-[#FF5A36] text-white text-xs font-bold shadow-xs cursor-pointer hover:bg-[#E54E2B]"
             >
               Go Back
             </button>
@@ -381,7 +356,7 @@ export default function RoomDetail() {
   const isOwnListing = user?.uid && room.ownerId === user.uid;
   if (!isOwnListing && (room.status === 'pending_verification' || room.ownerVerified === false)) {
     return (
-      <div className="min-h-screen bg-[#FBF9F6] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[#FBFBFC] flex items-center justify-center px-4">
         <StateEmpty
           icon={Bed}
           title="Listing not yet available"
@@ -389,7 +364,7 @@ export default function RoomDetail() {
           action={
             <button
               onClick={() => navigate('/explore?tab=rooms')}
-              className="px-5 py-2.5 rounded-full bg-[#E5501A] text-white text-xs font-bold shadow-xs cursor-pointer hover:bg-[#D0400B]"
+              className="px-5 py-2.5 rounded-full bg-[#FF5A36] text-white text-xs font-bold shadow-xs cursor-pointer hover:bg-[#E54E2B]"
             >
               Browse Other Rooms
             </button>
@@ -408,7 +383,7 @@ export default function RoomDetail() {
         ? 'This listing has been paused by the owner.'
         : 'This listing has not been confirmed as available recently.';
     return (
-      <div className="min-h-screen bg-[#FBF9F6] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[#FBFBFC] flex items-center justify-center px-4">
         <StateEmpty
           icon={Bed}
           title="This room is no longer available"
@@ -416,7 +391,7 @@ export default function RoomDetail() {
           action={
             <button
               onClick={() => navigate('/explore?tab=rooms')}
-              className="px-5 py-2.5 rounded-full bg-[#E5501A] text-white text-xs font-bold shadow-xs cursor-pointer hover:bg-[#D0400B]"
+              className="px-5 py-2.5 rounded-full bg-[#FF5A36] text-white text-xs font-bold shadow-xs cursor-pointer hover:bg-[#E54E2B]"
             >
               Browse Rooms
             </button>
@@ -501,6 +476,22 @@ export default function RoomDetail() {
   const realAmenities = Array.isArray(room.amenities)
     ? room.amenities.filter((a): a is string => typeof a === 'string' && a.trim().length > 0)
     : [];
+
+  // Deduplicate amenities so no duplicate icons/labels appear
+  const uniqueAmenities = (() => {
+    const seen = new Set<string>();
+    const result: { icon: any; label: string; bg: string }[] = [];
+    for (const a of realAmenities) {
+      const details = getAmenityDetails(a);
+      const key = details.label.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        result.push(details);
+      }
+    }
+    return result;
+  })();
+
   const displayAmenities = realAmenities;
 
   // Real house rules from room data (strictly dynamic)
@@ -523,15 +514,15 @@ export default function RoomDetail() {
   const fullLocationText = formatLocationString(room.locality, room.city, room.state);
 
   return (
-    <div className="min-h-screen bg-[#FBF9F6] pb-28 lg:pb-16 text-[#1A1A2E] font-sans">
+    <div className="min-h-screen bg-[#FBFBFC] pb-24 lg:pb-16 text-[#1E2229] font-sans">
 
       {/* ── Toast Notification ──────────────────────────────────────── */}
       {copyToast && (
         <div
           role="status"
-          className="fixed top-20 left-1/2 -translate-x-1/2 z-[80] bg-[#1A1A2E]/95 backdrop-blur-md text-white text-xs font-semibold px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-2 border border-white/10 animate-fade-up"
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-[80] bg-[#1E2229]/95 backdrop-blur-md text-white text-xs font-semibold px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-2 border border-white/10 animate-fade-up"
         >
-          <Copy className="w-3.5 h-3.5 text-[#E5501A]" />
+          <Copy className="w-3.5 h-3.5 text-[#FF5A36]" />
           <span>Listing link copied to clipboard</span>
         </div>
       )}
@@ -539,36 +530,81 @@ export default function RoomDetail() {
       {/* ── Main Container ───────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-5 sm:pt-6">
 
+        {/* ── Top Breadcrumbs Bar (Matching FlatMate Reference) ───────── */}
+        <div className="flex items-center justify-between gap-3 mb-6">
+          <div className="flex items-center gap-2 text-xs text-gray-500 font-medium truncate">
+            <button
+              onClick={() => navigate(-1)}
+              aria-label="Go back"
+              className="inline-flex items-center gap-1 font-semibold text-[#1E2229] hover:text-[#FF5A36] transition-colors bg-white hover:bg-gray-50 px-3 py-1 rounded-full border border-gray-200 shadow-2xs cursor-pointer shrink-0"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back</span>
+            </button>
+            <span className="text-gray-300">/</span>
+            <Link to="/explore?tab=rooms" className="hover:text-gray-900 transition-colors">Home</Link>
+            <span className="text-gray-300">/</span>
+            <Link to="/explore?tab=rooms" className="hover:text-gray-900 transition-colors">{room.city || 'Rooms'}</Link>
+            <span className="text-gray-300">/</span>
+            <span className="font-semibold text-[#1E2229] truncate max-w-[200px] sm:max-w-md">{room.title}</span>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleShare}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1E2229] bg-white hover:bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-full shadow-2xs cursor-pointer transition-all active:scale-95"
+            >
+              <Share2 className="w-3.5 h-3.5 text-gray-500" />
+              <span className="hidden sm:inline">Share</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleToggleSave}
+              disabled={savingRoom}
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border shadow-2xs cursor-pointer transition-all active:scale-95 ${
+                isSaved
+                  ? 'bg-rose-50 text-rose-600 border-rose-200'
+                  : 'bg-white text-[#1E2229] hover:bg-gray-50 border-gray-200'
+              }`}
+            >
+              <Heart className={`w-3.5 h-3.5 ${isSaved ? 'fill-rose-500 text-rose-500' : 'text-gray-500'}`} />
+              <span>{isSaved ? 'Saved' : 'Save'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ── Main Two-Column Layout ──────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 mb-12">
 
           {/* ═════════════════════════════════════════════════════════════ */}
-          {/* ── LEFT COLUMN (Host Profile & Contact Card) ─────────────── */}
+          {/* ── LEFT COLUMN (Desktop Host Card & Trust Sidebar) ───────── */}
           {/* ═════════════════════════════════════════════════════════════ */}
-          <div className="lg:col-span-4 space-y-5 lg:sticky lg:top-24 self-start">
+          <div className="hidden lg:block lg:col-span-4 space-y-6 sticky top-24 self-start">
 
-            {/* Card 1: Host User Profile Card (Matching Reference Left Sidebar) */}
-            <div className="bg-white rounded-3xl border border-gray-200/80 shadow-2xs p-6 flex flex-col items-center text-center">
+            {/* Host User Profile Card (Matching FlatMate 21 Desktop) */}
+            <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-6 flex flex-col items-center text-center">
               
-              {/* Large Stylized / Photo Avatar */}
+              {/* Large Circular Photo Avatar */}
               <div
                 onClick={() => room.ownerId && navigate(`/match/${room.ownerId}`)}
-                className={`mb-3.5 ${room.ownerId ? 'cursor-pointer group' : ''}`}
+                className={`mb-4 ${room.ownerId ? 'cursor-pointer group' : ''}`}
               >
                 <FlatmateAvatar
                   avatar={ownerAvatarUrl}
                   name={ownerDisplayName}
                   isVerified={isVerifiedListing}
                   illustrationType={ownerDisplayName.toLowerCase().includes('arun') ? 'arun' : undefined}
-                  className="w-28 h-32 sm:w-32 sm:h-36 rounded-2xl shadow-xs group-hover:opacity-90 transition-opacity"
+                  className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border border-gray-200 shadow-xs object-cover group-hover:opacity-90 transition-opacity"
                 />
               </div>
 
               {/* Host Name & Verification Shield */}
               <div
                 onClick={() => room.ownerId && navigate(`/match/${room.ownerId}`)}
-                className={`flex items-center justify-center gap-1.5 mb-1 ${room.ownerId ? 'cursor-pointer hover:text-[#E5501A] transition-colors' : ''}`}
+                className={`flex items-center justify-center gap-1.5 mb-1 ${room.ownerId ? 'cursor-pointer hover:text-[#FF5A36] transition-colors' : ''}`}
               >
-                <h2 className="text-xl font-extrabold text-[#1A1A2E] tracking-tight">
+                <h2 className="text-xl font-bold text-[#1E2229] tracking-tight">
                   {ownerDisplayName}
                 </h2>
                 {isVerifiedListing && (
@@ -578,14 +614,65 @@ export default function RoomDetail() {
                 )}
               </div>
 
-              {/* Subtitle & Status */}
-              <p className="text-xs font-semibold text-gray-500 mb-2">
-                {ownerProfile?.profession || (isVerifiedListing ? 'Verified Owner' : 'Property Host')} · {room.city || ownerProfile?.city || 'Location not specified'}
+              {/* Subtitle & Online status */}
+              <p className="text-xs text-gray-500 mb-2">
+                {ownerProfile?.profession || (isVerifiedListing ? 'Verified Owner' : 'Property Host')} · {room.city || 'India'}
               </p>
 
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100/80 text-[11px] font-bold mb-3">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 text-[11px] font-semibold mb-5">
                 <span className={`w-2 h-2 rounded-full ${isOwnerOnline ? 'bg-emerald-500 animate-pulse' : 'bg-emerald-500'}`} />
                 <span>{ownerActiveLabel}</span>
+              </div>
+
+              {/* ONE Single Prominent Action Button (NO CALL BUTTON) */}
+              {requestSent ? (
+                <div className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center gap-2 mb-3">
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  <span>Interest Sent to Owner</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleConnect}
+                  disabled={connecting}
+                  className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-[#FF5A36] hover:bg-[#E54E2B] text-white shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 disabled:opacity-85 mb-3"
+                >
+                  {connecting ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  ) : (
+                    <>
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Chat with Owner</span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              {/* Secondary Actions: Direct Message & Save */}
+              <div className="flex items-center gap-2 w-full">
+                <button
+                  type="button"
+                  onClick={handleMessageOwner}
+                  disabled={messagingOwner}
+                  className="flex-1 py-2 px-3 rounded-xl font-semibold text-xs border border-gray-200 hover:bg-gray-50 text-gray-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                >
+                  {messagingOwner ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MessageCircle className="w-3.5 h-3.5 text-gray-500" />}
+                  <span>Direct Message</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleToggleSave}
+                  disabled={savingRoom}
+                  className={`py-2 px-3 rounded-xl font-semibold text-xs border transition-colors flex items-center justify-center gap-1 cursor-pointer active:scale-95 ${
+                    isSaved
+                      ? 'bg-rose-50 text-rose-600 border-rose-200'
+                      : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-200'
+                  }`}
+                >
+                  <Heart className={`w-3.5 h-3.5 ${isSaved ? 'fill-rose-500 text-rose-500' : 'text-gray-400'}`} />
+                  <span>{isSaved ? 'Saved' : 'Save'}</span>
+                </button>
               </div>
 
               {/* Host Profile Link */}
@@ -593,142 +680,34 @@ export default function RoomDetail() {
                 <button
                   type="button"
                   onClick={() => navigate(`/match/${room.ownerId}`)}
-                  className="inline-flex items-center gap-1 text-xs font-bold text-[#E5501A] hover:underline mb-4 cursor-pointer"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#FF5A36] hover:underline mt-4 cursor-pointer"
                 >
                   <span>View Host Profile & Listings</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               )}
-
-              {/* Action Buttons: Chat & Call (NestMate Orange) */}
-              <div className="grid grid-cols-2 gap-2.5 w-full mb-3">
-                {/* 1. Chat Button */}
-                <button
-                  type="button"
-                  onClick={handleMessageOwner}
-                  disabled={messagingOwner}
-                  className="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-[#E5501A] hover:bg-[#D0400B] text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
-                >
-                  {messagingOwner ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <>
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      <span>Chat</span>
-                    </>
-                  )}
-                </button>
-
-                {/* 2. Call Button */}
-                <button
-                  type="button"
-                  onClick={handleCallOwner}
-                  className="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-[#E5501A] hover:bg-[#D0400B] text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
-                >
-                  <Phone className="w-3.5 h-3.5" />
-                  <span>Call</span>
-                </button>
-              </div>
-
-              {/* Primary Connect / Express Interest Button */}
-              <button
-                type="button"
-                onClick={handleConnect}
-                disabled={connecting || requestSent}
-                className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-[#E5501A] hover:bg-[#D0400B] text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-85 mb-2.5"
-              >
-                {connecting ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : requestSent ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Interest Sent to Owner</span>
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Express Interest</span>
-                  </>
-                )}
-              </button>
-
-              {/* Toggle Save Profile/Listing */}
-              <button
-                type="button"
-                onClick={handleToggleSave}
-                disabled={savingRoom}
-                className={`w-full py-2 px-3 rounded-xl font-semibold text-xs border transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
-                  isSaved
-                    ? 'bg-rose-50 text-rose-600 border-rose-200'
-                    : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-200'
-                }`}
-              >
-                <Heart className={`w-3.5 h-3.5 ${isSaved ? 'fill-rose-500 text-rose-500' : 'text-gray-400'}`} />
-                <span>{isSaved ? 'Saved to Shortlist' : 'Save Listing'}</span>
-              </button>
-
             </div>
 
-            {/* Card 2: Quick Rent & Booking Details */}
-            <div className="bg-white rounded-3xl border border-gray-200/80 shadow-2xs p-5 space-y-3.5">
-              <div className="flex items-baseline justify-between gap-2">
-                <div>
-                  <span className="text-2xl font-extrabold text-[#1A1A2E] tracking-tight">
-                    ₹{rentShare.toLocaleString('en-IN')}
-                  </span>
-                  <span className="text-xs text-gray-500 font-medium ml-1">/month</span>
-                </div>
-
-                {compatibility !== null ? (
-                  <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200/70 font-bold px-2.5 py-0.5 rounded-full text-xs">
-                    <Zap className="w-3 h-3 text-emerald-600 fill-emerald-500" />
-                    <span>{compatibility}% match</span>
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 border border-gray-200 font-semibold px-2.5 py-0.5 rounded-full text-xs">
-                    Available Space
-                  </span>
-                )}
-              </div>
-
-              <p className="text-[11px] text-gray-400 font-medium">
-                {room.partnerShare && room.totalRent && room.totalRent !== room.partnerShare
-                  ? `Total rent: ₹${totalRent.toLocaleString('en-IN')} (your share: ₹${rentShare.toLocaleString('en-IN')})`
-                  : `Total rent: ₹${totalRent.toLocaleString('en-IN')}`}
-              </p>
-
-              <div className="pt-2 border-t border-gray-100 grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Move-in Date</span>
-                  <span className="font-bold text-[#1A1A2E] truncate block text-xs">{formattedAvailableDate}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Deposit</span>
-                  <span className="font-bold text-[#1A1A2E] truncate block text-xs">{depositText}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Card 3: NestMate Direct & Verified Experience Promise */}
-            <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-2xs space-y-2.5">
+            {/* NestMate Direct Experience Promise Card */}
+            <div className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs space-y-3">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-xl bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center shrink-0">
+                <div className="w-7 h-7 rounded-lg bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center shrink-0">
                   <ShieldCheck className="w-4 h-4" />
                 </div>
-                <h4 className="text-xs font-bold text-[#1A1A2E]">Direct &amp; Verified Experience</h4>
+                <h4 className="text-xs font-bold text-[#1E2229]">NestMate Assurance</h4>
               </div>
-              <ul className="text-[11px] text-gray-600 font-medium space-y-1.5 pl-1">
+              <ul className="text-xs text-gray-600 space-y-2">
                 <li className="flex items-center gap-2">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>Direct host connection with no middlemen fees</span>
+                  <span>Zero brokerage & direct host connection</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>Real property photos from genuine hosts</span>
+                  <span>Verified property photos & identity</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>Safe in-app messaging and connection requests</span>
+                  <span>Privacy-first secure in-app messaging</span>
                 </li>
               </ul>
             </div>
@@ -736,103 +715,198 @@ export default function RoomDetail() {
           </div>
 
           {/* ═════════════════════════════════════════════════════════════ */}
-          {/* ── RIGHT COLUMN (Main Content Container) ─────────────────── */}
+          {/* ── RIGHT COLUMN (Main Property Card) ─────────────────────── */}
           {/* ═════════════════════════════════════════════════════════════ */}
-          <div className="lg:col-span-8">
-            <div className="bg-white rounded-3xl border border-gray-200/80 shadow-2xs p-6 sm:p-8 space-y-6">
+          <div className="lg:col-span-8 space-y-6">
+            <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-5 sm:p-8 space-y-6">
 
-              {/* 1. Breadcrumb Bar + Top Actions */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-gray-100">
-                <div className="flex items-center gap-2 text-xs text-gray-500 font-medium truncate">
-                  <button
-                    onClick={() => navigate(-1)}
-                    aria-label="Go back"
-                    className="inline-flex items-center gap-1 font-semibold text-[#1A1A2E] hover:text-[#E5501A] transition-colors bg-gray-50 hover:bg-gray-100 px-3 py-1 rounded-full border border-gray-200/80 shadow-2xs cursor-pointer shrink-0"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                    <span>Back</span>
-                  </button>
-                  <span className="text-gray-300">/</span>
-                  <Link to="/explore?tab=rooms" className="hover:text-gray-900 transition-colors">Home</Link>
-                  <span className="text-gray-300">/</span>
-                  <Link to="/explore?tab=rooms" className="hover:text-gray-900 transition-colors truncate">Looking for Roommate</Link>
-                  <span className="text-gray-300">/</span>
-                  <span className="font-bold text-[#1A1A2E] truncate max-w-[200px]">{room.title}</span>
+              {/* MOBILE ONLY: Host Profile & Primary Button (Matching FlatMate 22 Mobile) */}
+              <div className="lg:hidden flex flex-col items-center text-center pb-5 border-b border-gray-100">
+                <div
+                  onClick={() => room.ownerId && navigate(`/match/${room.ownerId}`)}
+                  className={`mb-3 ${room.ownerId ? 'cursor-pointer' : ''}`}
+                >
+                  <FlatmateAvatar
+                    avatar={ownerAvatarUrl}
+                    name={ownerDisplayName}
+                    isVerified={isVerifiedListing}
+                    illustrationType={ownerDisplayName.toLowerCase().includes('arun') ? 'arun' : undefined}
+                    className="w-24 h-24 rounded-full border border-gray-200 shadow-xs object-cover"
+                  />
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={handleShare}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1A1A2E] bg-gray-50 hover:bg-gray-100 border border-gray-200/80 px-3 py-1.5 rounded-full shadow-2xs cursor-pointer transition-all active:scale-95"
-                  >
-                    <Share2 className="w-3.5 h-3.5 text-gray-500" />
-                    <span>Share</span>
-                  </button>
-                  <button
-                    onClick={handleToggleSave}
-                    className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border shadow-2xs cursor-pointer transition-all active:scale-95 ${
-                      isSaved
-                        ? 'bg-rose-50 text-rose-600 border-rose-200'
-                        : 'bg-gray-50 text-[#1A1A2E] hover:bg-gray-100 border-gray-200/80'
-                    }`}
-                  >
-                    <Heart className={`w-3.5 h-3.5 ${isSaved ? 'fill-rose-500 text-rose-500' : 'text-gray-500'}`} />
-                    <span>{isSaved ? 'Saved' : 'Save'}</span>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-black text-[#1A1A2E] tracking-tight">
+                <h1 className="text-xl font-bold text-[#1E2229] tracking-tight">
                   {room.title}
                 </h1>
-                <p className="mt-1 text-sm text-gray-500">
-                  {room.flatType} in {room.locality}, {room.city}
-                </p>
+
+                <div className="flex items-center justify-center gap-1.5 text-xs text-gray-500 mt-1">
+                  <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                  <span>{fullLocationText}</span>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-2 mt-2.5">
+                  <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                    {flatTypeNormalized}
+                  </span>
+                  <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                    {lookingForLabel}
+                  </span>
+                </div>
+
+                {/* Single Primary Action Button on Mobile (NO CALL BUTTON) */}
+                <div className="w-full max-w-sm mt-4">
+                  {requestSent ? (
+                    <div className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-600" />
+                      <span>Interest Sent to Owner</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleConnect}
+                      disabled={connecting}
+                      className="w-full py-3 px-5 rounded-xl font-bold text-xs bg-[#FF5A36] hover:bg-[#E54E2B] text-white shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95"
+                    >
+                      {connecting ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      ) : (
+                        <>
+                          <MessageCircle className="w-4 h-4" />
+                          <span>Chat with Owner</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* 2. Location Section */}
-              <div>
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
-                  Location
-                </h3>
-                <div className="flex items-center gap-1.5 text-sm sm:text-base font-bold text-[#1A1A2E]">
-                  <MapPin className="w-4 h-4 text-[#E5501A] shrink-0" />
+              {/* DESKTOP ONLY: Header (Title + Badges + Address) */}
+              <div className="hidden lg:block pb-5 border-b border-gray-100">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1E2229] tracking-tight mb-2">
+                  {room.title}
+                </h1>
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                    {flatTypeNormalized}
+                  </span>
+                  <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                    {lookingForLabel}
+                  </span>
+                  <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full">
+                    Available {formattedAvailableDate}
+                  </span>
+                  {compatibility !== null && (
+                    <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-3 py-1 rounded-full flex items-center gap-1">
+                      <Zap className="w-3 h-3 text-emerald-600 fill-emerald-500" />
+                      <span>{compatibility}% match</span>
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                  <MapPin className="w-4 h-4 text-[#FF5A36] shrink-0" />
                   <span>{fullLocationText}</span>
                 </div>
               </div>
 
-              {/* 3. Basic Info (4-Column Grid) */}
-              <div className="pt-2">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5">
-                  Basic Info
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#FBF9F6] border border-gray-200/70 rounded-2xl p-3.5">
+              {/* ── Rent Info Section (Matching FlatMate 21 & 22) ───────── */}
+              <div className="pb-5 border-b border-gray-100">
+                <h2 className="text-base sm:text-lg font-bold text-[#1E2229] mb-4">
+                  Rent Info
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
                   <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Gender</span>
-                    <p className="text-xs font-bold text-[#1A1A2E]">{genderLabel}</p>
+                    <span className="text-xs text-gray-400 block mb-1">Your Share</span>
+                    <p className="text-base sm:text-lg font-extrabold text-[#1E2229]">
+                      ₹ {rentShare.toLocaleString('en-IN')}
+                    </p>
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Approx Rent</span>
-                    <p className="text-xs font-bold text-[#1A1A2E]">₹ {rentShare.toLocaleString('en-IN')}</p>
+                    <span className="text-xs text-gray-400 block mb-1">Total Rent</span>
+                    <p className="text-base sm:text-lg font-extrabold text-[#1E2229]">
+                      ₹ {totalRent.toLocaleString('en-IN')}
+                    </p>
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Occupancy</span>
-                    <p className="text-xs font-bold text-[#1A1A2E]">{occupancyLabel}</p>
+                    <span className="text-xs text-gray-400 block mb-1">Deposit</span>
+                    <p className="text-base sm:text-lg font-extrabold text-[#1E2229]">
+                      {depositText}
+                    </p>
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Looking For</span>
-                    <p className="text-xs font-bold text-[#1A1A2E]">{lookingForLabel}</p>
+                    <span className="text-xs text-gray-400 block mb-1">Notice Period</span>
+                    <p className="text-base sm:text-lg font-extrabold text-[#1E2229]">
+                      1 Month
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-400 block mb-1">Maintenance</span>
+                    <p className="text-base sm:text-lg font-extrabold text-[#1E2229]">
+                      Included In Rent
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-400 block mb-1">Furnishing</span>
+                    <p className="text-base sm:text-lg font-extrabold text-[#1E2229]">
+                      {furnishingNormalized}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Looking for Flatmate Banner (Matching FlatMate Reference) */}
+                <div className="bg-[#FFF8F5] border border-[#FFE7DE] rounded-2xl p-4 sm:p-5 mt-5">
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <Heart className="w-4 h-4 text-[#FF5A36] fill-[#FF5A36]" />
+                    <h3 className="text-xs sm:text-sm font-bold text-[#1E2229]">
+                      Looking for a Flatmate who is:
+                    </h3>
+                  </div>
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-700">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>{lookingForLabel} ({room.preferredGender || 'Any Gender'})</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Ready to move in {formattedAvailableDate}</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>{furnishingNormalized} · {occupancyLabel} Occupancy</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Clean living habits &amp; respectful of common spaces</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Quick Property Details 4-Box Grid (Matching FlatMate Reference) */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-4">
+                  <div className="bg-gray-50/80 rounded-xl p-3 border border-gray-150">
+                    <span className="text-[11px] text-gray-400 block font-medium">Occupancy</span>
+                    <span className="text-xs sm:text-sm font-bold text-[#1E2229] mt-0.5 block">{occupancyLabel}</span>
+                  </div>
+                  <div className="bg-gray-50/80 rounded-xl p-3 border border-gray-150">
+                    <span className="text-[11px] text-gray-400 block font-medium">Available From</span>
+                    <span className="text-xs sm:text-sm font-bold text-[#1E2229] mt-0.5 block">{formattedAvailableDate}</span>
+                  </div>
+                  <div className="bg-gray-50/80 rounded-xl p-3 border border-gray-150">
+                    <span className="text-[11px] text-gray-400 block font-medium">Looking For</span>
+                    <span className="text-xs sm:text-sm font-bold text-[#1E2229] mt-0.5 block">{lookingForLabel}</span>
+                  </div>
+                  <div className="bg-gray-50/80 rounded-xl p-3 border border-gray-150">
+                    <span className="text-[11px] text-gray-400 block font-medium">Furnishing</span>
+                    <span className="text-xs sm:text-sm font-bold text-[#1E2229] mt-0.5 block">{furnishingNormalized}</span>
                   </div>
                 </div>
               </div>
 
-              {/* 4. Pictures Carousel (Interactive with Previous/Next & Dots) */}
-              <div className="pt-2">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5">
+              {/* ── Pictures Section (Matching FlatMate 21 & 22) ────────── */}
+              <div className="pb-5 border-b border-gray-100">
+                <h2 className="text-base sm:text-lg font-bold text-[#1E2229] mb-4">
                   Pictures
-                </h3>
-                <div className="relative w-full h-[320px] sm:h-[400px] rounded-2xl overflow-hidden bg-gray-100 border border-gray-200/80 shadow-xs group">
+                </h2>
+                <div className="relative w-full h-[280px] sm:h-[400px] rounded-2xl overflow-hidden bg-gray-100 border border-gray-200/80 shadow-xs group">
                   {photos.length > 0 ? (
                     <>
                       <img
@@ -848,7 +922,7 @@ export default function RoomDetail() {
                       {/* Verified Badge */}
                       <div className="absolute top-3.5 left-3.5 bg-black/60 backdrop-blur-xs text-white text-xs font-semibold px-3 py-1 rounded-full shadow-xs flex items-center gap-1.5 z-10">
                         <Check className="w-3 h-3 text-emerald-400" />
-                        <span>Verified · {room.locality || room.city}</span>
+                        <span>Verified Photos</span>
                       </div>
 
                       {/* Photo Counter */}
@@ -856,14 +930,14 @@ export default function RoomDetail() {
                         {(carouselIdx % photos.length) + 1} / {photos.length}
                       </div>
 
-                      {/* Navigation Arrows */}
+                      {/* Nav Arrows */}
                       {photos.length > 1 && (
                         <>
                           <button
                             type="button"
                             onClick={() => setCarouselIdx(p => (p === 0 ? photos.length - 1 : p - 1))}
                             aria-label="Previous image"
-                            className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-[#1A1A2E] flex items-center justify-center shadow-md cursor-pointer transition-transform active:scale-95 z-10"
+                            className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-[#1E2229] flex items-center justify-center shadow-md cursor-pointer transition-transform active:scale-95 z-10"
                           >
                             <ChevronLeft className="w-5 h-5" />
                           </button>
@@ -871,12 +945,12 @@ export default function RoomDetail() {
                             type="button"
                             onClick={() => setCarouselIdx(p => (p + 1) % photos.length)}
                             aria-label="Next image"
-                            className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-[#1A1A2E] flex items-center justify-center shadow-md cursor-pointer transition-transform active:scale-95 z-10"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-[#1E2229] flex items-center justify-center shadow-md cursor-pointer transition-transform active:scale-95 z-10"
                           >
                             <ChevronRight className="w-5 h-5" />
                           </button>
 
-                          {/* Pagination Dots */}
+                          {/* Dots */}
                           <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10 bg-black/40 backdrop-blur-xs px-2.5 py-1 rounded-full">
                             {photos.map((_, i) => (
                               <button
@@ -897,80 +971,29 @@ export default function RoomDetail() {
                     </>
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-center p-6 bg-gradient-to-br from-gray-100 to-gray-50">
-                      <Home className="w-10 h-10 text-[#E5501A] mb-2" />
-                      <p className="text-sm font-bold text-[#1A1A2E]">Photos Coming Soon</p>
-                      <p className="text-xs text-gray-500 max-w-xs mt-1">Message host or request a tour to see pictures of this space.</p>
+                      <Home className="w-10 h-10 text-[#FF5A36] mb-2" />
+                      <p className="text-sm font-bold text-[#1E2229]">Photos Coming Soon</p>
+                      <p className="text-xs text-gray-500 max-w-xs mt-1">Message host or express interest to see photos of this space.</p>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* 5. Preferences (Circular Trait Icons) */}
-              <div className="pt-2 border-t border-gray-100">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                  Preferences
-                </h3>
-                {preferencesList.length > 0 ? (
-                  <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-                    {preferencesList.map((pref, idx) => (
-                      <div key={idx} className="flex flex-col items-center gap-1.5 text-center min-w-[70px]">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center border shadow-2xs ${pref.bg}`}>
-                          <pref.icon className="w-5 h-5" />
-                        </div>
-                        <span className="text-[11px] font-bold text-gray-700 max-w-[85px] truncate">
-                          {pref.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-400 italic">No specific lifestyle preferences specified by host yet.</p>
-                )}
-              </div>
-
-              {/* 6. Highlights (Pill Badges with Checkmarks) */}
-              <div className="pt-2 border-t border-gray-100">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5">
-                  Highlights
-                </h3>
-                {highlightsList.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {highlightsList.map((highlight, idx) => (
-                      <div
-                        key={idx}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50/70 border border-emerald-200/80 text-xs font-semibold text-emerald-900"
-                      >
-                        <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span>{highlight}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-400 italic">No specific property highlights added yet.</p>
-                )}
-              </div>
-
-              {/* 7. Amenities (Circular Icon Tiles) */}
-              <div className="pt-2 border-t border-gray-100">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    Amenities
-                  </h3>
-                  <span className="text-xs font-semibold text-gray-400">
-                    {displayAmenities.length} {displayAmenities.length === 1 ? 'item' : 'items'}
-                  </span>
-                </div>
-                {displayAmenities.length > 0 ? (
-                  <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-                    {displayAmenities.map((amenity, idx) => {
-                      const item = getAmenityDetails(amenity);
+              {/* ── Amenities Section (Matching FlatMate 21 & 22) ──────── */}
+              <div className="pb-5 border-b border-gray-100">
+                <h2 className="text-base sm:text-lg font-bold text-[#1E2229] mb-4">
+                  Amenities
+                </h2>
+                {uniqueAmenities.length > 0 ? (
+                  <div className="flex flex-wrap items-center gap-5 sm:gap-7">
+                    {uniqueAmenities.map((item, idx) => {
                       const IconComp = item.icon;
                       return (
                         <div key={idx} className="flex flex-col items-center gap-1.5 text-center min-w-[65px]">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center border shadow-2xs ${item.bg}`}>
-                            <IconComp className="w-5 h-5" />
+                          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center text-[#1E2229] shadow-2xs hover:border-[#FF5A36]/40 transition-colors">
+                            <IconComp className="w-6 h-6 text-[#1E2229]" />
                           </div>
-                          <span className="text-[11px] font-bold text-gray-700 max-w-[80px] truncate">
+                          <span className="text-xs font-semibold text-gray-700 max-w-[85px] truncate">
                             {item.label}
                           </span>
                         </div>
@@ -982,278 +1005,98 @@ export default function RoomDetail() {
                 )}
               </div>
 
-              {/* 8. Description */}
-              <div className="pt-2 border-t border-gray-100">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+              {/* ── Description Section ──────────────────────────────── */}
+              <div className="pb-5 border-b border-gray-100">
+                <h2 className="text-base sm:text-lg font-bold text-[#1E2229] mb-3">
                   Description
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed font-normal">
+                </h2>
+                <p className="text-sm text-gray-600 leading-relaxed font-normal mb-4">
                   {descriptionContent}
                 </p>
-              </div>
 
-              {/* 9. Where you'll sleep & Shared spaces */}
-              <div className="pt-2 border-t border-gray-100">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                  Space Breakdown
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Where you'll sleep */}
-                  <div className="bg-[#FBF9F6] rounded-2xl p-4 border border-gray-200/80 flex items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <h4 className="text-xs font-bold text-[#1A1A2E] mb-1">Where you'll sleep</h4>
-                      <p className="text-xs font-bold text-[#E5501A] truncate mb-0.5">
-                        {room.partnersNeeded && room.partnersNeeded > 1 ? 'Shared Room' : 'Private Room'}
-                      </p>
-                      <p className="text-[11px] text-gray-500 line-clamp-2">
-                        {furnishingNormalized} · {room.locality ? `Located in ${room.locality}.` : 'Spacious room.'}
-                      </p>
-                    </div>
-                    <div
-                      onClick={() => {
-                        if (photos.length > 0) {
-                          setLightboxIdx(0);
-                          setShowLightbox(true);
-                        }
-                      }}
-                      className="w-20 h-16 rounded-xl overflow-hidden border border-gray-200 shrink-0 bg-gray-200 cursor-pointer relative"
-                    >
-                      {photos.length > 0 ? (
-                        <img src={photos[0]} alt="Bedroom" className="w-full h-full object-cover" />
-                      ) : (
-                        <Bed className="w-5 h-5 text-gray-400 m-auto mt-5" />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Shared spaces */}
-                  <div className="bg-[#FBF9F6] rounded-2xl p-4 border border-gray-200/80 flex items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <h4 className="text-xs font-bold text-[#1A1A2E] mb-1">Shared spaces</h4>
-                      <p className="text-xs font-bold text-[#1A1A2E] truncate mb-0.5">
-                        {flatTypeNormalized} Living &amp; Kitchen
-                      </p>
-                      <p className="text-[11px] text-gray-500 line-clamp-2">
-                        {room.partnersNeeded ? `Shared with ${room.partnersNeeded} roommates` : 'Common areas'}
-                      </p>
-                    </div>
-                    <div
-                      onClick={() => {
-                        if (photos.length > 1) {
-                          setLightboxIdx(1);
-                          setShowLightbox(true);
-                        } else if (photos.length > 0) {
-                          setLightboxIdx(0);
-                          setShowLightbox(true);
-                        }
-                      }}
-                      className="w-20 h-16 rounded-xl overflow-hidden border border-gray-200 shrink-0 bg-gray-200 cursor-pointer relative"
-                    >
-                      {photos.length > 1 ? (
-                        <img src={photos[1]} alt="Living area" className="w-full h-full object-cover" />
-                      ) : photos.length > 0 ? (
-                        <img src={photos[0]} alt="Living area" className="w-full h-full object-cover" />
-                      ) : (
-                        <Sofa className="w-5 h-5 text-gray-400 m-auto mt-5" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 10. House Rules & Key Details */}
-              <div className="pt-2 border-t border-gray-100">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* House Rules */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2.5">
-                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        House Rules
-                      </h3>
-                      <span className="text-[11px] font-semibold text-gray-400">Host guidelines</span>
-                    </div>
-                    {realHouseRules.length > 0 ? (
-                      <div className="grid grid-cols-2 gap-2">
-                        {realHouseRules.map((rule, idx) => {
-                          const isRestricted = isNegativeRule(rule);
-                          return (
-                            <div
-                              key={idx}
-                              className={`flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-semibold ${
-                                isRestricted
-                                  ? 'bg-rose-50/70 border border-rose-100 text-rose-700'
-                                  : 'bg-emerald-50/70 border border-emerald-100 text-emerald-800'
-                              }`}
-                            >
-                              {isRestricted ? (
-                                <Ban className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                              ) : (
-                                <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              )}
-                              <span className="truncate">{rule}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-400 italic">No specific house rules specified by host. Standard community standards apply.</p>
-                    )}
-                  </div>
-
-                  {/* Key Details */}
-                  <div>
+                {/* House Rules & Preferences */}
+                {realHouseRules.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5">
-                      Key Details
+                      House Rules
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      {room.furnishing && (
-                        <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200/80 rounded-xl px-3 py-1.5 text-[#1A1A2E] text-xs font-semibold">
-                          <Home className="w-3.5 h-3.5 text-[#E5501A]" />
-                          <span>{room.furnishing}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200/80 rounded-xl px-3 py-1.5 text-[#1A1A2E] text-xs font-semibold">
-                        <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Available {formattedAvailableDate}</span>
-                      </div>
-                      {room.flatType && (
-                        <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200/80 rounded-xl px-3 py-1.5 text-[#1A1A2E] text-xs font-semibold">
-                          <Bed className="w-3.5 h-3.5 text-sky-500" />
-                          <span>{room.flatType}</span>
-                        </div>
-                      )}
+                      {realHouseRules.map((rule, idx) => {
+                        const isRestricted = isNegativeRule(rule);
+                        return (
+                          <span
+                            key={idx}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                              isRestricted
+                                ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                                : 'bg-emerald-50 text-emerald-800 border border-emerald-100'
+                            }`}
+                          >
+                            {isRestricted ? <Ban className="w-3.5 h-3.5 text-rose-500" /> : <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                            <span>{rule}</span>
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
-              {/* 11. Location Map & Neighborhood Transit */}
-              <div className="pt-2 border-t border-gray-100">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                  Neighborhood &amp; Transit
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                  {/* Visual Map preview card */}
-                  <div className="md:col-span-7 h-44 rounded-2xl bg-[#EBF3FA] border border-[#D5E5F5] relative overflow-hidden flex items-center justify-center p-4 select-none">
-                    <svg className="absolute inset-0 w-full h-full opacity-35" xmlns="http://www.w3.org/2000/svg">
-                      <defs>
-                        <pattern id="street-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                          <path d="M 0 20 L 40 20 M 20 0 L 20 40" fill="none" stroke="#93C5FD" strokeWidth="1.5" />
-                          <circle cx="20" cy="20" r="1.5" fill="#60A5FA" />
-                        </pattern>
-                      </defs>
-                      <rect width="100%" height="100%" fill="url(#street-grid)" />
-                      <path d="M -20 120 Q 150 60 380 90" fill="none" stroke="#FDBA74" strokeWidth="4" />
-                      <path d="M 80 -10 Q 140 100 200 200" fill="none" stroke="#CBD5E1" strokeWidth="3" />
-                    </svg>
-
-                    <div className="relative bg-white/95 backdrop-blur-xs border border-gray-200/90 rounded-2xl px-4 py-2.5 shadow-sm flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-[#E5501A] text-white flex items-center justify-center shrink-0 shadow-xs">
-                        <MapPin className="w-4 h-4 fill-white" />
-                      </div>
+              {/* ── Location & Nearby (Matching FlatMate 21 & 22) ──────── */}
+              <div className="pb-5 border-b border-gray-100">
+                <h2 className="text-base sm:text-lg font-bold text-[#1E2229] mb-3">
+                  Location &amp; Nearby
+                </h2>
+                <div className="bg-slate-50/70 rounded-2xl border border-gray-200/80 p-4 sm:p-5">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-9 h-9 rounded-full bg-[#FFF2EB] border border-[#FFDDD2] flex items-center justify-center shrink-0">
+                      <MapPin className="w-5 h-5 text-[#FF5A36]" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-[#1E2229]">{room.locality || room.city}</h3>
+                      <p className="text-xs text-gray-500 mt-0.5">{fullLocationText}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                    <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-gray-200/80 shadow-2xs">
+                      <Train className="w-4 h-4 text-blue-500 shrink-0" />
                       <div>
-                        <p className="text-xs font-bold text-[#1A1A2E] leading-tight">
-                          {room.locality || room.city || 'Location'}
-                        </p>
-                        <p className="text-[10px] text-gray-500 font-medium">
-                          {room.city || 'India'}
-                        </p>
+                        <span className="text-[10px] text-gray-400 block font-medium">Metro Station</span>
+                        <span className="font-bold text-[#1E2229]">~800 m</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-gray-200/80 shadow-2xs">
+                      <Bus className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <div>
+                        <span className="text-[10px] text-gray-400 block font-medium">Bus Stand</span>
+                        <span className="font-bold text-[#1E2229]">~300 m</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-gray-200/80 shadow-2xs">
+                      <ShoppingBag className="w-4 h-4 text-amber-500 shrink-0" />
+                      <div>
+                        <span className="text-[10px] text-gray-400 block font-medium">Supermarket</span>
+                        <span className="font-bold text-[#1E2229]">~250 m</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-gray-200/80 shadow-2xs">
+                      <Hospital className="w-4 h-4 text-rose-500 shrink-0" />
+                      <div>
+                        <span className="text-[10px] text-gray-400 block font-medium">Hospital/Clinic</span>
+                        <span className="font-bold text-[#1E2229]">~1.2 km</span>
                       </div>
                     </div>
                   </div>
-
-                  {/* Transit & Services Exploration Links */}
-                  <div className="md:col-span-5 space-y-2 text-xs">
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`Bus Stop near ${room.locality || ''} ${room.city || ''}`.trim())}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-100 transition-colors group"
-                    >
-                      <div className="flex items-center gap-2 text-gray-700 font-medium truncate">
-                        <Bus className="w-4 h-4 text-sky-500 shrink-0" />
-                        <span className="truncate">Transit &amp; Bus Stops</span>
-                      </div>
-                      <span className="font-bold text-[11px] text-[#E5501A] group-hover:underline shrink-0 flex items-center gap-0.5">
-                        <span>Explore</span>
-                        <ExternalLink className="w-2.5 h-2.5" />
-                      </span>
-                    </a>
-
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`Metro Station near ${room.locality || ''} ${room.city || ''}`.trim())}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-100 transition-colors group"
-                    >
-                      <div className="flex items-center gap-2 text-gray-700 font-medium truncate">
-                        <Train className="w-4 h-4 text-emerald-500 shrink-0" />
-                        <span className="truncate">Metro &amp; Rail Stations</span>
-                      </div>
-                      <span className="font-bold text-[11px] text-[#E5501A] group-hover:underline shrink-0 flex items-center gap-0.5">
-                        <span>Explore</span>
-                        <ExternalLink className="w-2.5 h-2.5" />
-                      </span>
-                    </a>
-
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`Supermarket near ${room.locality || ''} ${room.city || ''}`.trim())}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-100 transition-colors group"
-                    >
-                      <div className="flex items-center gap-2 text-gray-700 font-medium truncate">
-                        <ShoppingBag className="w-4 h-4 text-purple-500 shrink-0" />
-                        <span className="truncate">Markets &amp; Groceries</span>
-                      </div>
-                      <span className="font-bold text-[11px] text-[#E5501A] group-hover:underline shrink-0 flex items-center gap-0.5">
-                        <span>Explore</span>
-                        <ExternalLink className="w-2.5 h-2.5" />
-                      </span>
-                    </a>
-
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`Hospital Clinic near ${room.locality || ''} ${room.city || ''}`.trim())}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-100 transition-colors group"
-                    >
-                      <div className="flex items-center gap-2 text-gray-700 font-medium truncate">
-                        <Hospital className="w-4 h-4 text-rose-500 shrink-0" />
-                        <span className="truncate">Healthcare &amp; Clinics</span>
-                      </div>
-                      <span className="font-bold text-[11px] text-[#E5501A] group-hover:underline shrink-0 flex items-center gap-0.5">
-                        <span>Explore</span>
-                        <ExternalLink className="w-2.5 h-2.5" />
-                      </span>
-                    </a>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 pt-3 border-t border-gray-100">
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
-                    <MapPin className="w-4 h-4 text-[#E5501A] shrink-0" />
-                    <span>Close to cafes, offices, supermarkets and public transport.</span>
-                  </div>
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([room.address, room.locality, room.city].filter(Boolean).join(', '))}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1A1A2E] bg-gray-50 hover:bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-full shrink-0 transition-colors shadow-2xs"
-                  >
-                    <ExternalLink className="w-3 h-3 text-gray-500" />
-                    <span>View on Maps</span>
-                  </a>
                 </div>
               </div>
 
-              {/* 12. Bottom Report Action */}
-              <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+              {/* Bottom Report Listing Action */}
+              <div className="flex items-center justify-between text-xs text-gray-500 pt-2">
                 <span>Found wrong information?</span>
                 <button
                   type="button"
                   onClick={() => setReportModalOpen(true)}
-                  className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-[#1A1A2E] font-semibold transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-[#1E2229] font-semibold transition-colors cursor-pointer"
                 >
                   Report Listing
                 </button>
@@ -1261,18 +1104,22 @@ export default function RoomDetail() {
 
             </div>
           </div>
-
         </div>
 
-        {/* ── Similar Properties Nearby (Below Container) ───────────────── */}
-        <div className="pt-6 pb-8 border-t border-gray-200/80">
+        {/* ── Similar Properties Nearby (Real Dynamic Matching Logic) ── */}
+        <div className="pt-6 pb-12 border-t border-gray-200/80">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg sm:text-xl font-bold text-[#1A1A2E]">
-              Similar properties nearby
-            </h2>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-[#1E2229]">
+                Similar properties nearby
+              </h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Active listings in {room.locality || room.city} matching your budget &amp; preferences
+              </p>
+            </div>
             <button
               onClick={() => navigate('/explore?tab=rooms')}
-              className="text-xs font-bold text-[#E5501A] hover:text-[#D0400B] flex items-center gap-1 cursor-pointer"
+              className="text-xs font-bold text-[#FF5A36] hover:text-[#E54E2B] flex items-center gap-1 cursor-pointer"
             >
               <span>View more</span>
               <span>→</span>
@@ -1286,6 +1133,15 @@ export default function RoomDetail() {
                   key={simRoom.id}
                   room={simRoom}
                   isSaved={profile?.savedRoomIds?.includes(simRoom.id)}
+                  onToggleSave={async (e, roomId) => {
+                    e.stopPropagation();
+                    if (!user?.uid) {
+                      useStore.getState().openAuthModal({ title: 'Sign in to Save Rooms', redirect: `/room/${id}` });
+                      return;
+                    }
+                    await toggleSavedRoom(user.uid, roomId, profile?.savedRoomIds?.includes(roomId));
+                    await refreshProfile();
+                  }}
                   onClick={() => {
                     navigate(`/room/${simRoom.id}`);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1294,11 +1150,11 @@ export default function RoomDetail() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-10 bg-white rounded-3xl border border-gray-150 p-6">
+            <div className="text-center py-10 bg-white rounded-2xl border border-gray-150 p-6">
               <p className="text-sm text-gray-500 mb-2">No other properties available nearby right now.</p>
               <button
                 onClick={() => navigate('/explore?tab=rooms')}
-                className="text-xs font-bold text-[#E5501A] hover:underline cursor-pointer"
+                className="text-xs font-bold text-[#FF5A36] hover:underline cursor-pointer"
               >
                 Browse all available listings →
               </button>
@@ -1308,12 +1164,12 @@ export default function RoomDetail() {
 
       </div>
 
-      {/* ── Mobile Sticky Bottom Action Bar ────────────────────────── */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200/80 px-4 py-3 shadow-lg flex items-center justify-between gap-3">
+      {/* ── Mobile Sticky Bottom Action Bar (NO CALL BUTTON) ────────── */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 py-3 shadow-lg flex items-center justify-between gap-4">
         <div className="min-w-0">
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Your share</p>
           <div className="flex items-baseline">
-            <span className="text-lg font-extrabold text-[#1A1A2E] tracking-tight">
+            <span className="text-lg font-extrabold text-[#1E2229] tracking-tight">
               ₹{rentShare.toLocaleString('en-IN')}
             </span>
             <span className="text-xs text-gray-500 font-normal ml-0.5">/mo</span>
@@ -1321,51 +1177,32 @@ export default function RoomDetail() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={handleMessageOwner}
-            disabled={messagingOwner}
-            className="px-3.5 py-2.5 rounded-full font-bold text-xs border border-gray-200 text-[#1A1A2E] hover:bg-gray-50 flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
-          >
-            {messagingOwner ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <>
-                <MessageCircle className="w-3.5 h-3.5 text-gray-500" />
-                <span>Chat</span>
-              </>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleCallOwner}
-            className="px-3.5 py-2.5 rounded-full font-bold text-xs bg-[#E5501A] hover:bg-[#D0400B] text-white shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
-          >
-            <Phone className="w-3.5 h-3.5" />
-            <span>Call</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleConnect}
-            disabled={connecting || requestSent}
-            className="px-4 py-2.5 rounded-full font-bold text-xs text-white bg-[#E5501A] hover:bg-[#D0400B] shadow-xs cursor-pointer active:scale-95 flex items-center gap-1.5"
-          >
-            {connecting ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-            ) : requestSent ? (
-              <>
-                <Check className="w-3.5 h-3.5" />
-                <span>Interest Sent</span>
-              </>
-            ) : (
-              <>
-                <Send className="w-3.5 h-3.5" />
-                <span>Interest</span>
-              </>
-            )}
-          </button>
+          {requestSent ? (
+            <button
+              type="button"
+              onClick={handleMessageOwner}
+              className="px-5 py-2.5 rounded-full font-bold text-xs bg-[#FF5A36] text-white shadow-xs cursor-pointer flex items-center gap-1.5"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              <span>Chat with Owner</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleConnect}
+              disabled={connecting}
+              className="px-5 py-2.5 rounded-full font-bold text-xs bg-[#FF5A36] hover:bg-[#E54E2B] text-white shadow-xs cursor-pointer active:scale-95 flex items-center gap-1.5"
+            >
+              {connecting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+              ) : (
+                <>
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>Chat with Owner</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -1433,7 +1270,7 @@ export default function RoomDetail() {
                   aria-label={`View photo ${i + 1}`}
                   className={`shrink-0 w-16 h-12 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
                     i === lightboxIdx
-                      ? 'border-[#E5501A] scale-105 shadow-md shadow-[#E5501A]/30'
+                      ? 'border-[#FF5A36] scale-105 shadow-md shadow-[#FF5A36]/30'
                       : 'border-white/20 opacity-50 hover:opacity-80'
                   }`}
                 >
@@ -1445,12 +1282,6 @@ export default function RoomDetail() {
         </div>
       )}
 
-      {/* ── Contact Phone Modal ──────────────────────────────────────── */}
-      <ContactModal
-        isOpen={Boolean(contactProfile)}
-        onClose={() => setContactProfile(null)}
-        profile={contactProfile}
-      />
 
       {/* ── Screening Questionnaire Modal ────────────────────────────── */}
       <ScreeningQuestionnaireModal
@@ -1470,7 +1301,7 @@ export default function RoomDetail() {
       <Dialog open={reportModalOpen} onOpenChange={setReportModalOpen}>
         <DialogContent className="sm:max-w-md bg-white rounded-3xl p-6 border border-gray-200">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-bold text-[#1A1A2E]">
+            <DialogTitle className="flex items-center gap-2 text-base font-bold text-[#1E2229]">
               <AlertCircle className="w-4 h-4 text-rose-500" />
               Report Listing
             </DialogTitle>

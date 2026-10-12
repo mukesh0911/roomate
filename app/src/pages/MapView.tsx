@@ -129,7 +129,7 @@ function ViewportTracker({ onBoundsChange }: { onBoundsChange: (b: L.LatLngBound
     moveend: () => onBoundsChange(map.getBounds()),
     zoomend: () => onBoundsChange(map.getBounds()),
   });
-  useEffect(() => { onBoundsChange(map.getBounds()); }, []);
+  useEffect(() => { onBoundsChange(map.getBounds()); }, [map, onBoundsChange]);
   return null;
 }
 
@@ -201,8 +201,7 @@ export default function MapView() {
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [mobileListView, setMobileListView] = useState(false);
   const [sortBy, setSortBy] = useState<'match' | 'distance' | 'newest'>('match');
-  const boundsRef = useRef<L.LatLngBounds | null>(null);
-  const [boundsKey, setBoundsKey] = useState(0); // increments when map viewport changes, triggers visibleItems recompute
+  const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
 
   // Source label from caller (e.g. "Matches Near You")
   const sourceLabel = incomingState?.sourceLabel;
@@ -332,8 +331,7 @@ export default function MapView() {
 
   // Filter items within viewport and legend filter
   const handleBoundsChange = useCallback((b: L.LatLngBounds) => {
-    boundsRef.current = b;
-    setBoundsKey(k => k + 1); // trigger visibleItems recompute
+    setMapBounds(b);
   }, []);
 
   // visibleItems: applies legend filter then viewport clip.
@@ -353,13 +351,13 @@ export default function MapView() {
       filtered = filtered.filter(i => i.type === 'room');
     }
     // Viewport clip: only show items inside current map bounds
-    if (!boundsRef.current) return filtered;
-    const b = boundsRef.current;
+    if (!mapBounds) return filtered;
+    const b = mapBounds;
     return filtered.filter(i =>
       i.lat >= b.getSouth() && i.lat <= b.getNorth() &&
       i.lng >= b.getWest() && i.lng <= b.getEast()
     );
-  }, [items, legendFilter, boundsKey]); // boundsKey (not boundsRef.current) is the correct dep/exhaustive-deps
+  }, [items, legendFilter, mapBounds]);
 
   // Sort sidebar items
   const sortedItems = useMemo(() => {
@@ -418,7 +416,7 @@ export default function MapView() {
   const getPinColor = (item: MapItem): string => {
     if (item.type === 'person' && item.compatibility >= 80) return '#0D9488';
     if (item.type === 'person') return '#1E3A5F';
-    return '#E5501A';
+    return '#FF5A36';
   };
 
   // Sidebar card component
@@ -731,8 +729,8 @@ export default function MapView() {
           {/* Distance rings around search center */}
           {searchCenter && (
             <>
-              <Circle center={searchCenter} radius={2000} pathOptions={{ color: '#E5501A', weight: 1, dashArray: '6 4', fillColor: '#E5501A', fillOpacity: 0.04 }} />
-              <Circle center={searchCenter} radius={5000} pathOptions={{ color: '#E5501A', weight: 1, dashArray: '6 4', fillColor: '#E5501A', fillOpacity: 0.02 }} />
+              <Circle center={searchCenter} radius={2000} pathOptions={{ color: '#FF5A36', weight: 1, dashArray: '6 4', fillColor: '#FF5A36', fillOpacity: 0.04 }} />
+              <Circle center={searchCenter} radius={5000} pathOptions={{ color: '#FF5A36', weight: 1, dashArray: '6 4', fillColor: '#FF5A36', fillOpacity: 0.02 }} />
             </>
           )}
 
@@ -751,7 +749,7 @@ export default function MapView() {
               <CircleMarker
                 center={[userCoords.lat, userCoords.lng]}
                 radius={10}
-                pathOptions={{ color: '#E5501A', weight: 3, fillColor: '#1E3A5F', fillOpacity: 1 }}
+                pathOptions={{ color: '#FF5A36', weight: 3, fillColor: '#1E3A5F', fillOpacity: 1 }}
               >
                 <Popup className="match-popup">
                   <div className="p-1 text-center font-bold text-xs">

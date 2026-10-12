@@ -52,7 +52,9 @@ export default function VerifyPhone() {
     return () => {
       try {
         window.recaptchaVerifier?.clear();
-      } catch {}
+      } catch {
+        // The verifier may already be cleared after a completed or expired challenge.
+      }
       window.recaptchaVerifier = null;
     };
   }, [initRecaptcha]);
@@ -180,18 +182,18 @@ export default function VerifyPhone() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FBF9F6] flex flex-col justify-center items-center px-4 py-12">
+    <div className="min-h-screen bg-[#FBFBFC] flex flex-col justify-center items-center px-4 py-12">
       {/* Invisible reCAPTCHA Anchor */}
       <div id="recaptcha-verify-phone-container" />
 
       <div className="w-full max-w-md">
         {/* Top NestMate Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FFF2EB] border border-[#E5501A]/20 text-[#E5501A] text-xs font-bold uppercase tracking-wider mb-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FFF2EB] border border-[#FF5A36]/20 text-[#FF5A36] text-xs font-bold uppercase tracking-wider mb-3">
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>Mandatory Member Verification</span>
           </div>
-          <h1 className="font-serif text-3xl font-medium text-[#1A1A2E] tracking-tight">
+          <h1 className="font-serif text-3xl font-medium text-[#1E2229] tracking-tight">
             Verify Your Mobile Number
           </h1>
           <p className="text-xs text-gray-500 mt-2 max-w-xs mx-auto leading-relaxed">
@@ -202,7 +204,7 @@ export default function VerifyPhone() {
         {/* Card Container */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-xl shadow-gray-200/50 space-y-6">
           {/* User Google Badge */}
-          <div className="flex items-center justify-between p-3.5 bg-[#FBF9F6] border border-gray-100 rounded-2xl">
+          <div className="flex items-center justify-between p-3.5 bg-[#FBFBFC] border border-gray-100 rounded-2xl">
             <div className="flex items-center gap-3 min-w-0">
               {user?.photoURL ? (
                 <img
@@ -211,12 +213,12 @@ export default function VerifyPhone() {
                   className="w-10 h-10 rounded-full object-cover border border-white shadow-2xs"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-[#1A1A2E] text-white font-bold flex items-center justify-center text-sm">
+                <div className="w-10 h-10 rounded-full bg-[#1E2229] text-white font-bold flex items-center justify-center text-sm">
                   {(user?.displayName || user?.email || 'U')[0].toUpperCase()}
                 </div>
               )}
               <div className="min-w-0">
-                <p className="text-xs font-bold text-[#1A1A2E] truncate">
+                <p className="text-xs font-bold text-[#1E2229] truncate">
                   {user?.displayName || 'Welcome'}
                 </p>
                 <p className="text-[11px] text-gray-400 truncate">
@@ -234,7 +236,7 @@ export default function VerifyPhone() {
             /* STEP 1: Phone Input */
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#1A1A2E] mb-2 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-[#1E2229] mb-2 uppercase tracking-wider">
                   Mobile Number (India)
                 </label>
                 <div className="relative flex items-center">
@@ -257,7 +259,7 @@ export default function VerifyPhone() {
                       if (e.key === 'Enter') handleSendOTP();
                     }}
                     placeholder="98765 43210"
-                    className="w-full pl-20 pr-4 py-3.5 bg-[#FBF9F6] border border-gray-200 rounded-2xl text-sm font-bold text-[#1A1A2E] placeholder:text-gray-400 focus:outline-none focus:border-[#E5501A] focus:bg-white transition-all tracking-wider"
+                    className="w-full pl-20 pr-4 py-3.5 bg-[#FBFBFC] border border-gray-200 rounded-2xl text-sm font-bold text-[#1E2229] placeholder:text-gray-400 focus:outline-none focus:border-[#FF5A36] focus:bg-white transition-all tracking-wider"
                   />
                 </div>
                 <p className="text-[11px] text-gray-400 mt-1.5 flex items-center gap-1">
@@ -277,7 +279,7 @@ export default function VerifyPhone() {
                 type="button"
                 disabled={loading || phone.trim().length !== 10}
                 onClick={handleSendOTP}
-                className="w-full py-4 bg-[#E5501A] hover:bg-[#D0400B] text-white rounded-full font-bold text-xs shadow-md shadow-[#E5501A]/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+                className="w-full py-4 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full font-bold text-xs shadow-md shadow-[#FF5A36]/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 {loading ? (
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -296,7 +298,7 @@ export default function VerifyPhone() {
                 <p className="text-xs text-gray-500">
                   Enter the 6-digit verification code sent to
                 </p>
-                <p className="font-mono font-bold text-sm text-[#1A1A2E] mt-0.5">
+                <p className="font-mono font-bold text-sm text-[#1E2229] mt-0.5">
                   +91 {phone}
                 </p>
                 <button
@@ -306,7 +308,7 @@ export default function VerifyPhone() {
                     setOtp(['', '', '', '', '', '']);
                     setError('');
                   }}
-                  className="text-[11px] font-bold text-[#E5501A] hover:underline mt-1 cursor-pointer"
+                  className="text-[11px] font-bold text-[#FF5A36] hover:underline mt-1 cursor-pointer"
                 >
                   Change phone number
                 </button>
@@ -326,8 +328,8 @@ export default function VerifyPhone() {
                     onKeyDown={(e) => handleKeyDown(i, e)}
                     className={`w-11 h-13 sm:w-12 sm:h-14 text-center text-xl font-bold rounded-2xl border transition-all focus:outline-none ${
                       digit
-                        ? 'border-[#E5501A] bg-[#FFF2EB] text-[#E5501A] shadow-xs'
-                        : 'border-gray-200 bg-[#FBF9F6] text-[#1A1A2E] focus:border-[#E5501A] focus:bg-white'
+                        ? 'border-[#FF5A36] bg-[#FFF2EB] text-[#FF5A36] shadow-xs'
+                        : 'border-gray-200 bg-[#FBFBFC] text-[#1E2229] focus:border-[#FF5A36] focus:bg-white'
                     } ${error ? 'border-red-400 bg-red-50/50' : ''}`}
                   />
                 ))}
@@ -344,7 +346,7 @@ export default function VerifyPhone() {
                 type="button"
                 disabled={loading || otp.join('').length !== 6}
                 onClick={() => handleVerifyOTP()}
-                className="w-full py-4 bg-[#E5501A] hover:bg-[#D0400B] text-white rounded-full font-bold text-xs shadow-md shadow-[#E5501A]/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+                className="w-full py-4 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full font-bold text-xs shadow-md shadow-[#FF5A36]/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 {loading ? (
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -366,7 +368,7 @@ export default function VerifyPhone() {
                     type="button"
                     onClick={handleResend}
                     disabled={loading}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#E5501A] hover:underline cursor-pointer"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#FF5A36] hover:underline cursor-pointer"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                     <span>Resend verification code</span>

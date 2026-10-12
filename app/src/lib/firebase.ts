@@ -13,6 +13,17 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+const missingFirebaseConfig = Object.entries(firebaseConfig)
+  .filter(([, value]) => typeof value !== 'string' || value.trim() === '')
+  .map(([key]) => key);
+
+if (missingFirebaseConfig.length > 0) {
+  throw new Error(
+    `Missing Firebase configuration: ${missingFirebaseConfig.join(', ')}. ` +
+    'Copy the required VITE_FIREBASE_* values into app/.env.local before starting the app.'
+  );
+}
+
 // Prevent re-initialization during HMR
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
@@ -24,7 +35,7 @@ export const functions = getFunctions(app, 'us-central1');
 // E2E tests use the real Firebase client SDK against an isolated local
 // Emulator Suite. This is explicit and fail-closed: production/default dev
 // builds never connect to emulators merely because they run on localhost.
-if (import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true') {
+if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true') {
   const marker = '__nestmateFirebaseEmulatorsConnected';
   const globalState = globalThis as typeof globalThis & Record<string, unknown>;
   if (!globalState[marker]) {

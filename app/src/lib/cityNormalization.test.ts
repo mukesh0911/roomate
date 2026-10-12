@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { areSameCityAlias, getCityAlias } from './cityNormalization';
+import { areSameCityAlias, getCityAlias, getCityQueryValues } from './cityNormalization';
 
 describe('cityNormalization', () => {
   it('correctly maps common Indian city aliases', () => {
@@ -30,5 +30,13 @@ describe('cityNormalization', () => {
     expect(getCityAlias('bengaluru')).toBe('bangalore');
     expect(getCityAlias('bangalore')).toBe('bengaluru');
     expect(getCityAlias('delhi')).toBeNull();
+  });
+
+  it('builds case-tolerant Firestore query values including aliases', () => {
+    expect(getCityQueryValues(' Bengaluru ')).toEqual([
+      'Bengaluru', 'bengaluru', 'bangalore', 'Bangalore',
+    ]);
+    expect(getCityQueryValues('DELHI')).toEqual(['DELHI', 'delhi', 'Delhi']);
+    expect(getCityQueryValues('   ')).toEqual([]);
   });
 });

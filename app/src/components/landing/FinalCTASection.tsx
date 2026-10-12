@@ -26,7 +26,7 @@ export default function FinalCTASection() {
 
         {/* Content */}
         <div className="relative z-10 p-6 sm:p-12 lg:p-16 max-w-xl text-left">
-          <h2 className="text-[28px] sm:text-4xl md:text-5xl font-serif font-medium text-[#1A1A2E] leading-tight mb-2 sm:mb-3 tracking-tight">
+          <h2 className="text-[28px] sm:text-4xl md:text-5xl font-serif font-medium text-[#1E2229] leading-tight mb-2 sm:mb-3 tracking-tight">
             Ready to find<br className="sm:hidden" /> your people?
           </h2>
 
@@ -37,7 +37,7 @@ export default function FinalCTASection() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3.5 w-full sm:w-auto max-w-xs sm:max-w-none">
             <Link
               to="/login"
-              className="inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-3 rounded-full bg-[#E5501A] hover:bg-[#D0400B] text-white text-[13px] sm:text-sm font-semibold shadow-md shadow-orange-900/10 transition-all cursor-pointer text-center min-h-[44px]"
+              className="inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-3 rounded-full bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-[13px] sm:text-sm font-semibold shadow-md shadow-orange-900/10 transition-all cursor-pointer text-center min-h-[44px]"
             >
               <span>Get Started</span>
               <span>→</span>
@@ -45,7 +45,7 @@ export default function FinalCTASection() {
 
             <Link
               to="/explore?tab=rooms"
-              className="inline-flex items-center justify-center px-6 sm:px-7 py-3 rounded-full bg-white/95 border border-gray-200 text-[#1A1A2E] hover:border-gray-300 text-[13px] sm:text-sm font-semibold hover:bg-gray-50/80 transition-all shadow-xs cursor-pointer text-center min-h-[44px]"
+              className="inline-flex items-center justify-center px-6 sm:px-7 py-3 rounded-full bg-white/95 border border-gray-200 text-[#1E2229] hover:border-gray-300 text-[13px] sm:text-sm font-semibold hover:bg-gray-50/80 transition-all shadow-xs cursor-pointer text-center min-h-[44px]"
             >
               Explore Listings
             </Link>
@@ -61,7 +61,7 @@ export default function FinalCTASection() {
             Same You
           </span>
           <span className="font-script text-xs sm:text-2xl md:text-3xl text-slate-800 leading-tight block transform rotate-2">
-            Just Brighter <span className="text-[#E5501A]">♡</span>
+            Just Brighter <span className="text-[#FF5A36]">♡</span>
           </span>
         </div>
       </div>

@@ -225,7 +225,7 @@ export function MapPreview({ currentUser, topMatches }: MapPreviewProps) {
                         subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
                         maxZoom={20}
                       />
-                      <CircleMarker center={[loc.lat, loc.lng]} radius={10} pathOptions={{ color: 'white', weight: 2, fillColor: match.compatibilityScore >= 80 ? '#0D9488' : match.profile.role === 'owner' ? '#E5501A' : '#1E3A5F', fillOpacity: 1 }} />
+                      <CircleMarker center={[loc.lat, loc.lng]} radius={10} pathOptions={{ color: 'white', weight: 2, fillColor: match.compatibilityScore >= 80 ? '#0D9488' : match.profile.role === 'owner' ? '#FF5A36' : '#1E3A5F', fillOpacity: 1 }} />
                     </MapContainer>
                   </div>
                   <div className="p-4 flex flex-col gap-3">
@@ -320,7 +320,7 @@ export function MapPreview({ currentUser, topMatches }: MapPreviewProps) {
               const fillColor = match.compatibilityScore >= 80
                 ? '#0D9488' // teal
                 : p.role === 'owner'
-                  ? '#E5501A' // fire orange
+                  ? '#FF5A36' // fire orange
                   : '#1E3A5F'; // navy blue
 
               return (

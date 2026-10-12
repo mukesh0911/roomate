@@ -41,7 +41,7 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
         <div className="md:hidden flex flex-col pb-8 border-b border-gray-100">
           {/* Brand Info */}
           <Link to="/" className="inline-flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-xl bg-[#E5501A] flex items-center justify-center text-white shadow-xs">
+            <div className="w-7 h-7 rounded-xl bg-[#FF5A36] flex items-center justify-center text-white shadow-xs">
               <svg
                 viewBox="0 0 24 24"
                 className="w-4 h-4 text-white"
@@ -56,10 +56,10 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
                 <path d="M9 21v-6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v6" />
               </svg>
             </div>
-            <span className="text-lg font-bold tracking-tight text-[#1A1A2E]">NestMate</span>
+            <span className="text-lg font-bold tracking-tight text-[#1E2229]">NestMate</span>
           </Link>
 
-          <p className="text-xs font-semibold text-[#1A1A2E] mb-1">
+          <p className="text-xs font-semibold text-[#1E2229] mb-1">
             People. Places. Possibilities.
           </p>
           <p className="text-xs text-slate-500 mb-4 leading-relaxed max-w-xs">
@@ -82,7 +82,7 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
               target="_blank"
               rel="noreferrer"
               aria-label="NestMate on Instagram"
-              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-slate-600 hover:text-[#E5501A] transition-colors"
+              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-slate-600 hover:text-[#FF5A36] transition-colors"
             >
               <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
             </a>
@@ -113,7 +113,7 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
               <button
                 type="button"
                 onClick={() => toggleSection('product')}
-                className="w-full py-3.5 flex items-center justify-between text-[13px] font-bold text-[#1A1A2E] cursor-pointer"
+                className="w-full py-3.5 flex items-center justify-between text-[13px] font-bold text-[#1E2229] cursor-pointer"
               >
                 <span>Product</span>
                 <span className="text-gray-400 text-sm font-light">
@@ -123,23 +123,23 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
               {openSection === 'product' && (
                 <ul className="space-y-2.5 pb-3 text-xs text-slate-500 pl-1 font-medium">
                   <li>
-                    <Link to="/explore?tab=rooms" className="hover:text-[#E5501A] py-0.5 inline-block">Find a Room</Link>
+                    <Link to="/explore?tab=rooms" className="hover:text-[#FF5A36] py-0.5 inline-block">Find a Room</Link>
                   </li>
                   <li>
-                    <Link to="/explore?tab=roommates" className="hover:text-[#E5501A] py-0.5 inline-block">Find Roommates</Link>
+                    <Link to="/explore?tab=roommates" className="hover:text-[#FF5A36] py-0.5 inline-block">Find Roommates</Link>
                   </li>
                   <li>
-                    <button type="button" onClick={onListSpace} className="hover:text-[#E5501A] cursor-pointer text-left py-0.5 inline-block">
+                    <button type="button" onClick={onListSpace} className="hover:text-[#FF5A36] cursor-pointer text-left py-0.5 inline-block">
                       List Your Space
                     </button>
                   </li>
                   <li>
-                    <button type="button" onClick={() => scrollToSection('how-it-works')} className="hover:text-[#E5501A] cursor-pointer text-left py-0.5 inline-block">
+                    <button type="button" onClick={() => scrollToSection('how-it-works')} className="hover:text-[#FF5A36] cursor-pointer text-left py-0.5 inline-block">
                       How It Works
                     </button>
                   </li>
                   <li>
-                    <Link to="/safety" className="hover:text-[#E5501A] py-0.5 inline-block">Safety</Link>
+                    <Link to="/safety" className="hover:text-[#FF5A36] py-0.5 inline-block">Safety</Link>
                   </li>
                 </ul>
               )}
@@ -150,7 +150,7 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
               <button
                 type="button"
                 onClick={() => toggleSection('company')}
-                className="w-full py-3.5 flex items-center justify-between text-[13px] font-bold text-[#1A1A2E] cursor-pointer"
+                className="w-full py-3.5 flex items-center justify-between text-[13px] font-bold text-[#1E2229] cursor-pointer"
               >
                 <span>Company</span>
                 <span className="text-gray-400 text-sm font-light">
@@ -159,11 +159,11 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
               </button>
               {openSection === 'company' && (
                 <ul className="space-y-2.5 pb-3 text-xs text-slate-500 pl-1 font-medium">
-                  <li><Link to="/about" className="hover:text-[#E5501A] py-0.5 inline-block">About Us</Link></li>
-                  <li><Link to="/about" className="hover:text-[#E5501A] py-0.5 inline-block">Careers</Link></li>
-                  <li><Link to="/about" className="hover:text-[#E5501A] py-0.5 inline-block">Blog</Link></li>
-                  <li><Link to="/about" className="hover:text-[#E5501A] py-0.5 inline-block">Press</Link></li>
-                  <li><Link to="/help" className="hover:text-[#E5501A] py-0.5 inline-block">Contact</Link></li>
+                  <li><Link to="/about" className="hover:text-[#FF5A36] py-0.5 inline-block">About Us</Link></li>
+                  <li><Link to="/about" className="hover:text-[#FF5A36] py-0.5 inline-block">Careers</Link></li>
+                  <li><Link to="/about" className="hover:text-[#FF5A36] py-0.5 inline-block">Blog</Link></li>
+                  <li><Link to="/about" className="hover:text-[#FF5A36] py-0.5 inline-block">Press</Link></li>
+                  <li><Link to="/help" className="hover:text-[#FF5A36] py-0.5 inline-block">Contact</Link></li>
                 </ul>
               )}
             </div>
@@ -173,7 +173,7 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
               <button
                 type="button"
                 onClick={() => toggleSection('resources')}
-                className="w-full py-3.5 flex items-center justify-between text-[13px] font-bold text-[#1A1A2E] cursor-pointer"
+                className="w-full py-3.5 flex items-center justify-between text-[13px] font-bold text-[#1E2229] cursor-pointer"
               >
                 <span>Resources</span>
                 <span className="text-gray-400 text-sm font-light">
@@ -182,11 +182,11 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
               </button>
               {openSection === 'resources' && (
                 <ul className="space-y-2.5 pb-3 text-xs text-slate-500 pl-1 font-medium">
-                  <li><Link to="/help" className="hover:text-[#E5501A] py-0.5 inline-block">Help Center</Link></li>
-                  <li><Link to="/trust" className="hover:text-[#E5501A] py-0.5 inline-block">Community Guidelines</Link></li>
-                  <li><Link to="/safety" className="hover:text-[#E5501A] py-0.5 inline-block">Safety Tips</Link></li>
-                  <li><Link to="/how-it-works" className="hover:text-[#E5501A] py-0.5 inline-block">Living Guide</Link></li>
-                  <li><Link to="/explore" className="hover:text-[#E5501A] py-0.5 inline-block">Sitemap</Link></li>
+                  <li><Link to="/help" className="hover:text-[#FF5A36] py-0.5 inline-block">Help Center</Link></li>
+                  <li><Link to="/trust" className="hover:text-[#FF5A36] py-0.5 inline-block">Community Guidelines</Link></li>
+                  <li><Link to="/safety" className="hover:text-[#FF5A36] py-0.5 inline-block">Safety Tips</Link></li>
+                  <li><Link to="/how-it-works" className="hover:text-[#FF5A36] py-0.5 inline-block">Living Guide</Link></li>
+                  <li><Link to="/explore" className="hover:text-[#FF5A36] py-0.5 inline-block">Sitemap</Link></li>
                 </ul>
               )}
             </div>
@@ -196,7 +196,7 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
               <button
                 type="button"
                 onClick={() => toggleSection('loop')}
-                className="w-full py-3.5 flex items-center justify-between text-[13px] font-bold text-[#1A1A2E] cursor-pointer"
+                className="w-full py-3.5 flex items-center justify-between text-[13px] font-bold text-[#1E2229] cursor-pointer"
               >
                 <span>Stay in the loop</span>
                 <span className="text-gray-400 text-sm font-light">
@@ -214,12 +214,12 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter your email"
-                      className="w-full bg-[#F5F2EC] rounded-xl pl-3 pr-10 py-2.5 text-[13px] sm:text-xs text-[#1A1A2E] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#E5501A] min-h-[42px]"
+                      className="w-full bg-[#F5F2EC] rounded-xl pl-3 pr-10 py-2.5 text-[13px] sm:text-xs text-[#1E2229] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#FF5A36] min-h-[42px]"
                     />
                     <button
                       type="submit"
                       aria-label="Subscribe"
-                      className="absolute right-1 top-1 bottom-1 w-8 rounded-lg bg-[#1A1A2E] text-white flex items-center justify-center cursor-pointer"
+                      className="absolute right-1 top-1 bottom-1 w-8 rounded-lg bg-[#1E2229] text-white flex items-center justify-center cursor-pointer"
                     >
                       {subscribed ? (
                         <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -239,7 +239,7 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
           {/* Col 1: Brand & Tagline (4 cols) */}
           <div className="lg:col-span-4">
             <Link to="/" className="inline-flex items-center gap-2.5 mb-4 group">
-              <div className="w-8 h-8 rounded-xl bg-[#E5501A] flex items-center justify-center text-white shadow-xs">
+              <div className="w-8 h-8 rounded-xl bg-[#FF5A36] flex items-center justify-center text-white shadow-xs">
                 <svg
                   viewBox="0 0 24 24"
                   className="w-4.5 h-4.5 text-white"
@@ -254,10 +254,10 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
                   <path d="M9 21v-6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v6" />
                 </svg>
               </div>
-              <span className="text-xl font-bold tracking-tight text-[#1A1A2E]">NestMate</span>
+              <span className="text-xl font-bold tracking-tight text-[#1E2229]">NestMate</span>
             </Link>
 
-            <p className="text-xs sm:text-sm font-semibold text-[#1A1A2E] mb-1">
+            <p className="text-xs sm:text-sm font-semibold text-[#1E2229] mb-1">
               People. Places. Possibilities.
             </p>
             <p className="text-xs text-slate-500 max-w-sm mb-6 leading-relaxed">
@@ -284,7 +284,7 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
                 target="_blank"
                 rel="noreferrer"
                 aria-label="NestMate on Instagram"
-                className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-slate-600 hover:text-[#E5501A] hover:border-[#E5501A] transition-colors"
+                className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-slate-600 hover:text-[#FF5A36] hover:border-[#FF5A36] transition-colors"
               >
                 <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
               </a>
@@ -315,17 +315,17 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
 
           {/* Col 2: Product (2 cols) */}
           <div className="lg:col-span-2">
-            <h4 className="text-xs font-bold tracking-wider uppercase text-[#1A1A2E] mb-4">
+            <h4 className="text-xs font-bold tracking-wider uppercase text-[#1E2229] mb-4">
               Product
             </h4>
             <ul className="space-y-2.5 text-xs text-slate-500 font-medium">
               <li>
-                <Link to="/explore?tab=rooms" className="hover:text-[#E5501A] transition-colors">
+                <Link to="/explore?tab=rooms" className="hover:text-[#FF5A36] transition-colors">
                   Find a Room
                 </Link>
               </li>
               <li>
-                <Link to="/explore?tab=roommates" className="hover:text-[#E5501A] transition-colors">
+                <Link to="/explore?tab=roommates" className="hover:text-[#FF5A36] transition-colors">
                   Find Roommates
                 </Link>
               </li>
@@ -333,7 +333,7 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
                 <button
                   type="button"
                   onClick={onListSpace}
-                  className="hover:text-[#E5501A] transition-colors cursor-pointer text-left"
+                  className="hover:text-[#FF5A36] transition-colors cursor-pointer text-left"
                 >
                   List Your Space
                 </button>
@@ -342,13 +342,13 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
                 <button
                   type="button"
                   onClick={() => scrollToSection('how-it-works')}
-                  className="hover:text-[#E5501A] transition-colors cursor-pointer text-left"
+                  className="hover:text-[#FF5A36] transition-colors cursor-pointer text-left"
                 >
                   How It Works
                 </button>
               </li>
               <li>
-                <Link to="/safety" className="hover:text-[#E5501A] transition-colors">
+                <Link to="/safety" className="hover:text-[#FF5A36] transition-colors">
                   Safety
                 </Link>
               </li>
@@ -357,32 +357,32 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
 
           {/* Col 3: Company (2 cols) */}
           <div className="lg:col-span-2">
-            <h4 className="text-xs font-bold tracking-wider uppercase text-[#1A1A2E] mb-4">
+            <h4 className="text-xs font-bold tracking-wider uppercase text-[#1E2229] mb-4">
               Company
             </h4>
             <ul className="space-y-2.5 text-xs text-slate-500 font-medium">
               <li>
-                <Link to="/about" className="hover:text-[#E5501A] transition-colors">
+                <Link to="/about" className="hover:text-[#FF5A36] transition-colors">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link to="/about" className="hover:text-[#E5501A] transition-colors">
+                <Link to="/about" className="hover:text-[#FF5A36] transition-colors">
                   Careers
                 </Link>
               </li>
               <li>
-                <Link to="/about" className="hover:text-[#E5501A] transition-colors">
+                <Link to="/about" className="hover:text-[#FF5A36] transition-colors">
                   Blog
                 </Link>
               </li>
               <li>
-                <Link to="/about" className="hover:text-[#E5501A] transition-colors">
+                <Link to="/about" className="hover:text-[#FF5A36] transition-colors">
                   Press
                 </Link>
               </li>
               <li>
-                <Link to="/help" className="hover:text-[#E5501A] transition-colors">
+                <Link to="/help" className="hover:text-[#FF5A36] transition-colors">
                   Contact
                 </Link>
               </li>
@@ -391,32 +391,32 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
 
           {/* Col 4: Resources (2 cols) */}
           <div className="lg:col-span-2">
-            <h4 className="text-xs font-bold tracking-wider uppercase text-[#1A1A2E] mb-4">
+            <h4 className="text-xs font-bold tracking-wider uppercase text-[#1E2229] mb-4">
               Resources
             </h4>
             <ul className="space-y-2.5 text-xs text-slate-500 font-medium">
               <li>
-                <Link to="/help" className="hover:text-[#E5501A] transition-colors">
+                <Link to="/help" className="hover:text-[#FF5A36] transition-colors">
                   Help Center
                 </Link>
               </li>
               <li>
-                <Link to="/trust" className="hover:text-[#E5501A] transition-colors">
+                <Link to="/trust" className="hover:text-[#FF5A36] transition-colors">
                   Community Guidelines
                 </Link>
               </li>
               <li>
-                <Link to="/safety" className="hover:text-[#E5501A] transition-colors">
+                <Link to="/safety" className="hover:text-[#FF5A36] transition-colors">
                   Safety Tips
                 </Link>
               </li>
               <li>
-                <Link to="/how-it-works" className="hover:text-[#E5501A] transition-colors">
+                <Link to="/how-it-works" className="hover:text-[#FF5A36] transition-colors">
                   Living Guide
                 </Link>
               </li>
               <li>
-                <Link to="/explore" className="hover:text-[#E5501A] transition-colors">
+                <Link to="/explore" className="hover:text-[#FF5A36] transition-colors">
                   Sitemap
                 </Link>
               </li>
@@ -425,7 +425,7 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
 
           {/* Col 5: Stay in the loop (2 cols) */}
           <div className="lg:col-span-2">
-            <h4 className="text-xs font-bold tracking-wider uppercase text-[#1A1A2E] mb-4">
+            <h4 className="text-xs font-bold tracking-wider uppercase text-[#1E2229] mb-4">
               Stay in the loop
             </h4>
             <p className="text-xs text-slate-500 mb-3 leading-relaxed">
@@ -438,12 +438,12 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
-                className="w-full bg-[#F5F2EC] rounded-xl pl-3 pr-10 py-2.5 text-xs text-[#1A1A2E] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#E5501A]"
+                className="w-full bg-[#F5F2EC] rounded-xl pl-3 pr-10 py-2.5 text-xs text-[#1E2229] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#FF5A36]"
               />
               <button
                 type="submit"
                 aria-label="Subscribe"
-                className="absolute right-1 top-1 bottom-1 w-8 rounded-lg bg-[#1A1A2E] hover:bg-black text-white flex items-center justify-center transition-colors cursor-pointer"
+                className="absolute right-1 top-1 bottom-1 w-8 rounded-lg bg-[#1E2229] hover:bg-black text-white flex items-center justify-center transition-colors cursor-pointer"
               >
                 {subscribed ? (
                   <Check className="w-3.5 h-3.5 text-emerald-400" />

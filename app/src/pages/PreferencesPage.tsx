@@ -113,14 +113,14 @@ export default function PreferencesPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/explore?tab=roommates')}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-gray-200 text-xs font-semibold text-gray-600 hover:text-[#1A1A2E] hover:border-gray-300 transition-all cursor-pointer bg-white shadow-2xs"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-gray-200 text-xs font-semibold text-gray-600 hover:text-[#1E2229] hover:border-gray-300 transition-all cursor-pointer bg-white shadow-2xs"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back</span>
           </button>
           <button
             onClick={resetToDefaults}
-            className="px-3.5 py-1.5 rounded-full border border-gray-200 text-xs font-semibold text-gray-500 hover:text-[#E5501A] hover:border-[#E5501A]/30 transition-all cursor-pointer bg-white shadow-2xs"
+            className="px-3.5 py-1.5 rounded-full border border-gray-200 text-xs font-semibold text-gray-500 hover:text-[#FF5A36] hover:border-[#FF5A36]/30 transition-all cursor-pointer bg-white shadow-2xs"
           >
             Reset
           </button>
@@ -130,9 +130,9 @@ export default function PreferencesPage() {
     >
       <div className="space-y-6 pb-24">
         {/* Intro Card */}
-        <div className="bg-[#FFF2EB]/70 border border-[#E5501A]/20 rounded-2xl p-4 sm:p-5 shadow-xs">
-          <h2 className="text-sm font-serif font-bold text-[#1A1A2E] mb-1 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[#E5501A]" />
+        <div className="bg-[#FFF2EB]/70 border border-[#FF5A36]/20 rounded-2xl p-4 sm:p-5 shadow-xs">
+          <h2 className="text-sm font-serif font-bold text-[#1E2229] mb-1 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-[#FF5A36]" />
             Hard Dealbreakers vs. Soft Preferences
           </h2>
           <p className="text-xs text-gray-600 leading-relaxed font-sans">
@@ -146,7 +146,7 @@ export default function PreferencesPage() {
             <span className="text-[10px] font-bold uppercase tracking-wider text-red-600 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full">
               Hard Exclusion Filters
             </span>
-            <h2 className="text-lg font-serif font-bold text-[#1A1A2E] mt-2">Must-Have Dealbreakers</h2>
+            <h2 className="text-lg font-serif font-bold text-[#1E2229] mt-2">Must-Have Dealbreakers</h2>
             <p className="text-xs text-gray-500 font-sans">We will never show you listings or roommates violating these rules.</p>
           </div>
 
@@ -166,7 +166,7 @@ export default function PreferencesPage() {
                     onClick={() => setMustHaves(m => ({ ...m, preferredGender: opt.id }))}
                     className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
                       mustHaves.preferredGender === opt.id
-                        ? 'border-[#E5501A] bg-[#FFF2EB] text-[#E5501A]'
+                        ? 'border-[#FF5A36] bg-[#FFF2EB] text-[#FF5A36]'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300'
                     }`}
                   >
@@ -188,7 +188,7 @@ export default function PreferencesPage() {
                 type="checkbox"
                 checked={mustHaves.vegOnly}
                 onChange={(e) => setMustHaves(m => ({ ...m, vegOnly: e.target.checked }))}
-                className="w-4 h-4 rounded text-[#E5501A] focus:ring-[#E5501A] cursor-pointer mt-1"
+                className="w-4 h-4 rounded text-[#FF5A36] focus:ring-[#FF5A36] cursor-pointer mt-1"
               />
             </div>
 
@@ -204,7 +204,7 @@ export default function PreferencesPage() {
                 type="checkbox"
                 checked={mustHaves.nonSmoking}
                 onChange={(e) => setMustHaves(m => ({ ...m, nonSmoking: e.target.checked }))}
-                className="w-4 h-4 rounded text-[#E5501A] focus:ring-[#E5501A] cursor-pointer mt-1"
+                className="w-4 h-4 rounded text-[#FF5A36] focus:ring-[#FF5A36] cursor-pointer mt-1"
               />
             </div>
 
@@ -220,7 +220,7 @@ export default function PreferencesPage() {
                 type="checkbox"
                 checked={mustHaves.noPets}
                 onChange={(e) => setMustHaves(m => ({ ...m, noPets: e.target.checked }))}
-                className="w-4 h-4 rounded text-[#E5501A] focus:ring-[#E5501A] cursor-pointer mt-1"
+                className="w-4 h-4 rounded text-[#FF5A36] focus:ring-[#FF5A36] cursor-pointer mt-1"
               />
             </div>
 
@@ -236,7 +236,7 @@ export default function PreferencesPage() {
                 type="checkbox"
                 checked={mustHaves.nonDrinking}
                 onChange={(e) => setMustHaves(m => ({ ...m, nonDrinking: e.target.checked }))}
-                className="w-4 h-4 rounded text-[#E5501A] focus:ring-[#E5501A] cursor-pointer mt-1"
+                className="w-4 h-4 rounded text-[#FF5A36] focus:ring-[#FF5A36] cursor-pointer mt-1"
               />
             </div>
           </div>
@@ -248,7 +248,7 @@ export default function PreferencesPage() {
             <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full">
               Scoring Weights
             </span>
-            <h2 className="text-lg font-serif font-bold text-[#1A1A2E] mt-2">Nice-To-Have Priorities</h2>
+            <h2 className="text-lg font-serif font-bold text-[#1E2229] mt-2">Nice-To-Have Priorities</h2>
             <p className="text-xs text-gray-500 font-sans">Profiles matching these receive higher percentage compatibility.</p>
           </div>
 
@@ -353,7 +353,7 @@ export default function PreferencesPage() {
 
         {/* SECTION 3: BUDGET & MOVE-IN */}
         <div className="bg-white rounded-3xl p-6 sm:p-7 border border-gray-100 shadow-xs space-y-4">
-          <h2 className="text-lg font-serif font-bold text-[#1A1A2E]">Budget & Timeline</h2>
+          <h2 className="text-lg font-serif font-bold text-[#1E2229]">Budget & Timeline</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-bold text-gray-700 block mb-1">Max Monthly Budget (₹)</label>
@@ -365,7 +365,7 @@ export default function PreferencesPage() {
                   max={500000}
                   value={budget}
                   onChange={(e) => setBudget(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-8 pr-4 py-3 text-sm font-semibold text-gray-800 focus:outline-none focus:border-[#E5501A]"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-8 pr-4 py-3 text-sm font-semibold text-gray-800 focus:outline-none focus:border-[#FF5A36]"
                 />
               </div>
             </div>
@@ -376,7 +376,7 @@ export default function PreferencesPage() {
                 type="date"
                 value={moveInDate}
                 onChange={(e) => setMoveInDate(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm font-medium text-gray-800 focus:outline-none focus:border-[#E5501A]"
+                className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm font-medium text-gray-800 focus:outline-none focus:border-[#FF5A36]"
               />
             </div>
           </div>
@@ -392,7 +392,7 @@ export default function PreferencesPage() {
               type="checkbox"
               checked={matchAlerts}
               onChange={(e) => setMatchAlerts(e.target.checked)}
-              className="w-4 h-4 rounded text-[#E5501A] focus:ring-[#E5501A] cursor-pointer"
+              className="w-4 h-4 rounded text-[#FF5A36] focus:ring-[#FF5A36] cursor-pointer"
             />
           </div>
         </div>
@@ -407,7 +407,7 @@ export default function PreferencesPage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full sm:w-auto ml-auto bg-[#E5501A] hover:bg-[#D0400B] text-white py-3 px-8 rounded-full font-bold text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 disabled:opacity-50 transition-all cursor-pointer shadow-[#E5501A]/20"
+            className="w-full sm:w-auto ml-auto bg-[#FF5A36] hover:bg-[#E54E2B] text-white py-3 px-8 rounded-full font-bold text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 disabled:opacity-50 transition-all cursor-pointer shadow-[#FF5A36]/20"
           >
             {saving ? (
               <Loader2 className="w-4 h-4 animate-spin text-white" />

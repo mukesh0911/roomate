@@ -226,10 +226,10 @@ export default function AdminDashboard() {
                   type="monotone"
                   dataKey="count"
                   name="Signups"
-                  stroke="#E5501A"
+                  stroke="#FF5A36"
                   strokeWidth={2.5}
-                  dot={{ r: 2, fill: '#E5501A' }}
-                  activeDot={{ r: 5, fill: '#E5501A' }}
+                  dot={{ r: 2, fill: '#FF5A36' }}
+                  activeDot={{ r: 5, fill: '#FF5A36' }}
                 />
               </LineChart>
             </ResponsiveContainer>

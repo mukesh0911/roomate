@@ -38,7 +38,6 @@ export function useUserProfile() {
     const whatsappToSave = whatsappNumber !== undefined ? String(whatsappNumber).trim() : (existing.whatsappNumber as string | undefined);
 
     if (phoneToSave || emailToSave || workEmailToSave || whatsappToSave !== undefined) {
-      console.log('Writing to privateUserData:', userId);
       await savePrivateUserData(userId, {
         ...(phoneToSave ? { phone: phoneToSave } : {}),
         ...(emailToSave ? { email: emailToSave } : {}),
@@ -55,9 +54,7 @@ export function useUserProfile() {
       }
     }
 
-    console.log('Existing doc in Firestore:', userId, JSON.stringify(existing));
     const publicData = stripPiiFromWrite({ ...rest } as Record<string, unknown>);
-    console.log('Writing to users doc:', userId, JSON.stringify(publicData));
     try {
       await setDoc(userRef, {
         ...publicData,
@@ -68,7 +65,6 @@ export function useUserProfile() {
         whatsappNumber: '',
         updatedAt: serverTimestamp(),
       }, { merge: true });
-      console.log('Successfully wrote to users doc:', userId);
     } catch (setDocErr: any) {
       console.error('CRITICAL setDoc failure:', setDocErr.code, setDocErr.message);
       throw setDocErr;

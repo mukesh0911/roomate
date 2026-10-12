@@ -106,7 +106,7 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
       }`}>
         {/* Left: Logo */}
         <Link to="/" className="flex items-center gap-2 sm:gap-2.5 group shrink-0">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[#E5501A] flex items-center justify-center text-white shadow-xs transition-transform group-hover:scale-105 shrink-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[#FF5A36] flex items-center justify-center text-white shadow-xs transition-transform group-hover:scale-105 shrink-0">
             <svg
               viewBox="0 0 24 24"
               className="w-4.5 h-4.5 text-white"
@@ -121,47 +121,47 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
               <path d="M9 21v-6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v6" />
             </svg>
           </div>
-          <span className="text-xl font-bold tracking-tight text-[#1A1A2E]">NestMate</span>
+          <span className="text-xl font-bold tracking-tight text-[#1E2229]">NestMate</span>
         </Link>
 
         {/* Center: Navigation Links */}
         <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
           <Link
             to="/explore?tab=rooms"
-            className="text-xs font-semibold text-[#1A1A2E]/80 hover:text-[#E5501A] transition-colors"
+            className="text-xs font-semibold text-[#1E2229]/80 hover:text-[#FF5A36] transition-colors"
           >
             Find a Room
           </Link>
           <Link
             to="/explore?tab=roommates"
-            className="text-xs font-semibold text-[#1A1A2E]/80 hover:text-[#E5501A] transition-colors"
+            className="text-xs font-semibold text-[#1E2229]/80 hover:text-[#FF5A36] transition-colors"
           >
             Find Roommates
           </Link>
           <button
             type="button"
             onClick={onListSpace}
-            className="text-xs font-semibold text-[#1A1A2E]/80 hover:text-[#E5501A] transition-colors cursor-pointer"
+            className="text-xs font-semibold text-[#1E2229]/80 hover:text-[#FF5A36] transition-colors cursor-pointer"
           >
             List Your Space
           </button>
           <button
             type="button"
             onClick={() => scrollToSection('how-it-works')}
-            className="text-xs font-semibold text-[#1A1A2E]/80 hover:text-[#E5501A] transition-colors cursor-pointer"
+            className="text-xs font-semibold text-[#1E2229]/80 hover:text-[#FF5A36] transition-colors cursor-pointer"
           >
             How It Works
           </button>
           <Link
             to="/safety"
-            className="text-xs font-semibold text-[#1A1A2E]/80 hover:text-[#E5501A] transition-colors"
+            className="text-xs font-semibold text-[#1E2229]/80 hover:text-[#FF5A36] transition-colors"
           >
             Safety
           </Link>
           <button
             type="button"
             onClick={() => scrollToSection('community')}
-            className="text-xs font-semibold text-[#1A1A2E]/80 hover:text-[#E5501A] transition-colors cursor-pointer"
+            className="text-xs font-semibold text-[#1E2229]/80 hover:text-[#FF5A36] transition-colors cursor-pointer"
           >
             Community
           </button>
@@ -174,7 +174,7 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
             <button
               type="button"
               onClick={() => setLangDropdownOpen(!langDropdownOpen)}
-              className="flex items-center gap-1.5 text-xs font-medium text-[#1A1A2E] bg-white border border-gray-200/80 px-3.5 py-1.5 rounded-full hover:border-gray-300 hover:bg-gray-50/50 shadow-xs transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 text-xs font-medium text-[#1E2229] bg-white border border-gray-200/80 px-3.5 py-1.5 rounded-full hover:border-gray-300 hover:bg-gray-50/50 shadow-xs transition-colors cursor-pointer"
             >
               <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z" />
@@ -194,7 +194,7 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
                     setLangDropdownOpen(false);
                     navigate('/explore');
                   }}
-                  className="w-full text-left px-3.5 py-1.5 text-gray-700 hover:text-[#E5501A] hover:bg-orange-50/40 transition-colors font-medium border-b border-gray-100"
+                  className="w-full text-left px-3.5 py-1.5 text-gray-700 hover:text-[#FF5A36] hover:bg-orange-50/40 transition-colors font-medium border-b border-gray-100"
                 >
                   All India (All Cities)
                 </button>
@@ -208,7 +208,7 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
                       setLangDropdownOpen(false);
                       navigate(`/explore?city=${encodeURIComponent(city)}`);
                     }}
-                    className="w-full text-left px-3.5 py-1.5 text-gray-700 hover:text-[#E5501A] hover:bg-orange-50/40 transition-colors font-medium"
+                    className="w-full text-left px-3.5 py-1.5 text-gray-700 hover:text-[#FF5A36] hover:bg-orange-50/40 transition-colors font-medium"
                   >
                     {city}
                   </button>
@@ -221,7 +221,7 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
             <div className="flex items-center gap-2">
               <Link
                 to={dashboardPath}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#1A1A2E] text-white text-xs font-semibold hover:bg-black transition-all shadow-xs"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#1E2229] text-white text-xs font-semibold hover:bg-black transition-all shadow-xs"
               >
                 <LayoutDashboard className="w-3.5 h-3.5" />
                 <span>Dashboard</span>
@@ -239,13 +239,13 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
             <>
               <Link
                 to="/login"
-                className="px-2.5 py-1.5 text-xs font-semibold text-[#1A1A2E] hover:text-[#E5501A] transition-colors"
+                className="px-2.5 py-1.5 text-xs font-semibold text-[#1E2229] hover:text-[#FF5A36] transition-colors"
               >
                 Sign In
               </Link>
               <Link
                 to="/login"
-                className="px-5 py-2 rounded-full bg-[#1A1A2E] text-xs font-semibold text-white hover:bg-black transition-all shadow-xs"
+                className="px-5 py-2 rounded-full bg-[#1E2229] text-xs font-semibold text-white hover:bg-black transition-all shadow-xs"
               >
                 Get Started
               </Link>
@@ -260,7 +260,7 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
             <button
               type="button"
               onClick={() => setLangDropdownOpen(!langDropdownOpen)}
-              className="flex items-center gap-1 text-[11px] font-medium text-[#1A1A2E] bg-white border border-gray-200 px-2.5 py-1 rounded-full shadow-xs cursor-pointer max-w-[120px]"
+              className="flex items-center gap-1 text-[11px] font-medium text-[#1E2229] bg-white border border-gray-200 px-2.5 py-1 rounded-full shadow-xs cursor-pointer max-w-[120px]"
             >
               <svg viewBox="0 0 24 24" className="w-3 h-3 text-gray-500 shrink-0" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z" />
@@ -280,7 +280,7 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
                     setLangDropdownOpen(false);
                     navigate('/explore');
                   }}
-                  className="w-full text-left px-3 py-1.5 text-gray-700 hover:text-[#E5501A] hover:bg-orange-50/40 transition-colors font-medium border-b border-gray-100"
+                  className="w-full text-left px-3 py-1.5 text-gray-700 hover:text-[#FF5A36] hover:bg-orange-50/40 transition-colors font-medium border-b border-gray-100"
                 >
                   All India
                 </button>
@@ -294,7 +294,7 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
                       setLangDropdownOpen(false);
                       navigate(`/explore?city=${encodeURIComponent(city)}`);
                     }}
-                    className="w-full text-left px-3 py-1.5 text-gray-700 hover:text-[#E5501A] hover:bg-orange-50/40 transition-colors font-medium"
+                    className="w-full text-left px-3 py-1.5 text-gray-700 hover:text-[#FF5A36] hover:bg-orange-50/40 transition-colors font-medium"
                   >
                     {city}
                   </button>
@@ -306,13 +306,13 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-1.5 rounded-xl text-[#1A1A2E] hover:bg-black/5 transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl text-[#1E2229] hover:bg-black/5 transition-colors cursor-pointer"
             aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? (
-              <X className="w-5 h-5 text-[#1A1A2E]" />
+              <X className="w-5 h-5 text-[#1E2229]" />
             ) : (
-              <Menu className="w-5 h-5 text-[#1A1A2E]" />
+              <Menu className="w-5 h-5 text-[#1E2229]" />
             )}
           </button>
         </div>
@@ -322,13 +322,13 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-xl text-[#1A1A2E] hover:bg-black/5 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-[#1E2229] hover:bg-black/5 transition-colors cursor-pointer"
             aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? (
-              <X className="w-6 h-6 text-[#1A1A2E]" />
+              <X className="w-6 h-6 text-[#1E2229]" />
             ) : (
-              <Menu className="w-6 h-6 text-[#1A1A2E]" />
+              <Menu className="w-6 h-6 text-[#1E2229]" />
             )}
           </button>
         </div>
@@ -336,7 +336,7 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
 
       {/* Immersive Full-Height Mobile Navigation Drawer — Zero Gap, Premium UI/UX */}
       <div
-        className={`fixed inset-x-0 bottom-0 top-14 sm:top-16 bg-[#FBF9F6] z-40 lg:hidden flex flex-col justify-between transition-all duration-300 ease-out overflow-y-auto overscroll-contain ${
+        className={`fixed inset-x-0 bottom-0 top-14 sm:top-16 bg-[#FBFBFC] z-40 lg:hidden flex flex-col justify-between transition-all duration-300 ease-out overflow-y-auto overscroll-contain ${
           mobileMenuOpen
             ? 'opacity-100 pointer-events-auto translate-y-0 visible'
             : 'opacity-0 pointer-events-none -translate-y-2 invisible'
@@ -346,10 +346,10 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
         <div className="px-4 py-3 space-y-3">
           {/* Active City Indicator / Switcher */}
           <div className="flex items-center justify-between px-3.5 py-2.5 bg-white rounded-2xl border border-gray-200/80 shadow-2xs">
-            <div className="flex items-center gap-2 text-xs font-semibold text-[#1A1A2E]">
-              <MapPin className="w-4 h-4 text-[#E5501A]" />
+            <div className="flex items-center gap-2 text-xs font-semibold text-[#1E2229]">
+              <MapPin className="w-4 h-4 text-[#FF5A36]" />
               <span>Location:</span>
-              <span className="text-[#E5501A] font-bold">
+              <span className="text-[#FF5A36] font-bold">
                 {selectedLang !== 'EN' ? selectedLang : (useStore.getState().filters.city || profile?.city || 'All India')}
               </span>
             </div>
@@ -359,7 +359,7 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
                 setMobileMenuOpen(false);
                 navigate('/explore');
               }}
-              className="text-[11px] font-bold text-[#E5501A] hover:underline cursor-pointer"
+              className="text-[11px] font-bold text-[#FF5A36] hover:underline cursor-pointer"
             >
               Change
             </button>
@@ -370,14 +370,14 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
             <Link
               to="/explore?tab=rooms"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-between px-3 py-2.5 rounded-2xl hover:bg-orange-50/70 active:bg-orange-50 text-[#1A1A2E] hover:text-[#E5501A] transition-all group cursor-pointer"
+              className="flex items-center justify-between px-3 py-2.5 rounded-2xl hover:bg-orange-50/70 active:bg-orange-50 text-[#1E2229] hover:text-[#FF5A36] transition-all group cursor-pointer"
             >
               <div className="flex items-center gap-3">
-                <div className="w-8.5 h-8.5 rounded-xl bg-orange-50 text-[#E5501A] flex items-center justify-center shrink-0 border border-orange-100/60 group-hover:scale-105 transition-transform">
+                <div className="w-8.5 h-8.5 rounded-xl bg-orange-50 text-[#FF5A36] flex items-center justify-center shrink-0 border border-orange-100/60 group-hover:scale-105 transition-transform">
                   <Building2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-sm font-bold block text-[#1A1A2E] group-hover:text-[#E5501A] transition-colors leading-tight">
+                  <span className="text-sm font-bold block text-[#1E2229] group-hover:text-[#FF5A36] transition-colors leading-tight">
                     Find a Room
                   </span>
                   <span className="text-[10px] text-stone-500 block">
@@ -385,20 +385,20 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
                   </span>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-[#E5501A] group-hover:translate-x-0.5 transition-all" />
+              <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-[#FF5A36] group-hover:translate-x-0.5 transition-all" />
             </Link>
 
             <Link
               to="/explore?tab=roommates"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-between px-3 py-2.5 rounded-2xl hover:bg-orange-50/70 active:bg-orange-50 text-[#1A1A2E] hover:text-[#E5501A] transition-all group cursor-pointer"
+              className="flex items-center justify-between px-3 py-2.5 rounded-2xl hover:bg-orange-50/70 active:bg-orange-50 text-[#1E2229] hover:text-[#FF5A36] transition-all group cursor-pointer"
             >
               <div className="flex items-center gap-3">
                 <div className="w-8.5 h-8.5 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0 border border-sky-100/60 group-hover:scale-105 transition-transform">
                   <Users className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-sm font-bold block text-[#1A1A2E] group-hover:text-[#E5501A] transition-colors leading-tight">
+                  <span className="text-sm font-bold block text-[#1E2229] group-hover:text-[#FF5A36] transition-colors leading-tight">
                     Find Roommates
                   </span>
                   <span className="text-[10px] text-stone-500 block">
@@ -406,7 +406,7 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
                   </span>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-[#E5501A] group-hover:translate-x-0.5 transition-all" />
+              <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-[#FF5A36] group-hover:translate-x-0.5 transition-all" />
             </Link>
 
             <button
@@ -415,14 +415,14 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
                 setMobileMenuOpen(false);
                 onListSpace();
               }}
-              className="w-full flex items-center justify-between px-3 py-2.5 rounded-2xl hover:bg-orange-50/70 active:bg-orange-50 text-[#1A1A2E] hover:text-[#E5501A] transition-all group cursor-pointer text-left"
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-2xl hover:bg-orange-50/70 active:bg-orange-50 text-[#1E2229] hover:text-[#FF5A36] transition-all group cursor-pointer text-left"
             >
               <div className="flex items-center gap-3">
                 <div className="w-8.5 h-8.5 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100/60 group-hover:scale-105 transition-transform">
                   <PlusCircle className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-sm font-bold block text-[#1A1A2E] group-hover:text-[#E5501A] transition-colors leading-tight">
+                  <span className="text-sm font-bold block text-[#1E2229] group-hover:text-[#FF5A36] transition-colors leading-tight">
                     List Your Space
                   </span>
                   <span className="text-[10px] text-stone-500 block">
@@ -430,20 +430,20 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
                   </span>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-[#E5501A] group-hover:translate-x-0.5 transition-all" />
+              <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-[#FF5A36] group-hover:translate-x-0.5 transition-all" />
             </button>
 
             <button
               type="button"
               onClick={() => scrollToSection('how-it-works')}
-              className="w-full flex items-center justify-between px-3 py-2.5 rounded-2xl hover:bg-orange-50/70 active:bg-orange-50 text-[#1A1A2E] hover:text-[#E5501A] transition-all group cursor-pointer text-left"
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-2xl hover:bg-orange-50/70 active:bg-orange-50 text-[#1E2229] hover:text-[#FF5A36] transition-all group cursor-pointer text-left"
             >
               <div className="flex items-center gap-3">
                 <div className="w-8.5 h-8.5 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100/60 group-hover:scale-105 transition-transform">
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-sm font-bold block text-[#1A1A2E] group-hover:text-[#E5501A] transition-colors leading-tight">
+                  <span className="text-sm font-bold block text-[#1E2229] group-hover:text-[#FF5A36] transition-colors leading-tight">
                     How It Works
                   </span>
                   <span className="text-[10px] text-stone-500 block">
@@ -451,20 +451,20 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
                   </span>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-[#E5501A] group-hover:translate-x-0.5 transition-all" />
+              <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-[#FF5A36] group-hover:translate-x-0.5 transition-all" />
             </button>
 
             <Link
               to="/safety"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-between px-3 py-2.5 rounded-2xl hover:bg-orange-50/70 active:bg-orange-50 text-[#1A1A2E] hover:text-[#E5501A] transition-all group cursor-pointer"
+              className="flex items-center justify-between px-3 py-2.5 rounded-2xl hover:bg-orange-50/70 active:bg-orange-50 text-[#1E2229] hover:text-[#FF5A36] transition-all group cursor-pointer"
             >
               <div className="flex items-center gap-3">
                 <div className="w-8.5 h-8.5 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100/60 group-hover:scale-105 transition-transform">
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-sm font-bold block text-[#1A1A2E] group-hover:text-[#E5501A] transition-colors leading-tight">
+                  <span className="text-sm font-bold block text-[#1E2229] group-hover:text-[#FF5A36] transition-colors leading-tight">
                     Safety & Trust
                   </span>
                   <span className="text-[10px] text-stone-500 block">
@@ -472,20 +472,20 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
                   </span>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-[#E5501A] group-hover:translate-x-0.5 transition-all" />
+              <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-[#FF5A36] group-hover:translate-x-0.5 transition-all" />
             </Link>
 
             <button
               type="button"
               onClick={() => scrollToSection('community')}
-              className="w-full flex items-center justify-between px-3 py-2.5 rounded-2xl hover:bg-orange-50/70 active:bg-orange-50 text-[#1A1A2E] hover:text-[#E5501A] transition-all group cursor-pointer text-left"
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-2xl hover:bg-orange-50/70 active:bg-orange-50 text-[#1E2229] hover:text-[#FF5A36] transition-all group cursor-pointer text-left"
             >
               <div className="flex items-center gap-3">
                 <div className="w-8.5 h-8.5 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-100/60 group-hover:scale-105 transition-transform">
                   <Heart className="w-4.5 h-4.5" />
                 </div>
                 <div>
-                  <span className="text-sm font-bold block text-[#1A1A2E] group-hover:text-[#E5501A] transition-colors leading-tight">
+                  <span className="text-sm font-bold block text-[#1E2229] group-hover:text-[#FF5A36] transition-colors leading-tight">
                     Community
                   </span>
                   <span className="text-[10px] text-stone-500 block">
@@ -493,7 +493,7 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
                   </span>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-[#E5501A] group-hover:translate-x-0.5 transition-all" />
+              <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-[#FF5A36] group-hover:translate-x-0.5 transition-all" />
             </button>
           </nav>
         </div>
@@ -503,7 +503,7 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
           {isAuthenticated ? (
             <>
               <div className="flex items-center gap-3 p-3 bg-[#FAF8F5] rounded-2xl border border-gray-200/80 shadow-2xs">
-                <div className="w-10 h-10 rounded-full bg-orange-100 text-[#E5501A] font-bold flex items-center justify-center text-sm shrink-0 overflow-hidden">
+                <div className="w-10 h-10 rounded-full bg-orange-100 text-[#FF5A36] font-bold flex items-center justify-center text-sm shrink-0 overflow-hidden">
                   {profile?.avatar ? (
                     <img src={profile.avatar} alt="User" className="w-full h-full object-cover" />
                   ) : (
@@ -511,14 +511,14 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-[#1A1A2E] truncate">{profile?.name || user?.email?.split('@')[0]}</p>
+                  <p className="text-xs font-bold text-[#1E2229] truncate">{profile?.name || user?.email?.split('@')[0]}</p>
                   <p className="text-[10px] text-stone-500 capitalize">{profile?.role || 'Member'}</p>
                 </div>
               </div>
               <Link
                 to={dashboardPath}
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full py-3.5 rounded-full bg-[#1A1A2E] text-white font-bold text-sm text-center shadow-sm hover:bg-black active:scale-[0.99] transition-all"
+                className="w-full py-3.5 rounded-full bg-[#1E2229] text-white font-bold text-sm text-center shadow-sm hover:bg-black active:scale-[0.99] transition-all"
               >
                 Go to Dashboard
               </Link>
@@ -536,14 +536,14 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="py-3 rounded-full border border-gray-300 text-center text-sm font-bold text-[#1A1A2E] bg-white hover:bg-gray-50 active:scale-[0.99] transition-all shadow-xs"
+                  className="py-3 rounded-full border border-gray-300 text-center text-sm font-bold text-[#1E2229] bg-white hover:bg-gray-50 active:scale-[0.99] transition-all shadow-xs"
                 >
                   Sign In
                 </Link>
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="py-3 rounded-full bg-[#1A1A2E] text-white text-center text-sm font-bold shadow-md hover:bg-black active:scale-[0.99] transition-all flex items-center justify-center gap-1.5"
+                  className="py-3 rounded-full bg-[#1E2229] text-white text-center text-sm font-bold shadow-md hover:bg-black active:scale-[0.99] transition-all flex items-center justify-center gap-1.5"
                 >
                   <span>Get Started</span>
                   <ArrowRight className="w-4 h-4" />

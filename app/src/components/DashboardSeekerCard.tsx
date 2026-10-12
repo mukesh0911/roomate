@@ -20,7 +20,6 @@ export interface DashboardSeekerCardProps {
   isSaved?: boolean;
   onToggleSave?: (uid: string) => void;
   saving?: boolean;
-  onCall?: (profile: UserProfile) => void;
   onChat?: (uid: string, name: string) => void;
   cState?: 'connect' | 'pending_sent' | 'pending_received' | 'chat' | 'connected' | 'none';
   connecting?: boolean;
@@ -41,7 +40,6 @@ export default function DashboardSeekerCard({
   isSaved,
   onToggleSave,
   saving,
-  onCall,
   onChat,
   cState = 'connect',
   connecting,
@@ -136,7 +134,7 @@ export default function DashboardSeekerCard({
                 className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide ${
                   intent.badgeVariant === 'room_available'
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
-                    : 'bg-orange-50 text-[#E5501A] border border-orange-200/80'
+                    : 'bg-orange-50 text-[#FF5A36] border border-orange-200/80'
                 }`}
               >
                 {intent.badgeText}
@@ -146,7 +144,7 @@ export default function DashboardSeekerCard({
             <div className="flex items-start justify-between gap-1">
               {/* Name */}
               <div className="flex items-center gap-1.5 min-w-0">
-                <h3 className="font-bold text-xl sm:text-2xl text-[#1A1A2E] group-hover:text-[#E5501A] transition-colors truncate">
+                <h3 className="font-semibold text-base sm:text-lg text-[#1E2229] group-hover:text-[#FF5A36] transition-colors line-clamp-1">
                   {p.name || 'Roommate'}
                 </h3>
                 {p.workEmailVerified && (
@@ -161,11 +159,11 @@ export default function DashboardSeekerCard({
                 <div onClick={e => e.stopPropagation()} className="shrink-0 -mr-1">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer" aria-label="More options">
+                      <button className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors cursor-pointer" aria-label="More options">
                         <MoreVertical className="w-4 h-4" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-40 rounded-2xl shadow-lg border border-gray-100">
+                    <DropdownMenuContent align="end" className="w-40 rounded-2xl shadow-lg border border-slate-100">
                       {onReport && (
                         <DropdownMenuItem onClick={() => onReport(match)} className="text-amber-600 focus:text-amber-600 cursor-pointer">
                           <Flag className="w-4 h-4 mr-2" /> Report User
@@ -183,40 +181,40 @@ export default function DashboardSeekerCard({
             </div>
 
             {/* Location with Pin */}
-            <div className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-500 font-medium mt-1 truncate">
-              <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 font-normal mt-1 truncate">
+              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <span className="truncate">{localityText}</span>
             </div>
 
             {/* Financial: Truthful Budget vs Rent */}
-            <div className="mt-2.5 flex items-baseline gap-1.5">
-              <span className="text-xl sm:text-2xl font-black text-[#1A1A2E] tracking-tight">
+            <div className="mt-2 flex items-baseline gap-1.5">
+              <span className="text-base sm:text-lg font-bold text-[#1E2229]">
                 {budgetText}
               </span>
-              <span className="text-xs sm:text-sm font-semibold text-gray-500">
+              <span className="text-xs text-slate-500 font-normal">
                 {intent.priceLabel}
               </span>
-              <span className="text-[10px] font-normal text-gray-400">
+              <span className="text-[10px] text-slate-400 font-normal">
                 /{intent.priceSubtext}
               </span>
             </div>
           </div>
 
           {/* 2-Column Info Grid: Requirement | Preferred Roommate Gender */}
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-3 pt-0.5 border-t border-gray-100">
+          <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-gray-100/90 text-left">
             <div className="min-w-0">
-              <span className="text-xs text-gray-400 font-normal block mb-0.5 truncate whitespace-nowrap">
+              <span className="text-[11px] text-slate-400 font-medium block">
                 {intent.requirementLabel}
               </span>
-              <span className="text-sm sm:text-base font-bold text-[#1A1A2E] truncate block">
+              <span className="text-xs sm:text-sm font-semibold text-[#1E2229] block mt-0.5">
                 {intent.requirementValue}
               </span>
             </div>
             <div className="min-w-0">
-              <span className="text-xs text-gray-400 font-normal block mb-0.5 truncate whitespace-nowrap" title="Roommate Preference">
+              <span className="text-[11px] text-slate-400 font-medium block" title="Roommate Preference">
                 {intent.preferenceLabel}
               </span>
-              <span className="text-sm sm:text-base font-bold text-[#1A1A2E] truncate block">
+              <span className="text-xs sm:text-sm font-semibold text-[#1E2229] block mt-0.5">
                 {preferredGender.label}
               </span>
             </div>
@@ -267,8 +265,8 @@ export default function DashboardSeekerCard({
         /* Standard Bottom Row: Distance + Match + Action Buttons */
         <div className="flex items-center justify-between gap-2" onClick={e => e.stopPropagation()}>
           {/* Distance / Locality from search */}
-          <div className="text-xs sm:text-sm text-gray-400 font-medium truncate">
-            <span>0 km from your search</span>
+          <div className="text-xs text-slate-500 font-normal whitespace-nowrap shrink-0">
+            <span>0 km from search</span>
           </div>
 
           {/* Match Score & Action Buttons */}
@@ -278,24 +276,24 @@ export default function DashboardSeekerCard({
               <button
                 type="button"
                 onClick={e => { e.stopPropagation(); onOpenCompatModal?.(match); }}
-                className="flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-700 hover:text-[#E5501A] transition-colors cursor-pointer"
+                className="flex items-center gap-1 text-xs font-semibold text-slate-700 hover:text-[#FF5A36] transition-colors cursor-pointer"
                 title="View Compatibility Breakdown"
               >
-                <Star className="w-4 h-4 text-gray-400 stroke-[1.8]" />
+                <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400 stroke-[1.8]" />
                 <span>{match.compatibilityScore}% Match</span>
               </button>
             )}
 
             {/* Action Buttons Group */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {/* Optional Save Heart Button */}
               {onToggleSave && (
                 <button
                   type="button"
                   onClick={() => onToggleSave(p.uid || '')}
                   disabled={saving}
-                  className={`w-9 h-9 rounded-full border border-gray-200/90 flex items-center justify-center transition-colors cursor-pointer shadow-2xs active:scale-95 ${
-                    isSaved ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-slate-200/90 flex items-center justify-center transition-all cursor-pointer shadow-2xs active:scale-95 ${
+                    isSaved ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-white hover:bg-slate-50 text-slate-500 hover:text-[#1E2229] hover:border-slate-300'
                   }`}
                   title={isSaved ? "Remove from saved" : "Save profile"}
                   aria-label={isSaved ? "Remove from saved" : "Save profile"}
@@ -303,21 +301,8 @@ export default function DashboardSeekerCard({
                   {saving ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
-                    <Heart className={`w-4 h-4 ${isSaved ? 'fill-current text-rose-600' : 'text-gray-500'}`} />
+                    <Heart className={`w-3.5 h-3.5 ${isSaved ? 'fill-current text-rose-600' : 'text-slate-500'}`} />
                   )}
-                </button>
-              )}
-
-              {/* Circular Call Button */}
-              {onCall && (
-                <button
-                  type="button"
-                  onClick={() => onCall(p)}
-                  className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs"
-                  title="Call"
-                  aria-label={`Call ${p.name}`}
-                >
-                  <Phone className="w-4 h-4 text-gray-600 stroke-[1.8]" />
                 </button>
               )}
 
@@ -327,14 +312,14 @@ export default function DashboardSeekerCard({
                   type="button"
                   disabled={activeCState === 'pending_sent' || connecting}
                   onClick={() => onChat(p.uid || '', p.name || '')}
-                  className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-500 hover:text-[#1E2229] hover:border-slate-300 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs"
                   title={activeCState === 'chat' ? 'Chat' : activeCState === 'pending_sent' ? 'Request Sent' : activeCState === 'pending_received' ? 'Accept Request' : 'Connect'}
                   aria-label={activeCState === 'chat' ? 'Chat' : activeCState === 'pending_sent' ? 'Request Sent' : activeCState === 'pending_received' ? 'Accept Request' : 'Connect'}
                 >
                   {connecting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
-                    <MessageSquare className="w-4 h-4 text-gray-600 stroke-[1.8]" />
+                    <MessageSquare className="w-3.5 h-3.5 text-slate-500 stroke-[1.8]" />
                   )}
                 </button>
               )}

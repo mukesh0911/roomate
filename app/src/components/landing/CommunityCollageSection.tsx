@@ -13,11 +13,11 @@ export default function CommunityCollageSection() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
         {/* Left Column: Story Content & Community Proof */}
         <div className="lg:col-span-5 text-left">
-          <span className="text-[11px] font-bold tracking-[0.2em] text-[#E5501A] uppercase mb-3 block">
+          <span className="text-[11px] font-bold tracking-[0.2em] text-[#FF5A36] uppercase mb-3 block">
             REAL PEOPLE. REAL STORIES.
           </span>
 
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-medium text-[#1A1A2E] leading-tight mb-5 tracking-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-medium text-[#1E2229] leading-tight mb-5 tracking-tight">
             More than a platform,<br />
             a community
           </h2>
@@ -42,7 +42,7 @@ export default function CommunityCollageSection() {
             </div>
 
             <div className="text-left">
-              <div className="text-sm font-extrabold text-[#1A1A2E] leading-tight">
+              <div className="text-sm font-extrabold text-[#1E2229] leading-tight">
                 10,000+
               </div>
               <div className="text-xs text-slate-500 font-medium leading-tight">
@@ -86,7 +86,7 @@ export default function CommunityCollageSection() {
                 <br />
                 Same Feeling
                 <br />
-                Home <span className="text-[#E5501A]">♡</span>
+                Home <span className="text-[#FF5A36]">♡</span>
               </div>
             </div>
 

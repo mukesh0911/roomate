@@ -57,6 +57,16 @@ service cloud.firestore {
         && (!('connectsUsed' in request.resource.data) || request.resource.data.connectsUsed == 0);
     }
 
+    // Public user documents are readable without authentication. Contact PII
+    // must therefore be absent or explicitly blank; real values belong only in
+    // privateUserData/userContacts, whose reads are relationship-gated.
+    function publicPiiSafe() {
+      return (!('phone' in request.resource.data) || request.resource.data.phone == '')
+        && (!('email' in request.resource.data) || request.resource.data.email == '')
+        && (!('workEmail' in request.resource.data) || request.resource.data.workEmail == '')
+        && (!('whatsappNumber' in request.resource.data) || request.resource.data.whatsappNumber == '');
+    }
+
     function isPremiumUser() {
       return isAuthenticated()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
@@ -137,13 +147,15 @@ service cloud.firestore {
     // Users: public browse profile — contact PII lives in privateUserData
     match /users/{userId} {
       allow read: if true;
-      allow create: if (isOwner(userId) && trustFieldsSafeOnCreate()) || isAdmin();
-      allow update: if isAdmin() || (
-        isOwner(userId)
-        && trustFieldsUnchanged()
-        && statusUnchanged()
-        && onboardingFlipValid()
-        && connectsUsedUpdateSafe()
+      allow create: if publicPiiSafe() && ((isOwner(userId) && trustFieldsSafeOnCreate()) || isAdmin());
+      allow update: if publicPiiSafe() && (
+        isAdmin() || (
+          isOwner(userId)
+          && trustFieldsUnchanged()
+          && statusUnchanged()
+          && onboardingFlipValid()
+          && connectsUsedUpdateSafe()
+        )
       );
       allow delete: if isOwner(userId) || isAdmin();
     }

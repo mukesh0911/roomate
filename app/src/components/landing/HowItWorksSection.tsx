@@ -31,11 +31,11 @@ export default function HowItWorksSection() {
   return (
     <section id="how-it-works" className="py-10 sm:py-20 px-4 sm:px-6 lg:px-8 max-w-[1280px] mx-auto text-center">
       {/* Eyebrow & Title */}
-      <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-[#E5501A] uppercase mb-1.5 sm:mb-3 block">
+      <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-[#FF5A36] uppercase mb-1.5 sm:mb-3 block">
         GET STARTED IN MINUTES
       </span>
 
-      <h2 className="text-[28px] sm:text-4xl md:text-5xl font-serif font-medium text-[#1A1A2E] leading-tight mb-2 sm:mb-3 tracking-tight">
+      <h2 className="text-[28px] sm:text-4xl md:text-5xl font-serif font-medium text-[#1E2229] leading-tight mb-2 sm:mb-3 tracking-tight">
         How it works
       </h2>
 
@@ -63,10 +63,10 @@ export default function HowItWorksSection() {
             {/* Step info */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-0.5">
-                <span className="w-4 h-4 rounded-full bg-[#E5501A] text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                <span className="w-4 h-4 rounded-full bg-[#FF5A36] text-white text-[10px] font-bold flex items-center justify-center shrink-0">
                   {step.num}
                 </span>
-                <h3 className="text-xs sm:text-sm font-bold text-[#1A1A2E] leading-tight">
+                <h3 className="text-xs sm:text-sm font-bold text-[#1E2229] leading-tight">
                   {step.title}
                 </h3>
               </div>
@@ -97,7 +97,7 @@ export default function HowItWorksSection() {
               </div>
 
               {/* Step Title & Number */}
-              <h3 className="text-sm sm:text-base font-bold text-[#1A1A2E] mb-1.5">
+              <h3 className="text-sm sm:text-base font-bold text-[#1E2229] mb-1.5">
                 {step.num}. {step.title}
               </h3>
 

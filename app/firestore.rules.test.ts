@@ -324,6 +324,28 @@ d('Firestore security rules (emulator)', () => {
         await assertFails(getDoc(doc(unregistered, 'reports', 'some-report')));
     });
 
+    it('user CANNOT write contact PII into their public profile', async () => {
+        await assertFails(
+            setDoc(doc(seekerDb(), 'users', SEEKER), {
+                phone: '+919876543210',
+                email: 'private@example.test',
+            }, { merge: true })
+        );
+    });
+
+    it('user CAN clear legacy public PII while updating their profile', async () => {
+        await seedDisabled(async (db) => {
+            await setDoc(doc(db, 'users', SEEKER), {
+                phone: '+919876543210', email: 'legacy@example.test',
+            }, { merge: true });
+        });
+        await assertSucceeds(
+            setDoc(doc(seekerDb(), 'users', SEEKER), {
+                phone: '', email: '', workEmail: '', whatsappNumber: '', bio: 'Updated safely',
+            }, { merge: true })
+        );
+    });
+
     // Accepted-pair integrity
     it('participant CANNOT fabricate an acceptedPairs record for a pending connection', async () => {
         await seedDisabled(async (db) => {

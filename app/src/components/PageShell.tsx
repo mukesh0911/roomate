@@ -26,7 +26,7 @@ export default function PageShell({
   return (
     <div
       className={cn(
-        'min-h-[calc(100vh-60px)] bg-[#FBF9F6] page-transition',
+        'min-h-[calc(100vh-60px)] bg-[#FBFBFC] page-transition',
         withBottomNavPad && 'pb-6',
         className
       )}
@@ -36,7 +36,7 @@ export default function PageShell({
           <div className="flex items-start justify-between gap-4 mb-6 sm:mb-8">
             <div className="min-w-0">
               {title && (
-                <h1 className="font-serif font-medium text-3xl sm:text-4xl text-[#1A1A2E] tracking-tight">
+                <h1 className="font-serif font-medium text-3xl sm:text-4xl text-[#1E2229] tracking-tight">
                   {title}
                 </h1>
               )}

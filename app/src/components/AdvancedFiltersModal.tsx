@@ -123,11 +123,11 @@ export default function AdvancedFiltersModal({
         {/* Top Bar */}
         <div className="flex items-center justify-between px-6 py-3.5 border-b border-slate-100 bg-white sticky top-0 z-10 shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#E5501A] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#FF5A36] flex items-center justify-center">
               <Filter className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900">Filters</h2>
+              <h2 className="text-base font-bold text-[#1E2229]">Filters</h2>
               <span className="text-[10px] text-slate-400">Refine Your Property Discovery</span>
             </div>
           </div>
@@ -136,7 +136,7 @@ export default function AdvancedFiltersModal({
             <button
               type="button"
               onClick={handleReset}
-              className="text-xs font-semibold text-slate-400 hover:text-[#E5501A] flex items-center gap-1 transition-colors cursor-pointer"
+              className="text-xs font-semibold text-slate-400 hover:text-[#FF5A36] flex items-center gap-1 transition-colors cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset</span>
@@ -156,16 +156,16 @@ export default function AdvancedFiltersModal({
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
           {/* 1. LOCATION (Integrated inside Filters sheet) */}
           <div>
-            <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+            <label className="text-xs font-bold text-[#1E2229] uppercase tracking-wider block mb-2">
               Location
             </label>
             <div className="relative">
-              <MapPin className="w-4 h-4 text-[#E5501A] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <MapPin className="w-4 h-4 text-[#FF5A36] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <select
                 value={draft.city}
                 onChange={(e) => setDraft(d => ({ ...d, city: e.target.value }))}
                 aria-label="Select location"
-                className="w-full pl-10 pr-8 py-2.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/90 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 outline-none focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 transition-all appearance-none cursor-pointer"
+                className="w-full pl-10 pr-8 py-2.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/90 rounded-2xl text-xs sm:text-sm font-semibold text-[#1E2229] outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 transition-all appearance-none cursor-pointer"
               >
                 {cities.map(c => (
                   <option key={c} value={c}>{c}</option>
@@ -178,10 +178,10 @@ export default function AdvancedFiltersModal({
           {/* 2. MONTHLY BUDGET */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+              <label className="text-xs font-bold text-[#1E2229] uppercase tracking-wider">
                 Monthly Budget
               </label>
-              <span className="text-xs font-bold text-[#E5501A]">
+              <span className="text-xs font-bold text-[#FF5A36]">
                 {draft.budgetMax >= 100000 ? 'Up to ₹1,00,000+' : `Up to ₹${draft.budgetMax.toLocaleString('en-IN')}`}
               </span>
             </div>
@@ -194,7 +194,7 @@ export default function AdvancedFiltersModal({
                 value={draft.budgetMax}
                 onChange={(e) => setDraft(d => ({ ...d, budgetMax: Number(e.target.value) }))}
                 aria-label="Monthly budget range"
-                className="w-full accent-[#E5501A] cursor-pointer"
+                className="w-full accent-[#FF5A36] cursor-pointer"
               />
               <div className="flex justify-between text-[10px] text-slate-400 font-medium px-0.5">
                 <span>₹5,000</span>
@@ -207,7 +207,7 @@ export default function AdvancedFiltersModal({
 
           {/* 3. MOVE-IN DATE */}
           <div>
-            <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+            <label className="text-xs font-bold text-[#1E2229] uppercase tracking-wider block mb-2">
               Move-in Date
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -223,7 +223,7 @@ export default function AdvancedFiltersModal({
                   onClick={() => setDraft(d => ({ ...d, moveInDate: opt.id }))}
                   className={`py-2 px-2 rounded-xl border text-xs font-semibold transition-all text-center cursor-pointer ${
                     draft.moveInDate === opt.id
-                      ? 'border-[#E5501A] bg-[#FFF2EB] text-[#E5501A]'
+                      ? 'border-[#FF5A36] bg-[#FFF2EB] text-[#FF5A36]'
                       : 'border-slate-200 text-slate-600 hover:border-slate-300'
                   }`}
                 >
@@ -235,7 +235,7 @@ export default function AdvancedFiltersModal({
 
           {/* 4. GENDER PREFERENCE */}
           <div>
-            <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+            <label className="text-xs font-bold text-[#1E2229] uppercase tracking-wider block mb-2">
               Gender
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -250,7 +250,7 @@ export default function AdvancedFiltersModal({
                   onClick={() => setDraft(d => ({ ...d, gender: opt.id }))}
                   className={`py-2 px-2.5 rounded-xl border text-xs font-semibold transition-all text-center cursor-pointer ${
                     draft.gender === opt.id
-                      ? 'border-[#E5501A] bg-[#FFF2EB] text-[#E5501A]'
+                      ? 'border-[#FF5A36] bg-[#FFF2EB] text-[#FF5A36]'
                       : 'border-slate-200 text-slate-600 hover:border-slate-300'
                   }`}
                 >
@@ -262,7 +262,7 @@ export default function AdvancedFiltersModal({
 
           {/* 5. ROOM TYPE */}
           <div>
-            <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+            <label className="text-xs font-bold text-[#1E2229] uppercase tracking-wider block mb-2">
               Room Type
             </label>
             <div className="flex flex-wrap gap-2">
@@ -281,12 +281,12 @@ export default function AdvancedFiltersModal({
                     onClick={() => toggleRoomType(type.id)}
                     className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                       isSelected
-                        ? 'border-[#E5501A] bg-[#FFF2EB] text-[#E5501A]'
+                        ? 'border-[#FF5A36] bg-[#FFF2EB] text-[#FF5A36]'
                         : 'border-slate-200 text-slate-600 hover:border-slate-300'
                     }`}
                   >
                     <span>{type.label}</span>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-[#E5501A]" />}
+                    {isSelected && <Check className="w-3.5 h-3.5 text-[#FF5A36]" />}
                   </button>
                 );
               })}
@@ -295,7 +295,7 @@ export default function AdvancedFiltersModal({
 
           {/* 6. ACCOMMODATION TYPE */}
           <div>
-            <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+            <label className="text-xs font-bold text-[#1E2229] uppercase tracking-wider block mb-2">
               Accommodation Type
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -312,12 +312,12 @@ export default function AdvancedFiltersModal({
                     onClick={() => toggleAccommodationType(type.id)}
                     className={`py-2 px-2.5 rounded-xl border text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                       isSelected
-                        ? 'border-[#E5501A] bg-[#FFF2EB] text-[#E5501A]'
+                        ? 'border-[#FF5A36] bg-[#FFF2EB] text-[#FF5A36]'
                         : 'border-slate-200 text-slate-600 hover:border-slate-300'
                     }`}
                   >
                     <span>{type.label}</span>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-[#E5501A]" />}
+                    {isSelected && <Check className="w-3.5 h-3.5 text-[#FF5A36]" />}
                   </button>
                 );
               })}
@@ -326,7 +326,7 @@ export default function AdvancedFiltersModal({
 
           {/* 7. FURNISHING */}
           <div>
-            <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+            <label className="text-xs font-bold text-[#1E2229] uppercase tracking-wider block mb-2">
               Furnishing
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -342,7 +342,7 @@ export default function AdvancedFiltersModal({
                   onClick={() => setDraft(d => ({ ...d, furnishing: opt.id }))}
                   className={`py-2 px-2 rounded-xl border text-xs font-semibold transition-all text-center cursor-pointer ${
                     draft.furnishing === opt.id
-                      ? 'border-[#E5501A] bg-[#FFF2EB] text-[#E5501A]'
+                      ? 'border-[#FF5A36] bg-[#FFF2EB] text-[#FF5A36]'
                       : 'border-slate-200 text-slate-600 hover:border-slate-300'
                   }`}
                 >
@@ -354,7 +354,7 @@ export default function AdvancedFiltersModal({
 
           {/* 8. AMENITIES */}
           <div>
-            <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
+            <label className="text-xs font-bold text-[#1E2229] uppercase tracking-wider block mb-2">
               Amenities
             </label>
             <div className="flex flex-wrap gap-2">
@@ -384,7 +384,7 @@ export default function AdvancedFiltersModal({
             <div className="flex items-center gap-2.5">
               <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
               <div>
-                <span className="text-xs font-bold text-slate-900 block">Verified Only</span>
+                <span className="text-xs font-bold text-[#1E2229] block">Verified Only</span>
                 <span className="text-[11px] text-slate-600">Only show listings with verified ownership</span>
               </div>
             </div>
@@ -407,9 +407,9 @@ export default function AdvancedFiltersModal({
           {/* 10. HIGH COMPATIBILITY CUT */}
           <div className="p-3.5 rounded-2xl bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200/60 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <Sparkles className="w-5 h-5 text-[#E5501A] shrink-0" />
+              <Sparkles className="w-5 h-5 text-[#FF5A36] shrink-0" />
               <div>
-                <span className="text-xs font-bold text-slate-900 block">High Compatibility Only</span>
+                <span className="text-xs font-bold text-[#1E2229] block">High Compatibility Only</span>
                 <span className="text-[11px] text-slate-600">Only show rooms with 70%+ lifestyle match</span>
               </div>
             </div>
@@ -418,7 +418,7 @@ export default function AdvancedFiltersModal({
               onClick={() => setDraft(d => ({ ...d, highMatchOnly: !d.highMatchOnly }))}
               aria-label="Toggle high match only"
               className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                draft.highMatchOnly ? 'bg-[#E5501A]' : 'bg-slate-300'
+                draft.highMatchOnly ? 'bg-[#FF5A36]' : 'bg-slate-300'
               }`}
             >
               <span
@@ -434,7 +434,7 @@ export default function AdvancedFiltersModal({
         <div className="p-4 border-t border-slate-100 bg-white flex items-center justify-between gap-4 sticky bottom-0 z-10 shrink-0 pb-[max(16px,env(safe-area-inset-bottom,0px))]">
           <div className="text-xs text-slate-500">
             {totalResultsCount > 0 ? (
-              <>Matching listings: <strong className="text-slate-900 text-sm font-bold">{totalResultsCount}</strong></>
+              <>Matching listings: <strong className="text-[#1E2229] text-sm font-bold">{totalResultsCount}</strong></>
             ) : (
               <span>Refine and discover</span>
             )}
@@ -442,7 +442,7 @@ export default function AdvancedFiltersModal({
           <button
             type="button"
             onClick={handleApply}
-            className="bg-[#E5501A] hover:bg-[#D0400B] text-white py-2.5 px-6 rounded-xl font-bold text-sm shadow-md transition-all cursor-pointer active:scale-95"
+            className="bg-[#FF5A36] hover:bg-[#E54E2B] text-white py-2.5 px-6 rounded-xl font-bold text-sm shadow-md transition-all cursor-pointer active:scale-95"
           >
             Apply Filters
           </button>

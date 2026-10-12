@@ -134,10 +134,10 @@ export default function FeaturedListingsSection() {
     <section className="py-10 sm:py-20 px-4 sm:px-6 lg:px-8 max-w-[1280px] mx-auto">
       {/* ─── MOBILE VIEW (< md): Matches Reference Mockup Exactly ─── */}
       <div className="md:hidden text-left mb-6">
-        <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-[#E5501A] uppercase mb-1.5 block">
+        <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-[#FF5A36] uppercase mb-1.5 block">
           FEATURED LISTINGS
         </span>
-        <h2 className="text-[28px] sm:text-3xl lg:text-4xl font-serif font-medium text-[#1A1A2E] tracking-tight mb-1">
+        <h2 className="text-[28px] sm:text-3xl lg:text-4xl font-serif font-medium text-[#1E2229] tracking-tight mb-1">
           Find your next space
         </h2>
         <p className="text-[13px] text-slate-600 mb-5 leading-relaxed">
@@ -202,7 +202,7 @@ export default function FeaturedListingsSection() {
                 <div className="p-3.5 flex flex-col text-left">
                   {/* Title & Arrow button row */}
                   <div className="flex items-center justify-between gap-2 mb-1">
-                    <h3 className="text-sm font-bold text-[#1A1A2E] leading-snug line-clamp-2 min-h-[1.25rem]">
+                    <h3 className="text-sm font-bold text-[#1E2229] leading-snug line-clamp-2 min-h-[1.25rem]">
                       {item.title}
                     </h3>
                     <div className="w-6 h-6 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-600 shrink-0">
@@ -212,7 +212,7 @@ export default function FeaturedListingsSection() {
 
                   {/* Price */}
                   <div className="flex items-baseline gap-1 mb-2">
-                    <span className="text-sm font-extrabold text-[#1A1A2E]">
+                    <span className="text-sm font-extrabold text-[#1E2229]">
                       {item.price}
                     </span>
                     <span className="text-[10px] text-slate-500 font-medium">
@@ -249,7 +249,7 @@ export default function FeaturedListingsSection() {
           <button
             type="button"
             onClick={() => navigate('/explore?tab=rooms')}
-            className="w-full max-w-[280px] py-2.5 px-5 rounded-full border border-gray-200 bg-white text-xs font-semibold text-[#1A1A2E] hover:bg-gray-50 shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+            className="w-full max-w-[280px] py-2.5 px-5 rounded-full border border-gray-200 bg-white text-xs font-semibold text-[#1E2229] hover:bg-gray-50 shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
           >
             <span>View all listings</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -262,10 +262,10 @@ export default function FeaturedListingsSection() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between mb-10 sm:mb-12 gap-4">
           <div className="text-left">
-            <span className="text-[11px] font-bold tracking-[0.2em] text-[#E5501A] uppercase mb-2 block">
+            <span className="text-[11px] font-bold tracking-[0.2em] text-[#FF5A36] uppercase mb-2 block">
               FEATURED LISTINGS
             </span>
-            <h2 className="text-3xl sm:text-4xl font-serif font-medium text-[#1A1A2E] tracking-tight mb-2">
+            <h2 className="text-3xl sm:text-4xl font-serif font-medium text-[#1E2229] tracking-tight mb-2">
               Find your next space
             </h2>
             <p className="text-sm sm:text-base text-slate-600">
@@ -275,7 +275,7 @@ export default function FeaturedListingsSection() {
 
           <Link
             to="/explore?tab=rooms"
-            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#E5501A] hover:text-[#C4410F] transition-colors group"
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#FF5A36] hover:text-[#C4410F] transition-colors group"
           >
             <span>View all listings</span>
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -288,7 +288,7 @@ export default function FeaturedListingsSection() {
           <button
             type="button"
             onClick={() => scroll('left')}
-            className="hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white shadow-lg border border-border/80 items-center justify-center text-slate-700 hover:text-[#E5501A] hover:scale-105 transition-all cursor-pointer"
+            className="hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white shadow-lg border border-border/80 items-center justify-center text-slate-700 hover:text-[#FF5A36] hover:scale-105 transition-all cursor-pointer"
             aria-label="Previous listings"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -297,7 +297,7 @@ export default function FeaturedListingsSection() {
           <button
             type="button"
             onClick={() => scroll('right')}
-            className="hidden md:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white shadow-lg border border-border/80 items-center justify-center text-slate-700 hover:text-[#E5501A] hover:scale-105 transition-all cursor-pointer"
+            className="hidden md:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white shadow-lg border border-border/80 items-center justify-center text-slate-700 hover:text-[#FF5A36] hover:scale-105 transition-all cursor-pointer"
             aria-label="Next listings"
           >
             <ChevronRight className="w-5 h-5" />
@@ -363,12 +363,12 @@ export default function FeaturedListingsSection() {
                   {/* Details Section */}
                   <div className="p-4 sm:p-5 flex flex-col flex-1 text-left justify-between">
                     <div>
-                      <h3 className="text-base font-bold text-[#1A1A2E] mb-1 group-hover/card:text-[#E5501A] transition-colors truncate">
+                      <h3 className="text-base font-bold text-[#1E2229] mb-1 group-hover/card:text-[#FF5A36] transition-colors truncate">
                         {item.title}
                       </h3>
 
                       <div className="flex items-baseline gap-1 mb-3">
-                        <span className="text-base sm:text-lg font-extrabold text-[#1A1A2E]">
+                        <span className="text-base sm:text-lg font-extrabold text-[#1E2229]">
                           {item.price}
                         </span>
                         <span className="text-xs text-slate-500 font-medium">

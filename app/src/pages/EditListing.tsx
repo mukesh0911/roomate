@@ -139,7 +139,7 @@ export default function EditListing() {
       setExistingImages(listing.images || []);
       setLoading(false);
     });
-  }, [id, user?.uid, isNew, location.state]);
+  }, [getListingById, id, user?.uid, isNew, location.state]);
 
   const handleSave = async () => {
     if (!id || !user?.uid) return;
@@ -289,9 +289,9 @@ export default function EditListing() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FBF9F6] flex items-center justify-center">
+      <div className="min-h-screen bg-[#FBFBFC] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-9 h-9 animate-spin text-[#E5501A]" />
+          <Loader2 className="w-9 h-9 animate-spin text-[#FF5A36]" />
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Loading listing details...</p>
         </div>
       </div>
@@ -299,14 +299,14 @@ export default function EditListing() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FBF9F6] pb-28 md:pb-16">
+    <div className="min-h-screen bg-[#FBFBFC] pb-28 md:pb-16">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-6">
 
         {/* Top bar with back and status toggle */}
         <div className="flex items-center justify-between gap-2.5 mb-6 flex-wrap sm:flex-nowrap">
           <button
             onClick={() => navigate('/owner-dashboard')}
-            className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold text-gray-600 hover:text-[#1A1A2E] bg-white px-3.5 sm:px-4 py-2 rounded-full border border-gray-200/80 shadow-2xs hover:shadow-xs transition-all shrink-0 cursor-pointer"
+            className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold text-gray-600 hover:text-[#1E2229] bg-white px-3.5 sm:px-4 py-2 rounded-full border border-gray-200/80 shadow-2xs hover:shadow-xs transition-all shrink-0 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" /> <span>Dashboard<span className="hidden sm:inline"> / Portfolio</span></span>
           </button>
@@ -337,7 +337,7 @@ export default function EditListing() {
 
         {/* Page Title */}
         <div className="mb-6">
-          <h1 className="font-serif font-medium text-3xl sm:text-4xl text-[#1A1A2E]">
+          <h1 className="font-serif font-medium text-3xl sm:text-4xl text-[#1E2229]">
             {isNew ? 'Create New Property' : 'Edit Property Details'}
           </h1>
           <p className="text-sm text-gray-600 mt-1">
@@ -373,8 +373,8 @@ export default function EditListing() {
           <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-4 sm:p-6 md:p-8 space-y-5">
             <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
               <div>
-                <h3 className="font-serif font-medium text-lg sm:text-xl text-[#1A1A2E] flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-full bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center text-sm shrink-0">
+                <h3 className="font-serif font-medium text-lg sm:text-xl text-[#1E2229] flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-full bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center text-sm shrink-0">
                     <ImageIcon className="w-4 h-4" />
                   </span>
                   Room & Property Photos
@@ -386,7 +386,7 @@ export default function EditListing() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="text-xs text-[#E5501A] font-semibold hover:text-[#D0400B] transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FFF2EB] border border-[#E5501A]/20 cursor-pointer shrink-0"
+                  className="text-xs text-[#FF5A36] font-semibold hover:text-[#E54E2B] transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FFF2EB] border border-[#FF5A36]/20 cursor-pointer shrink-0"
                 >
                   <Upload className="w-3.5 h-3.5" /> Add Photos
                 </button>
@@ -405,13 +405,13 @@ export default function EditListing() {
             {totalPhotos === 0 ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full py-12 border-2 border-dashed border-gray-200 rounded-3xl flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-[#E5501A]/60 hover:bg-[#FFF2EB]/20 transition-all group"
+                className="w-full py-12 border-2 border-dashed border-gray-200 rounded-3xl flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-[#FF5A36]/60 hover:bg-[#FFF2EB]/20 transition-all group"
               >
-                <div className="w-12 h-12 rounded-2xl bg-gray-100 group-hover:bg-[#FFF2EB] flex items-center justify-center text-gray-400 group-hover:text-[#E5501A] transition-colors">
+                <div className="w-12 h-12 rounded-2xl bg-gray-100 group-hover:bg-[#FFF2EB] flex items-center justify-center text-gray-400 group-hover:text-[#FF5A36] transition-colors">
                   <Upload className="w-6 h-6" />
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-semibold text-[#1A1A2E]">Upload room and living area photos</p>
+                  <p className="text-sm font-semibold text-[#1E2229]">Upload room and living area photos</p>
                   <p className="text-xs text-gray-400 mt-0.5">JPG or PNG up to 5MB each • Up to 10 photos</p>
                 </div>
               </div>
@@ -422,7 +422,7 @@ export default function EditListing() {
                   <div key={`existing-${i}`} className="relative group aspect-square rounded-2xl overflow-hidden border border-gray-200 shadow-2xs">
                     <img src={url} alt={`Room photo ${i + 1}`} className="w-full h-full object-cover" />
                     {i === 0 && (
-                      <span className="absolute top-2 left-2 px-2.5 py-0.5 bg-[#E5501A] text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-xs">
+                      <span className="absolute top-2 left-2 px-2.5 py-0.5 bg-[#FF5A36] text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-xs">
                         Cover
                       </span>
                     )}
@@ -439,9 +439,9 @@ export default function EditListing() {
 
                 {/* New photo previews */}
                 {newPreviews.map((url, i) => (
-                  <div key={`new-${i}`} className="relative group aspect-square rounded-2xl overflow-hidden border-2 border-[#E5501A]/40 shadow-2xs">
+                  <div key={`new-${i}`} className="relative group aspect-square rounded-2xl overflow-hidden border-2 border-[#FF5A36]/40 shadow-2xs">
                     <img src={url} alt={`New upload ${i + 1}`} className="w-full h-full object-cover" />
-                    <span className="absolute bottom-2 left-2 px-2 py-0.5 bg-[#E5501A] text-white text-[10px] font-bold rounded-full">
+                    <span className="absolute bottom-2 left-2 px-2 py-0.5 bg-[#FF5A36] text-white text-[10px] font-bold rounded-full">
                       New
                     </span>
                     <button
@@ -460,10 +460,10 @@ export default function EditListing() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="aspect-square rounded-2xl border-2 border-dashed border-gray-200 hover:border-[#E5501A]/50 flex flex-col items-center justify-center gap-1.5 transition-all hover:bg-[#FFF2EB]/30 group"
+                    className="aspect-square rounded-2xl border-2 border-dashed border-gray-200 hover:border-[#FF5A36]/50 flex flex-col items-center justify-center gap-1.5 transition-all hover:bg-[#FFF2EB]/30 group"
                   >
-                    <Upload className="w-5 h-5 text-gray-400 group-hover:text-[#E5501A] transition-colors" />
-                    <span className="text-xs font-semibold text-gray-500 group-hover:text-[#E5501A]">Add More</span>
+                    <Upload className="w-5 h-5 text-gray-400 group-hover:text-[#FF5A36] transition-colors" />
+                    <span className="text-xs font-semibold text-gray-500 group-hover:text-[#FF5A36]">Add More</span>
                   </button>
                 )}
               </div>
@@ -473,11 +473,11 @@ export default function EditListing() {
               <div className="space-y-1.5 pt-2">
                 <div className="flex justify-between text-xs text-gray-500 font-medium">
                   <span>Uploading photos...</span>
-                  <span className="text-[#E5501A] font-bold">{uploadProgress}%</span>
+                  <span className="text-[#FF5A36] font-bold">{uploadProgress}%</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-[#E5501A] rounded-full transition-all duration-300"
+                    className="h-full bg-[#FF5A36] rounded-full transition-all duration-300"
                     style={{ width: `${uploadProgress}%` }}
                   />
                 </div>
@@ -487,15 +487,15 @@ export default function EditListing() {
 
           {/* Basic Details */}
           <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-6 md:p-8 space-y-5">
-            <h3 className="font-serif font-medium text-xl text-[#1A1A2E] flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-full bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center text-sm">
+            <h3 className="font-serif font-medium text-xl text-[#1E2229] flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-full bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center text-sm">
                 <Home className="w-4 h-4" />
               </span>
               Basic Details
             </h3>
 
             <div>
-              <label htmlFor="listing-title" className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2">
+              <label htmlFor="listing-title" className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2">
                 Listing Title *
               </label>
               <input
@@ -504,12 +504,12 @@ export default function EditListing() {
                 placeholder="e.g. Sunny Private Room in 2BHK with Balcony"
                 value={form.title}
                 onChange={e => setForm({ ...form, title: e.target.value })}
-                className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] placeholder:text-gray-400 focus:outline-none focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 transition-all font-medium"
+                className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-[#1E2229] placeholder:text-gray-400 focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 transition-all font-medium"
               />
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2">
+              <label className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2">
                 Description & Highlights
               </label>
               <textarea
@@ -517,32 +517,32 @@ export default function EditListing() {
                 onChange={e => setForm({ ...form, description: e.target.value })}
                 placeholder="Describe your flat, vibe, proximity to tech parks or metro stations, and living preferences..."
                 rows={4}
-                className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl p-4 text-sm text-[#1A1A2E] placeholder:text-gray-400 focus:outline-none focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 transition-all font-medium resize-none leading-relaxed"
+                className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl p-4 text-sm text-[#1E2229] placeholder:text-gray-400 focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 transition-all font-medium resize-none leading-relaxed"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2">
+                <label className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2">
                   Flat Configuration *
                 </label>
                 <select
                   value={form.flatType}
                   onChange={e => setForm({ ...form, flatType: e.target.value })}
-                  className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] focus:outline-none focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 transition-all font-medium"
+                  className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-[#1E2229] focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 transition-all font-medium"
                 >
                   <option value="">Select Configuration</option>
                   {flatTypes.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2">
+                <label className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2">
                   Furnishing Status *
                 </label>
                 <select
                   value={form.furnishing}
                   onChange={e => setForm({ ...form, furnishing: e.target.value })}
-                  className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] focus:outline-none focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 transition-all font-medium"
+                  className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-[#1E2229] focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 transition-all font-medium"
                 >
                   <option value="">Select Furnishing</option>
                   {furnishingTypes.map(t => <option key={t} value={t}>{t}</option>)}
@@ -553,8 +553,8 @@ export default function EditListing() {
 
           {/* Location & Pricing */}
           <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-6 md:p-8 space-y-5">
-            <h3 className="font-serif font-medium text-xl text-[#1A1A2E] flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-full bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center text-sm">
+            <h3 className="font-serif font-medium text-xl text-[#1E2229] flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-full bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center text-sm">
                 <MapPin className="w-4 h-4" />
               </span>
               Location & Pricing
@@ -562,7 +562,7 @@ export default function EditListing() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2">
+                <label className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2">
                   City *
                 </label>
                 <select
@@ -571,18 +571,18 @@ export default function EditListing() {
                     const newCity = e.target.value;
                     setForm({ ...form, city: newCity });
                   }}
-                  className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] focus:outline-none focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 transition-all font-medium"
+                  className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-[#1E2229] focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 transition-all font-medium"
                 >
                   <option value="">Select City</option>
                   {cities.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2">
+                <label className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2">
                   Locality / Neighborhood *
                 </label>
-                <div className="relative flex items-center bg-gray-50/80 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] focus-within:border-[#E5501A] focus-within:ring-2 focus-within:ring-[#E5501A]/10 transition-all font-medium">
-                  <MapPin className="w-4 h-4 text-[#E5501A] shrink-0 mr-2.5" />
+                <div className="relative flex items-center bg-gray-50/80 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-[#1E2229] focus-within:border-[#FF5A36] focus-within:ring-2 focus-within:ring-[#FF5A36]/10 transition-all font-medium">
+                  <MapPin className="w-4 h-4 text-[#FF5A36] shrink-0 mr-2.5" />
                   <input
                     type="text"
                     value={form.locality}
@@ -628,7 +628,7 @@ export default function EditListing() {
                         onClick={() => setForm({ ...form, locality: loc })}
                         className={`text-[11px] px-2.5 py-0.5 rounded-full border transition-all cursor-pointer ${
                           form.locality === loc
-                            ? 'bg-[#FFF2EB] text-[#E5501A] border-[#E5501A]/40 font-bold'
+                            ? 'bg-[#FFF2EB] text-[#FF5A36] border-[#FF5A36]/40 font-bold'
                             : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                         }`}
                       >
@@ -642,7 +642,7 @@ export default function EditListing() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2">
+                <label className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2">
                   Monthly Rent (₹) *
                 </label>
                 <div className="relative">
@@ -652,12 +652,12 @@ export default function EditListing() {
                     value={form.monthlyRent || ''}
                     placeholder="18000"
                     onChange={e => setForm({ ...form, monthlyRent: parseInt(e.target.value) || 0 })}
-                    className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl pl-8 pr-4 py-3 text-sm text-[#1A1A2E] placeholder:text-gray-400 focus:outline-none focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 transition-all font-semibold"
+                    className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl pl-8 pr-4 py-3 text-sm text-[#1E2229] placeholder:text-gray-400 focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 transition-all font-semibold"
                   />
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2">
+                <label className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2">
                   Security Deposit (₹)
                 </label>
                 <div className="relative">
@@ -667,7 +667,7 @@ export default function EditListing() {
                     value={form.deposit || ''}
                     placeholder="36000"
                     onChange={e => setForm({ ...form, deposit: parseInt(e.target.value) || 0 })}
-                    className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl pl-8 pr-4 py-3 text-sm text-[#1A1A2E] placeholder:text-gray-400 focus:outline-none focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 transition-all font-semibold"
+                    className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl pl-8 pr-4 py-3 text-sm text-[#1E2229] placeholder:text-gray-400 focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 transition-all font-semibold"
                   />
                 </div>
               </div>
@@ -675,7 +675,7 @@ export default function EditListing() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2">
+                <label className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2">
                   Roommates Needed
                 </label>
                 <input
@@ -684,28 +684,28 @@ export default function EditListing() {
                   max="10"
                   value={form.partnersNeeded}
                   onChange={e => setForm({ ...form, partnersNeeded: parseInt(e.target.value) || 1 })}
-                  className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] focus:outline-none focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 transition-all font-medium"
+                  className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-[#1E2229] focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 transition-all font-medium"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2">
+                <label className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2">
                   Available From
                 </label>
                 <input
                   type="date"
                   value={form.availableFrom}
                   onChange={e => setForm({ ...form, availableFrom: e.target.value })}
-                  className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] focus:outline-none focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 transition-all font-medium"
+                  className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-[#1E2229] focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 transition-all font-medium"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider block mb-2">
+                <label className="text-xs font-semibold text-[#1E2229] uppercase tracking-wider block mb-2">
                   Gender Preference
                 </label>
                 <select
                   value={form.genderPreference}
                   onChange={e => setForm({ ...form, genderPreference: e.target.value })}
-                  className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] focus:outline-none focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 transition-all font-medium"
+                  className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-[#1E2229] focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 transition-all font-medium"
                 >
                   <option value="any">Any Gender</option>
                   <option value="female">Female Only</option>
@@ -717,7 +717,7 @@ export default function EditListing() {
 
           {/* Amenities Section */}
           <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-6 md:p-8 space-y-4">
-            <h3 className="font-serif font-medium text-xl text-[#1A1A2E]">Amenities & Inclusions</h3>
+            <h3 className="font-serif font-medium text-xl text-[#1E2229]">Amenities & Inclusions</h3>
             <p className="text-xs text-gray-500">Tap to select all facilities available to prospective roommates.</p>
             <div className="flex flex-wrap gap-2.5 pt-1">
               {amenitiesList.map(a => {
@@ -729,8 +729,8 @@ export default function EditListing() {
                     onClick={() => toggleAmenity(a)}
                     className={`px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
                       isSelected
-                        ? 'bg-[#FFF2EB] text-[#E5501A] border-[#E5501A]/40 shadow-2xs'
-                        : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-[#E5501A]/30'
+                        ? 'bg-[#FFF2EB] text-[#FF5A36] border-[#FF5A36]/40 shadow-2xs'
+                        : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-[#FF5A36]/30'
                     }`}
                   >
                     {isSelected && <span className="mr-1.5">✓</span>}
@@ -745,7 +745,7 @@ export default function EditListing() {
           <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-6 md:p-8 space-y-5">
             <div>
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <h3 className="font-serif font-medium text-xl text-[#1A1A2E]">House Rules & Living Norms</h3>
+                <h3 className="font-serif font-medium text-xl text-[#1E2229]">House Rules & Living Norms</h3>
                 <span className="text-[11px] bg-emerald-50 text-emerald-800 px-3 py-0.5 rounded-full font-bold border border-emerald-200">
                   Powers AI Compatibility
                 </span>
@@ -765,7 +765,7 @@ export default function EditListing() {
                     onClick={() => toggleHouseRule(rule)}
                     className={`px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
                       isSelected
-                        ? 'bg-[#E5501A] text-white border-[#E5501A] shadow-2xs'
+                        ? 'bg-[#FF5A36] text-white border-[#FF5A36] shadow-2xs'
                         : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300'
                     }`}
                   >
@@ -775,11 +775,11 @@ export default function EditListing() {
               })}
             </div>
 
-            <div className="bg-[#FFF2EB]/70 border border-[#E5501A]/15 rounded-2xl p-4 flex items-start gap-3">
-              <Sparkles className="w-4 h-4 text-[#E5501A] shrink-0 mt-0.5" />
-              <div className="text-xs text-[#1A1A2E]/80 leading-relaxed">
-                <span className="font-semibold text-[#1A1A2E] block mb-0.5">Smart Match Intelligence</span>
-                Seekers looking in <span className="font-medium text-[#1A1A2E]">{form.city || 'your city'}</span> with a budget fitting ₹{form.monthlyRent ? form.monthlyRent.toLocaleString() : '0'}/mo and matching your norms will be highlighted as top tier applicants.
+            <div className="bg-[#FFF2EB]/70 border border-[#FF5A36]/15 rounded-2xl p-4 flex items-start gap-3">
+              <Sparkles className="w-4 h-4 text-[#FF5A36] shrink-0 mt-0.5" />
+              <div className="text-xs text-[#1E2229]/80 leading-relaxed">
+                <span className="font-semibold text-[#1E2229] block mb-0.5">Smart Match Intelligence</span>
+                Seekers looking in <span className="font-medium text-[#1E2229]">{form.city || 'your city'}</span> with a budget fitting ₹{form.monthlyRent ? form.monthlyRent.toLocaleString() : '0'}/mo and matching your norms will be highlighted as top tier applicants.
               </div>
             </div>
           </div>
@@ -788,8 +788,8 @@ export default function EditListing() {
           <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-6 md:p-8 space-y-4">
             <div>
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <h3 className="font-serif font-medium text-xl text-[#1A1A2E]">Screening Questions for Inquiries</h3>
-                <span className="text-[11px] bg-orange-50 text-[#E5501A] px-3 py-0.5 rounded-full font-bold border border-orange-200">
+                <h3 className="font-serif font-medium text-xl text-[#1E2229]">Screening Questions for Inquiries</h3>
+                <span className="text-[11px] bg-orange-50 text-[#FF5A36] px-3 py-0.5 rounded-full font-bold border border-orange-200">
                   {form.screeningQuestions.length} Selected
                 </span>
               </div>
@@ -808,7 +808,7 @@ export default function EditListing() {
                     onClick={() => toggleScreeningQuestion(q)}
                     className={`p-4 rounded-2xl border-2 text-left transition-all flex flex-col justify-between gap-2.5 cursor-pointer ${
                       isSelected
-                        ? 'border-[#E5501A] bg-orange-50/40 shadow-xs'
+                        ? 'border-[#FF5A36] bg-orange-50/40 shadow-xs'
                         : 'border-gray-200 hover:border-gray-300 bg-white'
                     }`}
                   >
@@ -818,13 +818,13 @@ export default function EditListing() {
                       </span>
                       <div
                         className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                          isSelected ? 'border-[#E5501A] bg-[#E5501A] text-white' : 'border-slate-300'
+                          isSelected ? 'border-[#FF5A36] bg-[#FF5A36] text-white' : 'border-slate-300'
                         }`}
                       >
                         {isSelected && <Check className="w-3 h-3" />}
                       </div>
                     </div>
-                    <p className="text-xs font-bold text-[#1A1A2E] leading-snug">
+                    <p className="text-xs font-bold text-[#1E2229] leading-snug">
                       {q.title}
                     </p>
                     {q.description && (
@@ -844,7 +844,7 @@ export default function EditListing() {
               type="button"
               onClick={handleSave}
               disabled={saving || isUploading}
-              className="flex-1 py-4 bg-[#E5501A] text-white rounded-full font-semibold text-sm hover:bg-[#D0400B] active:scale-[0.98] transition-all shadow-sm shadow-[#E5501A]/20 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+              className="flex-1 py-4 bg-[#FF5A36] text-white rounded-full font-semibold text-sm hover:bg-[#E54E2B] active:scale-[0.98] transition-all shadow-sm shadow-[#FF5A36]/20 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
             >
               {saving || isUploading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -873,7 +873,7 @@ export default function EditListing() {
             type="button"
             onClick={handleSave}
             disabled={saving || isUploading}
-            className="flex-1 py-3 bg-[#E5501A] text-white rounded-full font-bold text-xs hover:bg-[#D0400B] active:scale-[0.98] transition-all shadow-sm shadow-[#E5501A]/20 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+            className="flex-1 py-3 bg-[#FF5A36] text-white rounded-full font-bold text-xs hover:bg-[#E54E2B] active:scale-[0.98] transition-all shadow-sm shadow-[#FF5A36]/20 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
           >
             {saving || isUploading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -908,12 +908,12 @@ export default function EditListing() {
                   <AlertTriangle className="w-6 h-6 text-red-600" />
                 </div>
                 <div>
-                  <h3 className="font-serif font-medium text-xl text-[#1A1A2E]">Delete Property Listing?</h3>
+                  <h3 className="font-serif font-medium text-xl text-[#1E2229]">Delete Property Listing?</h3>
                   <p className="text-xs text-gray-500 mt-0.5">This action permanently unlists your room.</p>
                 </div>
               </div>
               <p className="text-sm text-gray-600 leading-relaxed font-sans">
-                Are you sure you want to delete <strong className="text-[#1A1A2E]">{form.title || 'this listing'}</strong>? All active applicant threads and bookmarks for this property will be archived.
+                Are you sure you want to delete <strong className="text-[#1E2229]">{form.title || 'this listing'}</strong>? All active applicant threads and bookmarks for this property will be archived.
               </p>
               <div className="flex gap-3 pt-2">
                 <button

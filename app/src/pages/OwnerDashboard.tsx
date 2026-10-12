@@ -166,7 +166,7 @@ export default function OwnerDashboard() {
         setIsLoading(false);
       });
     return () => window.clearTimeout(safetyTimer);
-  }, [user?.uid]);
+  }, [getMyListings, getOwnerWeeklyViews, getWeeklyViews, user?.uid]);
 
   // Real-time chat count
   useEffect(() => {
@@ -175,7 +175,7 @@ export default function OwnerDashboard() {
       setChatCount(rooms.length);
     });
     return () => unsub();
-  }, [user?.uid]);
+  }, [subscribeToChatRooms, user?.uid]);
 
   // Real-time incoming connection requests
   useEffect(() => {
@@ -191,7 +191,7 @@ export default function OwnerDashboard() {
       setPendingApplicants(applicants);
     });
     return () => unsub();
-  }, [user?.uid]);
+  }, [subscribeToIncoming, user?.uid]);
 
   // Sprint 3A: EXPLAINABLE applicant ranking — owners see best-fit applicants
   // first, with data-backed reasons shown on every card. Signals come ONLY
@@ -243,7 +243,7 @@ export default function OwnerDashboard() {
       }
       setAcceptedConnections(list);
     }).catch(() => { });
-  }, [user?.uid]);
+  }, [getMyConnections, user?.uid]);
 
   // Seeker Discovery State for Owner
   const [seekers, setSeekers] = useState<{ profile: UserProfile; score: number }[]>([]);
@@ -334,7 +334,7 @@ export default function OwnerDashboard() {
 
     loadSeekers();
     return () => { isCancelled = true; };
-  }, [activeTab, user?.uid, myListing]);
+  }, [activeTab, user?.uid, myListing, profile?.blockedUserIds]);
 
   // Filter and sort seekers
   const filteredSeekers = useMemo(() => {
@@ -569,13 +569,13 @@ export default function OwnerDashboard() {
   const displayWeeklyViews = activeWeeklyData;
 
   return (
-    <PageShell maxWidth="max-w-[1600px]" className="bg-[#FBF9F6]" withBottomNavPad>
+    <PageShell maxWidth="max-w-[1600px]" className="bg-[#FBFBFC]" withBottomNavPad>
 
       {/* 1. DESKTOP HEADER (Visible ONLY on lg screens) */}
       <div className="hidden lg:flex mb-6 flex-row items-center justify-between gap-4 border-b border-gray-100 pb-5">
         <div className="min-w-0">
           <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-            <h1 className="font-serif text-2xl md:text-3xl font-medium text-[#1A1A2E] tracking-tight">
+            <h1 className="font-serif text-2xl md:text-3xl font-medium text-[#1E2229] tracking-tight">
               {activeTab === 'listings'
                 ? 'Properties & Listings'
                 : activeTab === 'applicants'
@@ -609,14 +609,14 @@ export default function OwnerDashboard() {
           {activeTab === 'applicants' ? (
             <button
               onClick={() => navigate('/chat')}
-              className="px-5 py-2.5 bg-[#E5501A] hover:bg-[#D0400B] text-white text-xs font-semibold rounded-full transition-all flex items-center gap-2 shadow-xs cursor-pointer active:scale-95"
+              className="px-5 py-2.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs font-semibold rounded-full transition-all flex items-center gap-2 shadow-xs cursor-pointer active:scale-95"
             >
               <MessageCircle className="w-4 h-4" /> Go to Messages
             </button>
           ) : (
             <button
               onClick={() => navigate('/edit-listing/new')}
-              className="px-5 py-2.5 bg-[#E5501A] hover:bg-[#D0400B] text-white text-xs font-semibold rounded-full transition-all flex items-center gap-2 shadow-xs cursor-pointer active:scale-95"
+              className="px-5 py-2.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs font-semibold rounded-full transition-all flex items-center gap-2 shadow-xs cursor-pointer active:scale-95"
             >
               <Plus className="w-4 h-4" /> Add New Space
             </button>
@@ -629,7 +629,7 @@ export default function OwnerDashboard() {
         <div className="lg:hidden flex items-center justify-between gap-2.5 mb-3 pt-0.5">
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <h1 className="font-serif font-medium text-lg text-[#1A1A2E] truncate">
+              <h1 className="font-serif font-medium text-lg text-[#1E2229] truncate">
                 Owner Dashboard
               </h1>
               {ownerVerification?.status === 'APPROVED' ? (
@@ -649,7 +649,7 @@ export default function OwnerDashboard() {
 
           <button
             onClick={() => navigate(allListings.length === 0 ? '/edit-listing/new' : '/owner-dashboard?tab=listings')}
-            className="px-3.5 py-1.5 bg-[#E5501A] hover:bg-[#D0400B] text-white text-xs font-bold rounded-full transition-all flex items-center gap-1 shadow-xs shrink-0 cursor-pointer active:scale-95"
+            className="px-3.5 py-1.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs font-bold rounded-full transition-all flex items-center gap-1 shadow-xs shrink-0 cursor-pointer active:scale-95"
           >
             {allListings.length === 0 ? (
               <>
@@ -676,7 +676,7 @@ export default function OwnerDashboard() {
           onClick={() => navigate('/owner-dashboard')}
           className={`px-5 py-2.5 rounded-full text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'overview'
-              ? 'bg-[#1A1A2E] text-white shadow-xs font-bold'
+              ? 'bg-[#1E2229] text-white shadow-xs font-bold'
               : 'bg-white text-gray-600 border border-gray-150 hover:border-gray-300'
           }`}
         >
@@ -688,14 +688,14 @@ export default function OwnerDashboard() {
           onClick={() => navigate('/owner-dashboard?tab=listings')}
           className={`px-5 py-2.5 rounded-full text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'listings'
-              ? 'bg-[#1A1A2E] text-white shadow-xs font-bold'
+              ? 'bg-[#1E2229] text-white shadow-xs font-bold'
               : 'bg-white text-gray-600 border border-gray-150 hover:border-gray-300'
           }`}
         >
           <Building2 className="w-3.5 h-3.5" />
           <span>Listings</span>
           <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-            activeTab === 'listings' ? 'bg-white/20 text-white' : 'bg-[#F7F3ED] text-[#1A1A2E]'
+            activeTab === 'listings' ? 'bg-white/20 text-white' : 'bg-[#FBFBFC] text-[#1E2229]'
           }`}>
             {allListings.length}
           </span>
@@ -705,14 +705,14 @@ export default function OwnerDashboard() {
           onClick={() => navigate('/owner-dashboard?tab=applicants')}
           className={`px-5 py-2.5 rounded-full text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'applicants'
-              ? 'bg-[#1A1A2E] text-white shadow-xs font-bold'
+              ? 'bg-[#1E2229] text-white shadow-xs font-bold'
               : 'bg-white text-gray-600 border border-gray-150 hover:border-gray-300'
           }`}
         >
           <Users className="w-3.5 h-3.5" />
           <span>Inquiries</span>
           {pendingApplicants.length > 0 && (
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full font-bold bg-[#E5501A] text-white">
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full font-bold bg-[#FF5A36] text-white">
               {pendingApplicants.length}
             </span>
           )}
@@ -722,7 +722,7 @@ export default function OwnerDashboard() {
           onClick={() => navigate('/owner-dashboard?tab=seekers')}
           className={`px-5 py-2.5 rounded-full text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'seekers'
-              ? 'bg-[#1A1A2E] text-white shadow-xs font-bold'
+              ? 'bg-[#1E2229] text-white shadow-xs font-bold'
               : 'bg-white text-gray-600 border border-gray-150 hover:border-gray-300'
           }`}
         >
@@ -730,7 +730,7 @@ export default function OwnerDashboard() {
           <span>Browse Seekers</span>
           {seekers.length > 0 && (
             <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-              activeTab === 'seekers' ? 'bg-white/20 text-white' : 'bg-[#FFF2EB] text-[#E5501A]'
+              activeTab === 'seekers' ? 'bg-white/20 text-white' : 'bg-[#FFF2EB] text-[#FF5A36]'
             }`}>
               {seekers.length}
             </span>
@@ -750,11 +750,11 @@ export default function OwnerDashboard() {
             onClick={() => navigate('/owner-dashboard')}
             className={`flex items-center justify-center gap-1 py-2 px-1 rounded-xl text-[11px] min-[360px]:text-xs transition-all cursor-pointer min-w-0 ${
               activeTab === 'overview'
-                ? 'bg-[#1A1A2E] text-white font-bold shadow-xs'
-                : 'text-[#1A1A2E]/75 hover:text-[#1A1A2E] hover:bg-white/40 font-medium'
+                ? 'bg-[#1E2229] text-white font-bold shadow-xs'
+                : 'text-[#1E2229]/75 hover:text-[#1E2229] hover:bg-white/40 font-medium'
             }`}
           >
-            <Home className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'overview' ? 'text-[#E5501A]' : 'text-gray-500'}`} />
+            <Home className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'overview' ? 'text-[#FF5A36]' : 'text-gray-500'}`} />
             <span className="truncate">Overview</span>
           </button>
 
@@ -764,11 +764,11 @@ export default function OwnerDashboard() {
             onClick={() => navigate('/owner-dashboard?tab=listings')}
             className={`flex items-center justify-center gap-1 py-2 px-1 rounded-xl text-[11px] min-[360px]:text-xs transition-all cursor-pointer min-w-0 ${
               activeTab === 'listings'
-                ? 'bg-[#1A1A2E] text-white font-bold shadow-xs'
-                : 'text-[#1A1A2E]/75 hover:text-[#1A1A2E] hover:bg-white/40 font-medium'
+                ? 'bg-[#1E2229] text-white font-bold shadow-xs'
+                : 'text-[#1E2229]/75 hover:text-[#1E2229] hover:bg-white/40 font-medium'
             }`}
           >
-            <Building2 className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'listings' ? 'text-[#E5501A]' : 'text-gray-500'}`} />
+            <Building2 className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'listings' ? 'text-[#FF5A36]' : 'text-gray-500'}`} />
             <span className="truncate">Listings</span>
           </button>
 
@@ -778,14 +778,14 @@ export default function OwnerDashboard() {
             onClick={() => navigate('/owner-dashboard?tab=applicants')}
             className={`relative flex items-center justify-center gap-1 py-2 px-1 rounded-xl text-[11px] min-[360px]:text-xs transition-all cursor-pointer min-w-0 ${
               activeTab === 'applicants'
-                ? 'bg-[#1A1A2E] text-white font-bold shadow-xs'
-                : 'text-[#1A1A2E]/75 hover:text-[#1A1A2E] hover:bg-white/40 font-medium'
+                ? 'bg-[#1E2229] text-white font-bold shadow-xs'
+                : 'text-[#1E2229]/75 hover:text-[#1E2229] hover:bg-white/40 font-medium'
             }`}
           >
             <div className="relative shrink-0 flex items-center">
-              <Users className={`w-3.5 h-3.5 ${activeTab === 'applicants' ? 'text-[#E5501A]' : 'text-gray-500'}`} />
+              <Users className={`w-3.5 h-3.5 ${activeTab === 'applicants' ? 'text-[#FF5A36]' : 'text-gray-500'}`} />
               {pendingApplicants.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#E5501A] ring-1 ring-white" />
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#FF5A36] ring-1 ring-white" />
               )}
             </div>
             <span className="truncate">Inquiries</span>
@@ -797,11 +797,11 @@ export default function OwnerDashboard() {
             onClick={() => navigate('/owner-dashboard?tab=seekers')}
             className={`flex items-center justify-center gap-1 py-2 px-1 rounded-xl text-[11px] min-[360px]:text-xs transition-all cursor-pointer min-w-0 ${
               activeTab === 'seekers'
-                ? 'bg-[#1A1A2E] text-white font-bold shadow-xs'
-                : 'text-[#1A1A2E]/75 hover:text-[#1A1A2E] hover:bg-white/40 font-medium'
+                ? 'bg-[#1E2229] text-white font-bold shadow-xs'
+                : 'text-[#1E2229]/75 hover:text-[#1E2229] hover:bg-white/40 font-medium'
             }`}
           >
-            <Compass className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'seekers' ? 'text-[#E5501A]' : 'text-gray-500'}`} />
+            <Compass className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'seekers' ? 'text-[#FF5A36]' : 'text-gray-500'}`} />
             <span className="truncate">Seekers</span>
           </button>
         </nav>
@@ -825,16 +825,16 @@ export default function OwnerDashboard() {
                 {/* 1. Live Properties */}
                 <div
                   onClick={() => navigate('/owner-dashboard?tab=listings')}
-                  className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-100 shadow-xs hover:border-[#E5501A]/30 hover:shadow-md transition-all cursor-pointer group"
+                  className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-100 shadow-xs hover:border-[#FF5A36]/30 hover:shadow-md transition-all cursor-pointer group"
                 >
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Properties</span>
-                    <div className="w-9 h-9 rounded-2xl bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <div className="w-9 h-9 rounded-2xl bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Building2 className="w-4 h-4" />
                     </div>
                   </div>
-                  <p className="font-serif text-3xl font-medium text-[#1A1A2E]">{allListings.length}</p>
-                  <p className="text-xs text-gray-500 mt-1 flex items-center gap-1 group-hover:text-[#E5501A] font-medium">
+                  <p className="font-serif text-3xl font-medium text-[#1E2229]">{allListings.length}</p>
+                  <p className="text-xs text-gray-500 mt-1 flex items-center gap-1 group-hover:text-[#FF5A36] font-medium">
                     <span>{allListings.filter(l => l.status === 'active').length} Active</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </p>
@@ -844,19 +844,19 @@ export default function OwnerDashboard() {
                 <div
                   onClick={() => navigate('/owner-dashboard?tab=applicants')}
                   className={`bg-white rounded-3xl p-5 sm:p-6 border shadow-xs hover:shadow-md transition-all cursor-pointer group ${
-                    pendingApplicants.length > 0 ? 'border-[#E5501A]/30 bg-[#FFF2EB]/20' : 'border-gray-100'
+                    pendingApplicants.length > 0 ? 'border-[#FF5A36]/30 bg-[#FFF2EB]/20' : 'border-gray-100'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Inquiries</span>
                     <div className={`w-9 h-9 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform ${
-                      pendingApplicants.length > 0 ? 'bg-[#E5501A] text-white shadow-xs' : 'bg-gray-100 text-gray-500'
+                      pendingApplicants.length > 0 ? 'bg-[#FF5A36] text-white shadow-xs' : 'bg-gray-100 text-gray-500'
                     }`}>
                       <Users className="w-4 h-4" />
                     </div>
                   </div>
-                  <p className="font-serif text-3xl font-medium text-[#1A1A2E]">{pendingApplicants.length}</p>
-                  <p className="text-xs text-gray-500 mt-1 flex items-center gap-1 group-hover:text-[#E5501A] font-medium">
+                  <p className="font-serif text-3xl font-medium text-[#1E2229]">{pendingApplicants.length}</p>
+                  <p className="text-xs text-gray-500 mt-1 flex items-center gap-1 group-hover:text-[#FF5A36] font-medium">
                     <span>{pendingApplicants.length > 0 ? 'Action needed' : 'All responded'}</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </p>
@@ -865,7 +865,7 @@ export default function OwnerDashboard() {
                 {/* 3. Messages */}
                 <div
                   onClick={() => navigate('/chat')}
-                  className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-100 shadow-xs hover:border-[#E5501A]/30 hover:shadow-md transition-all cursor-pointer group"
+                  className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-100 shadow-xs hover:border-[#FF5A36]/30 hover:shadow-md transition-all cursor-pointer group"
                 >
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Messages</span>
@@ -873,7 +873,7 @@ export default function OwnerDashboard() {
                       <MessageCircle className="w-4 h-4" />
                     </div>
                   </div>
-                  <p className="font-serif text-3xl font-medium text-[#1A1A2E]">{chatCount}</p>
+                  <p className="font-serif text-3xl font-medium text-[#1E2229]">{chatCount}</p>
                   <p className="text-xs text-gray-500 mt-1 flex items-center gap-1 group-hover:text-teal-700 font-medium">
                     <span>Conversations</span>
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -883,7 +883,7 @@ export default function OwnerDashboard() {
                 {/* 4. Weekly Views */}
                 <div
                   onClick={() => navigate('/owner-dashboard?tab=listings')}
-                  className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-100 shadow-xs hover:border-[#E5501A]/30 hover:shadow-md transition-all cursor-pointer group"
+                  className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-100 shadow-xs hover:border-[#FF5A36]/30 hover:shadow-md transition-all cursor-pointer group"
                 >
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Views</span>
@@ -892,7 +892,7 @@ export default function OwnerDashboard() {
                     </div>
                   </div>
                   <div className="flex items-baseline gap-2">
-                    <p className="font-serif text-3xl font-medium text-[#1A1A2E]">{totalWeeklyViews}</p>
+                    <p className="font-serif text-3xl font-medium text-[#1E2229]">{totalWeeklyViews}</p>
                     <span className="text-xs text-gray-400 font-medium">this week</span>
                   </div>
                   <p className="text-xs text-gray-500 mt-1 flex items-center justify-between group-hover:text-blue-700 font-medium">
@@ -909,17 +909,17 @@ export default function OwnerDashboard() {
 
               {/* Urgent Requests / Action Center */}
               {pendingApplicants.length > 0 ? (
-                <section className="bg-white rounded-3xl p-6 sm:p-7 shadow-xs border border-[#E5501A]/20">
+                <section className="bg-white rounded-3xl p-6 sm:p-7 shadow-xs border border-[#FF5A36]/20">
                   <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-2.5">
-                      <span className="flex h-2.5 w-2.5 rounded-full bg-[#E5501A] animate-pulse" />
-                      <h2 className="font-serif text-lg font-medium text-[#1A1A2E]">
+                      <span className="flex h-2.5 w-2.5 rounded-full bg-[#FF5A36] animate-pulse" />
+                      <h2 className="font-serif text-lg font-medium text-[#1E2229]">
                         Pending Requests ({pendingApplicants.length})
                       </h2>
                     </div>
                     <button
                       onClick={() => navigate('/owner-dashboard?tab=applicants')}
-                      className="text-xs font-semibold text-[#E5501A] hover:underline flex items-center gap-1"
+                      className="text-xs font-semibold text-[#FF5A36] hover:underline flex items-center gap-1"
                     >
                       Review all <ChevronRight className="w-3.5 h-3.5" />
                     </button>
@@ -930,14 +930,14 @@ export default function OwnerDashboard() {
                       return (
                         <div
                           key={applicant.connection.id}
-                          className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-gray-100 bg-[#FBF9F6]"
+                          className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-gray-100 bg-[#FBFBFC]"
                         >
                           <div className="flex items-center gap-3.5 min-w-0">
                             <UserAvatar src={p.avatar} name={p.name} className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs shrink-0" />
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
-                                <h4 className="font-bold text-[#1A1A2E] text-sm">{p.name}</h4>
-                                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#FFF2EB] text-[#E5501A] border border-[#E5501A]/20">
+                                <h4 className="font-bold text-[#1E2229] text-sm">{p.name}</h4>
+                                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#FFF2EB] text-[#FF5A36] border border-[#FF5A36]/20">
                                   {applicant.fit.score}% match
                                 </span>
                               </div>
@@ -948,7 +948,7 @@ export default function OwnerDashboard() {
                             <button
                               onClick={() => handleAccept(applicant)}
                               disabled={!!processingApplicantId}
-                              className="px-4 py-2 bg-[#E5501A] hover:bg-[#D0400B] text-white rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 shadow-xs"
+                              className="px-4 py-2 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 shadow-xs"
                             >
                               <Check className="w-3.5 h-3.5" /> Accept
                             </button>
@@ -959,19 +959,19 @@ export default function OwnerDashboard() {
                   </div>
                 </section>
               ) : (
-                <div className="bg-[#FFF2EB]/50 rounded-3xl p-5 sm:p-6 border border-[#E5501A]/20 flex items-center justify-between gap-4">
+                <div className="bg-[#FFF2EB]/50 rounded-3xl p-5 sm:p-6 border border-[#FF5A36]/20 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3.5">
-                    <div className="w-11 h-11 rounded-2xl bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center shrink-0 border border-[#E5501A]/20">
+                    <div className="w-11 h-11 rounded-2xl bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center shrink-0 border border-[#FF5A36]/20">
                       <ShieldCheck className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-[#1A1A2E] text-sm">Everything is up to date</h4>
+                      <h4 className="font-bold text-[#1E2229] text-sm">Everything is up to date</h4>
                       <p className="text-xs text-gray-500 mt-0.5">No pending roommate requests right now. Your spaces are actively receiving views.</p>
                     </div>
                   </div>
                   <button
                     onClick={() => navigate('/owner-dashboard?tab=seekers')}
-                    className="text-xs font-bold text-[#E5501A] hover:underline shrink-0 hidden sm:block cursor-pointer bg-white px-4 py-2 rounded-full border border-[#E5501A]/30 shadow-2xs"
+                    className="text-xs font-bold text-[#FF5A36] hover:underline shrink-0 hidden sm:block cursor-pointer bg-white px-4 py-2 rounded-full border border-[#FF5A36]/30 shadow-2xs"
                   >
                     Browse Seeking Roommates →
                   </button>
@@ -982,12 +982,12 @@ export default function OwnerDashboard() {
               <section className="bg-white rounded-3xl p-6 sm:p-7 shadow-xs border border-gray-100">
                 <div className="flex justify-between items-center mb-6">
                   <div>
-                    <h2 className="font-serif text-xl font-medium text-[#1A1A2E]">Your Properties ({allListings.length})</h2>
+                    <h2 className="font-serif text-xl font-medium text-[#1E2229]">Your Properties ({allListings.length})</h2>
                     <p className="text-xs text-gray-400 mt-0.5">Quick summary of all active and listed rooms</p>
                   </div>
                   <button
                     onClick={() => navigate('/owner-dashboard?tab=listings')}
-                    className="text-xs font-semibold text-[#E5501A] hover:underline flex items-center gap-1"
+                    className="text-xs font-semibold text-[#FF5A36] hover:underline flex items-center gap-1"
                   >
                     Manage All <ChevronRight className="w-3.5 h-3.5" />
                   </button>
@@ -998,14 +998,14 @@ export default function OwnerDashboard() {
                     {allListings.map(listing => (
                       <div
                         key={listing.id}
-                        className="p-4 rounded-2xl border border-gray-100 hover:border-[#E5501A]/30 hover:shadow-xs transition-all flex flex-col justify-between gap-3 bg-[#FBF9F6]"
+                        className="p-4 rounded-2xl border border-gray-100 hover:border-[#FF5A36]/30 hover:shadow-xs transition-all flex flex-col justify-between gap-3 bg-[#FBFBFC]"
                       >
                         <div className="flex gap-3.5">
                           <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
                             {listing.images && listing.images.length > 0 ? (
                               <img src={listing.images[0]} alt={listing.title} className="w-full h-full object-cover" />
                             ) : (
-                              <div className="w-full h-full bg-[#1A1A2E] flex items-center justify-center text-white text-xs font-bold">
+                              <div className="w-full h-full bg-[#1E2229] flex items-center justify-center text-white text-xs font-bold">
                                 NestMate
                               </div>
                             )}
@@ -1023,12 +1023,12 @@ export default function OwnerDashboard() {
                                 {listing.flatType}
                               </span>
                             </div>
-                            <h4 className="font-bold text-[#1A1A2E] text-sm truncate">{listing.title || `${listing.locality} Flat`}</h4>
+                            <h4 className="font-bold text-[#1E2229] text-sm truncate">{listing.title || `${listing.locality} Flat`}</h4>
                             <p className="text-xs text-gray-500 truncate flex items-center gap-1 mt-0.5">
-                              <MapPin className="w-3 h-3 text-[#E5501A] shrink-0" />
+                              <MapPin className="w-3 h-3 text-[#FF5A36] shrink-0" />
                               {listing.locality}, {listing.city}
                             </p>
-                            <p className="text-xs font-bold text-[#1A1A2E] mt-1">
+                            <p className="text-xs font-bold text-[#1E2229] mt-1">
                               ₹{listing.totalRent?.toLocaleString() || '0'}<span className="text-[10px] font-normal text-gray-500">/mo</span>
                             </p>
                           </div>
@@ -1039,14 +1039,14 @@ export default function OwnerDashboard() {
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => navigate(`/room/${listing.id}`)}
-                              className="px-3 py-1 text-gray-600 hover:text-[#1A1A2E] hover:bg-white rounded-full font-semibold text-[11px] transition-colors flex items-center gap-1"
+                              className="px-3 py-1 text-gray-600 hover:text-[#1E2229] hover:bg-white rounded-full font-semibold text-[11px] transition-colors flex items-center gap-1"
                             >
                               <Eye className="w-3 h-3" />
                               View
                             </button>
                             <button
                               onClick={() => navigate(`/edit-listing/${listing.id}`)}
-                              className="px-3 py-1 text-gray-600 hover:text-[#1A1A2E] hover:bg-white rounded-full font-semibold text-[11px] transition-colors"
+                              className="px-3 py-1 text-gray-600 hover:text-[#1E2229] hover:bg-white rounded-full font-semibold text-[11px] transition-colors"
                             >
                               Edit
                             </button>
@@ -1055,7 +1055,7 @@ export default function OwnerDashboard() {
                                 handleSelectListing(listing);
                                 navigate('/owner-dashboard?tab=listings');
                               }}
-                              className="px-3.5 py-1 bg-[#1A1A2E] text-white hover:bg-black rounded-full font-semibold text-[11px] transition-colors"
+                              className="px-3.5 py-1 bg-[#1E2229] text-white hover:bg-black rounded-full font-semibold text-[11px] transition-colors"
                             >
                               Manage →
                             </button>
@@ -1069,7 +1069,7 @@ export default function OwnerDashboard() {
                     <p className="text-gray-500 text-sm mb-3">You don't have any properties listed yet.</p>
                     <button
                       onClick={() => navigate('/edit-listing/new')}
-                      className="px-5 py-2.5 bg-[#E5501A] hover:bg-[#D0400B] text-white text-xs font-semibold rounded-full shadow-xs"
+                      className="px-5 py-2.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs font-semibold rounded-full shadow-xs"
                     >
                       + Create Your First Listing
                     </button>
@@ -1109,8 +1109,8 @@ export default function OwnerDashboard() {
                         <button
                           onClick={() => handleSelectListing(l)}
                           className={`px-4 py-2 rounded-full text-xs font-semibold border transition-all flex items-center gap-2 ${isSelected
-                            ? 'border-[#E5501A] bg-[#E5501A] text-white shadow-xs font-bold pr-8'
-                            : 'border-gray-200 bg-white hover:border-[#E5501A]/40 text-gray-700 pr-8'
+                            ? 'border-[#FF5A36] bg-[#FF5A36] text-white shadow-xs font-bold pr-8'
+                            : 'border-gray-200 bg-white hover:border-[#FF5A36]/40 text-gray-700 pr-8'
                             }`}
                         >
                           <span>{l.title ? (l.title.length > 22 ? `${l.title.substring(0, 22)}...` : l.title) : `${l.locality} (${l.flatType})`}</span>
@@ -1148,12 +1148,12 @@ export default function OwnerDashboard() {
                     <span>Verification Pending</span>
                   </div>
                 )}
-                <span className="text-xs text-[#E5501A] font-semibold bg-[#FFF2EB] px-3.5 py-1.5 rounded-full border border-[#E5501A]/20">
+                <span className="text-xs text-[#FF5A36] font-semibold bg-[#FFF2EB] px-3.5 py-1.5 rounded-full border border-[#FF5A36]/20">
                   Unlimited Listings
                 </span>
                 <button
                   onClick={() => navigate('/edit-listing/new')}
-                  className="px-5 py-2.5 bg-[#E5501A] hover:bg-[#D0400B] text-white text-xs font-semibold rounded-full transition-all flex items-center gap-2 shadow-xs"
+                  className="px-5 py-2.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs font-semibold rounded-full transition-all flex items-center gap-2 shadow-xs"
                 >
                   <Plus className="w-4 h-4" /> Add Property
                 </button>
@@ -1175,9 +1175,9 @@ export default function OwnerDashboard() {
                 {myListing.images && myListing.images.length > 0 ? (
                   <img src={myListing.images[0]} alt="Listing cover" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full bg-[#1A1A2E]" />
+                  <div className="w-full h-full bg-[#1E2229]" />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A2E] via-[#1A1A2E]/80 to-[#1A1A2E]/30" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#1E2229] via-[#1E2229]/80 to-[#1E2229]/30" />
               </div>
 
               <div className="relative p-8 pt-24 text-white flex flex-col justify-end min-h-[360px]">
@@ -1236,7 +1236,7 @@ export default function OwnerDashboard() {
                       </span>
                       <div className="flex items-center gap-2">
                         {(avail === 'needs_confirmation' || avail === 'expired' || myListing.status === 'active') && (
-                          <button onClick={handleConfirmAvailability} className="px-4 py-1.5 bg-[#E5501A] hover:bg-[#D0400B] text-white text-xs font-semibold rounded-full shadow-md transition-all">
+                          <button onClick={handleConfirmAvailability} className="px-4 py-1.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs font-semibold rounded-full shadow-md transition-all">
                             Confirm Available
                           </button>
                         )}
@@ -1253,7 +1253,7 @@ export default function OwnerDashboard() {
                 <div className="mb-6">
                   <h2 className="font-serif text-3xl sm:text-4xl font-medium mb-2 leading-tight drop-shadow-md">{myListing.title}</h2>
                   <p className="text-sm text-gray-200 flex items-center gap-1.5 drop-shadow font-medium">
-                    <MapPin className="w-4 h-4 text-[#E5501A] shrink-0" /> {myListing.locality}, {myListing.city}
+                    <MapPin className="w-4 h-4 text-[#FF5A36] shrink-0" /> {myListing.locality}, {myListing.city}
                   </p>
                 </div>
 
@@ -1335,14 +1335,14 @@ export default function OwnerDashboard() {
           {activeTab === 'applicants' && (
             <div id="applicants-section" className="flex flex-col gap-6">
               {/* Pending Requests (Desktop) */}
-              <section className={`bg-white rounded-3xl p-6 sm:p-8 shadow-xs border flex flex-col justify-between min-h-[280px] relative ${pendingApplicants.length > 0 ? 'border-[#E5501A]/30' : 'border-gray-100'}`}>
+              <section className={`bg-white rounded-3xl p-6 sm:p-8 shadow-xs border flex flex-col justify-between min-h-[280px] relative ${pendingApplicants.length > 0 ? 'border-[#FF5A36]/30' : 'border-gray-100'}`}>
                 <div className="flex justify-between items-center mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-2xl bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center">
                       <Users className="w-5 h-5" />
                     </div>
                     <div>
-                      <h2 className="font-serif text-xl font-medium text-[#1A1A2E]">
+                      <h2 className="font-serif text-xl font-medium text-[#1E2229]">
                         Pending Inquiries ({pendingApplicants.length})
                       </h2>
                       <p className="text-xs text-gray-400">Prospective verified roommates awaiting your response</p>
@@ -1356,12 +1356,12 @@ export default function OwnerDashboard() {
                           const lQuery = myListing?.id ? `&listingId=${myListing.id}` : '';
                           navigate(ids ? `/applicants/compare?ids=${ids}${lQuery}` : '/applicants/compare');
                         }}
-                        className="px-3.5 py-1.5 border border-[#E5501A]/30 text-[#E5501A] bg-[#FFF2EB] hover:bg-[#FFE5D6] rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+                        className="px-3.5 py-1.5 border border-[#FF5A36]/30 text-[#FF5A36] bg-[#FFF2EB] hover:bg-[#FFE5D6] rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
                       >
                         <Users className="w-3.5 h-3.5" /> Compare Applicants
                       </button>
                     )}
-                    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#F7F3ED] text-gray-700">
+                    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#FBFBFC] text-gray-700">
                       {pendingApplicants.length} pending review
                     </span>
                   </div>
@@ -1377,17 +1377,17 @@ export default function OwnerDashboard() {
                       key={applicant.connection.id}
                       id={`request-${applicant.connection.id}`}
                       className={`flex flex-row items-center justify-between gap-4 p-5 rounded-3xl border transition-all ${isHighlighted
-                        ? 'bg-[#FFF2EB]/50 border-[#E5501A]/40 shadow-sm'
-                        : 'bg-[#FBF9F6] border-gray-100 hover:border-gray-200'
+                        ? 'bg-[#FFF2EB]/50 border-[#FF5A36]/40 shadow-sm'
+                        : 'bg-[#FBFBFC] border-gray-100 hover:border-gray-200'
                         }`}
                     >
                       <div className="flex items-center gap-4 min-w-0">
                         <UserAvatar src={p.avatar} name={p.name} className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-xs shrink-0" />
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="font-bold text-[#1A1A2E] text-base">{p.name}</h4>
+                            <h4 className="font-bold text-[#1E2229] text-base">{p.name}</h4>
                             {isHighlighted && (
-                              <span className="text-[10px] font-bold bg-[#E5501A] text-white px-2 py-0.5 rounded-full">New!</span>
+                              <span className="text-[10px] font-bold bg-[#FF5A36] text-white px-2 py-0.5 rounded-full">New!</span>
                             )}
                             {p.workEmailVerified && <span title="Corporate Verified"><CheckCircle2 className="w-4 h-4 text-blue-500" /></span>}
                             {p.isVerified && <span title="ID Verified"><Shield className="w-4 h-4 text-emerald-600" /></span>}
@@ -1400,12 +1400,12 @@ export default function OwnerDashboard() {
                             const label = req.title ? (req.title.length > 34 ? `${req.title.slice(0, 34)}…` : req.title) : `${req.locality}, ${req.city}`;
                             return (
                               <p className="text-[11px] text-gray-600 mt-1 flex items-center gap-1.5 font-medium">
-                                <Home className="w-3.5 h-3.5 text-[#E5501A] shrink-0" /> Interested in: <span className="font-semibold text-[#1A1A2E]">{label}</span>
+                                <Home className="w-3.5 h-3.5 text-[#FF5A36] shrink-0" /> Interested in: <span className="font-semibold text-[#1E2229]">{label}</span>
                               </p>
                             );
                           })()}
                           <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#FFF2EB] text-[#E5501A] border border-[#E5501A]/20">
+                            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#FFF2EB] text-[#FF5A36] border border-[#FF5A36]/20">
                               {applicant.fit.score}% match
                             </span>
                             {applicant.fit.reasons.slice(0, 2).map(r => (
@@ -1422,7 +1422,7 @@ export default function OwnerDashboard() {
                           <button
                             type="button"
                             onClick={() => setSelectedScreeningApplicant(applicant)}
-                            className="px-3.5 py-2 border border-orange-200 bg-orange-50/60 hover:bg-orange-100 text-[#E5501A] rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                            className="px-3.5 py-2 border border-orange-200 bg-orange-50/60 hover:bg-orange-100 text-[#FF5A36] rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
                             title="View Questionnaire Responses"
                           >
                             <FileText className="w-3.5 h-3.5" /> Answers ({Object.keys(applicant.connection.screeningAnswers).length})
@@ -1446,7 +1446,7 @@ export default function OwnerDashboard() {
                         <button
                           onClick={() => handleAccept(applicant)}
                           disabled={!!processingApplicantId}
-                          className="px-5 py-2 bg-[#E5501A] text-white rounded-full font-semibold hover:bg-[#D0400B] transition-all text-xs flex items-center gap-1.5 shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-5 py-2 bg-[#FF5A36] text-white rounded-full font-semibold hover:bg-[#E54E2B] transition-all text-xs flex items-center gap-1.5 shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Accept & Chat"
                         >
                           <Check className="w-3.5 h-3.5" /> {processingApplicantId === applicant.connection.id ? 'Accepting...' : 'Accept'}
@@ -1458,10 +1458,10 @@ export default function OwnerDashboard() {
               </div>
             ) : (
               <div className="flex flex-col items-center text-center my-auto py-8">
-                <div className="w-16 h-16 bg-[#FFF2EB] rounded-3xl flex items-center justify-center mb-4 text-[#E5501A]">
+                <div className="w-16 h-16 bg-[#FFF2EB] rounded-3xl flex items-center justify-center mb-4 text-[#FF5A36]">
                   <Mail className="w-7 h-7" />
                 </div>
-                <h3 className="font-serif text-lg font-medium text-[#1A1A2E] mb-1">No pending requests</h3>
+                <h3 className="font-serif text-lg font-medium text-[#1E2229] mb-1">No pending requests</h3>
                 <p className="text-gray-400 text-xs max-w-sm">
                   {myListing ? 'Your listing is live. Roommate requests will appear here.' : 'Create a listing to start receiving roommate requests.'}
                 </p>
@@ -1477,11 +1477,11 @@ export default function OwnerDashboard() {
                   <Users className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-serif text-xl font-medium text-[#1A1A2E]">My Connections ({acceptedConnections.length})</h3>
+                  <h3 className="font-serif text-xl font-medium text-[#1E2229]">My Connections ({acceptedConnections.length})</h3>
                   <p className="text-xs text-gray-400">Accepted applicants with active conversations</p>
                 </div>
               </div>
-              <button onClick={() => navigate('/chat')} className="text-xs font-semibold text-[#E5501A] hover:underline">View all</button>
+              <button onClick={() => navigate('/chat')} className="text-xs font-semibold text-[#FF5A36] hover:underline">View all</button>
             </div>
 
             {acceptedConnections.length > 0 ? (
@@ -1491,13 +1491,13 @@ export default function OwnerDashboard() {
                   return (
                     <div
                       key={conn.connection.id}
-                      className="flex flex-row items-center justify-between gap-4 p-4 rounded-2xl border border-gray-100 bg-[#FBF9F6] transition-all"
+                      className="flex flex-row items-center justify-between gap-4 p-4 rounded-2xl border border-gray-100 bg-[#FBFBFC] transition-all"
                     >
                       <div className="flex items-center gap-3.5 min-w-0">
                         <UserAvatar src={p.avatar} name={p.name} className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs shrink-0" />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <h4 className="font-bold text-[#1A1A2E] text-sm">{p.name}</h4>
+                            <h4 className="font-bold text-[#1E2229] text-sm">{p.name}</h4>
                             <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full flex items-center gap-1"><Check className="w-3 h-3" />Connected</span>
                           </div>
                           <p className="text-xs text-gray-500 mt-0.5">{p.profession || 'Roommate'}{p.city ? ` · ${p.city}` : ''}</p>
@@ -1517,7 +1517,7 @@ export default function OwnerDashboard() {
                             const roomId = await getOrCreateChatRoom(user.uid, targetId);
                             navigate(`/chat/${roomId}`);
                           }}
-                          className="px-4 py-2 bg-[#E5501A] hover:bg-[#D0400B] text-white rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 shadow-xs"
+                          className="px-4 py-2 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 shadow-xs"
                         >
                           <MessageCircle className="w-3.5 h-3.5" /> Message
                         </button>
@@ -1531,7 +1531,7 @@ export default function OwnerDashboard() {
                 <div className="w-16 h-16 bg-emerald-50 rounded-3xl flex items-center justify-center mb-4 text-emerald-600">
                   <Users className="w-7 h-7" />
                 </div>
-                <h3 className="font-serif text-lg font-medium text-[#1A1A2E] mb-1">No accepted connections yet</h3>
+                <h3 className="font-serif text-lg font-medium text-[#1E2229] mb-1">No accepted connections yet</h3>
                 <p className="text-gray-400 text-xs">Accept incoming requests to connect with your future roommates.</p>
               </div>
             )}
@@ -1548,11 +1548,11 @@ export default function OwnerDashboard() {
             <section className="bg-white rounded-3xl p-6 shadow-xs border border-gray-100 relative">
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h3 className="font-serif text-lg font-medium text-[#1A1A2E]">Weekly Views</h3>
+                  <h3 className="font-serif text-lg font-medium text-[#1E2229]">Weekly Views</h3>
                   <p className="text-xs text-gray-400 mt-0.5">Last 7 days visitor traffic</p>
                 </div>
                 <div className="text-right">
-                  <span className="text-sm font-bold text-[#1A1A2E] block">{totalWeeklyViews} this week</span>
+                  <span className="text-sm font-bold text-[#1E2229] block">{totalWeeklyViews} this week</span>
                   <span className="text-xs text-gray-400">{totalAllTimeViews} all time</span>
                 </div>
               </div>
@@ -1571,7 +1571,7 @@ export default function OwnerDashboard() {
                               x={x}
                               y={y + 12}
                               textAnchor="middle"
-                              fill={isToday ? '#E5501A' : '#94a3b8'}
+                              fill={isToday ? '#FF5A36' : '#94a3b8'}
                               fontWeight={isToday ? 700 : 400}
                               fontSize={11}
                             >
@@ -1595,7 +1595,7 @@ export default function OwnerDashboard() {
                         {displayWeeklyViews.map((d, i) => (
                           <Cell
                             key={d.date || i}
-                            fill={d.isToday ? '#E5501A' : d.views > 0 ? '#FB923C' : '#F7F3ED'}
+                            fill={d.isToday ? '#FF5A36' : d.views > 0 ? '#FB923C' : '#FBFBFC'}
                           />
                         ))}
                       </Bar>
@@ -1607,7 +1607,7 @@ export default function OwnerDashboard() {
                   <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-3">
                     <TrendingUp className="w-5 h-5" />
                   </div>
-                  <h4 className="font-bold text-[#1A1A2E] text-sm mb-1">No views yet this week</h4>
+                  <h4 className="font-bold text-[#1E2229] text-sm mb-1">No views yet this week</h4>
                   <p className="text-gray-400 text-xs max-w-[240px]">
                     Share your listing or complete verification to boost your search presence.
                   </p>
@@ -1617,10 +1617,10 @@ export default function OwnerDashboard() {
               <div className="flex justify-between items-end border-t border-gray-100 pt-4 px-2">
                 {displayWeeklyViews.map(d => (
                   <div key={d.date} className="flex flex-col items-center gap-1">
-                    <span className={`text-xs ${d.isToday ? 'font-bold text-[#E5501A]' : 'text-gray-400'}`}>
+                    <span className={`text-xs ${d.isToday ? 'font-bold text-[#FF5A36]' : 'text-gray-400'}`}>
                       {d.isToday ? 'Today' : d.day}
                     </span>
-                    <span className={`text-sm font-semibold ${d.isToday ? 'font-bold text-[#E5501A]' : 'text-gray-700'}`}>
+                    <span className={`text-sm font-semibold ${d.isToday ? 'font-bold text-[#FF5A36]' : 'text-gray-700'}`}>
                       {d.views}
                     </span>
                   </div>
@@ -1631,21 +1631,21 @@ export default function OwnerDashboard() {
 
           {/* Quick Actions (Desktop) */}
           <section className="bg-white rounded-3xl p-6 shadow-xs border border-gray-100">
-            <h3 className="font-serif text-lg font-medium text-[#1A1A2E] mb-4">Quick Actions</h3>
+            <h3 className="font-serif text-lg font-medium text-[#1E2229] mb-4">Quick Actions</h3>
             <div className="flex flex-col gap-2.5">
               <button
                 onClick={() => navigate('/chat')}
-                className="flex items-center p-3.5 rounded-2xl hover:bg-[#FBF9F6] transition group border border-gray-100 w-full text-left"
+                className="flex items-center p-3.5 rounded-2xl hover:bg-[#FBFBFC] transition group border border-gray-100 w-full text-left"
               >
-                <div className="w-11 h-11 rounded-2xl bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center mr-3.5 group-hover:bg-[#E5501A] group-hover:text-white transition shrink-0">
+                <div className="w-11 h-11 rounded-2xl bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center mr-3.5 group-hover:bg-[#FF5A36] group-hover:text-white transition shrink-0">
                   <MessageCircle className="w-5 h-5" />
                 </div>
                 <div className="flex-grow">
-                  <h4 className="font-bold text-[#1A1A2E] text-sm">Messages</h4>
+                  <h4 className="font-bold text-[#1E2229] text-sm">Messages</h4>
                   <p className="text-gray-400 text-xs">View all conversations</p>
                 </div>
                 {chatCount > 0 && (
-                  <span className="bg-[#E5501A] text-white text-xs font-bold px-2 py-0.5 rounded-full mr-2">
+                  <span className="bg-[#FF5A36] text-white text-xs font-bold px-2 py-0.5 rounded-full mr-2">
                     {chatCount}
                   </span>
                 )}
@@ -1713,14 +1713,14 @@ export default function OwnerDashboard() {
 
             {/* 1. OWNER STATUS CARD (Dynamic, Navy/Orange/Warm White, compact) */}
             {pendingApplicants.length > 0 ? (
-              <div className="bg-[#1A1A2E] text-white rounded-2xl p-4 shadow-sm border border-white/10 flex items-center justify-between gap-3">
+              <div className="bg-[#1E2229] text-white rounded-2xl p-4 shadow-sm border border-white/10 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center shrink-0 shadow-xs">
+                  <div className="w-10 h-10 rounded-xl bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center shrink-0 shadow-xs">
                     <Users className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-[#E5501A] animate-pulse shrink-0" />
+                      <span className="w-2 h-2 rounded-full bg-[#FF5A36] animate-pulse shrink-0" />
                       <h4 className="font-bold text-xs sm:text-sm truncate">
                         {pendingApplicants.length} Request{pendingApplicants.length > 1 ? 's' : ''} Awaiting Review
                       </h4>
@@ -1733,15 +1733,15 @@ export default function OwnerDashboard() {
                 <button
                   type="button"
                   onClick={() => navigate('/owner-dashboard?tab=applicants')}
-                  className="px-3.5 py-1.5 bg-[#E5501A] hover:bg-[#D0400B] text-white rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer active:scale-95 shadow-xs"
+                  className="px-3.5 py-1.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer active:scale-95 shadow-xs"
                 >
                   Review →
                 </button>
               </div>
             ) : (
-              <div className="bg-[#1A1A2E] text-white rounded-2xl p-4 shadow-sm border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="bg-[#1E2229] text-white rounded-2xl p-4 shadow-sm border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/10 text-[#E5501A] flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 text-[#FF5A36] flex items-center justify-center shrink-0">
                     <ShieldCheck className="w-5 h-5" />
                   </div>
                   <div>
@@ -1752,7 +1752,7 @@ export default function OwnerDashboard() {
                 <button
                   type="button"
                   onClick={() => navigate('/owner-dashboard?tab=seekers')}
-                  className="self-start sm:self-auto text-xs font-bold text-[#1A1A2E] bg-white hover:bg-[#FBF9F6] px-3.5 py-1.5 rounded-full shadow-xs cursor-pointer active:scale-95 transition-all shrink-0"
+                  className="self-start sm:self-auto text-xs font-bold text-[#1E2229] bg-white hover:bg-[#FBFBFC] px-3.5 py-1.5 rounded-full shadow-xs cursor-pointer active:scale-95 transition-all shrink-0"
                 >
                   Browse Seeking Roommates →
                 </button>
@@ -1768,13 +1768,13 @@ export default function OwnerDashboard() {
             {allListings.length === 0 ? (
               <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-xs flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <h3 className="font-bold text-sm text-[#1A1A2E]">Start Hosting on NestMate</h3>
+                  <h3 className="font-bold text-sm text-[#1E2229]">Start Hosting on NestMate</h3>
                   <p className="text-[11px] text-gray-500 mt-0.5">List your room or flat to get verified inquiries.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => navigate('/edit-listing/new')}
-                  className="px-4 py-2 bg-[#E5501A] hover:bg-[#D0400B] text-white text-xs font-bold rounded-full transition-all flex items-center gap-1.5 shadow-xs shrink-0 cursor-pointer active:scale-95"
+                  className="px-4 py-2 bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs font-bold rounded-full transition-all flex items-center gap-1.5 shadow-xs shrink-0 cursor-pointer active:scale-95"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>List Your Room</span>
@@ -1783,11 +1783,11 @@ export default function OwnerDashboard() {
             ) : (
               <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-gray-100 shadow-xs flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center shrink-0">
                     <Building2 className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-bold text-xs sm:text-sm text-[#1A1A2E] truncate">
+                    <h3 className="font-bold text-xs sm:text-sm text-[#1E2229] truncate">
                       {allListings.length} {allListings.length === 1 ? 'Property' : 'Properties'} Listed
                     </h3>
                     <p className="text-[10px] sm:text-[11px] text-gray-500 truncate font-medium">
@@ -1799,9 +1799,9 @@ export default function OwnerDashboard() {
                   <button
                     type="button"
                     onClick={() => navigate('/owner-dashboard?tab=listings')}
-                    className="px-3.5 py-1.5 bg-[#1A1A2E] hover:bg-[#2A2A44] text-white text-xs font-bold rounded-full transition-all flex items-center gap-1 shadow-xs cursor-pointer active:scale-95"
+                    className="px-3.5 py-1.5 bg-[#1E2229] hover:bg-[#2A2A44] text-white text-xs font-bold rounded-full transition-all flex items-center gap-1 shadow-xs cursor-pointer active:scale-95"
                   >
-                    <Building2 className="w-3 h-3 text-[#E5501A]" />
+                    <Building2 className="w-3 h-3 text-[#FF5A36]" />
                     <span>Manage Listing</span>
                   </button>
                   <button
@@ -1821,53 +1821,53 @@ export default function OwnerDashboard() {
             <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
               <div
                 onClick={() => navigate('/owner-dashboard?tab=listings')}
-                className="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-xs hover:border-[#E5501A]/40 transition-all cursor-pointer"
+                className="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-xs hover:border-[#FF5A36]/40 transition-all cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Properties</span>
-                  <div className="w-7 h-7 rounded-xl bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-xl bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center">
                     <Building2 className="w-3.5 h-3.5" />
                   </div>
                 </div>
-                <p className="font-serif text-xl sm:text-2xl font-medium text-[#1A1A2E]">{allListings.length}</p>
+                <p className="font-serif text-xl sm:text-2xl font-medium text-[#1E2229]">{allListings.length}</p>
                 <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{allListings.filter(l => l.status === 'active').length} Active</p>
               </div>
 
               <div
                 onClick={() => navigate('/owner-dashboard?tab=applicants')}
-                className={`bg-white rounded-2xl p-3.5 border shadow-xs hover:border-[#E5501A]/40 transition-all cursor-pointer ${
-                  pendingApplicants.length > 0 ? 'border-[#E5501A]/30 bg-[#FFF2EB]/20' : 'border-gray-100'
+                className={`bg-white rounded-2xl p-3.5 border shadow-xs hover:border-[#FF5A36]/40 transition-all cursor-pointer ${
+                  pendingApplicants.length > 0 ? 'border-[#FF5A36]/30 bg-[#FFF2EB]/20' : 'border-gray-100'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Inquiries</span>
                   <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${
-                    pendingApplicants.length > 0 ? 'bg-[#E5501A] text-white' : 'bg-gray-100 text-gray-500'
+                    pendingApplicants.length > 0 ? 'bg-[#FF5A36] text-white' : 'bg-gray-100 text-gray-500'
                   }`}>
                     <Users className="w-3.5 h-3.5" />
                   </div>
                 </div>
-                <p className="font-serif text-xl sm:text-2xl font-medium text-[#1A1A2E]">{pendingApplicants.length}</p>
+                <p className="font-serif text-xl sm:text-2xl font-medium text-[#1E2229]">{pendingApplicants.length}</p>
                 <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{pendingApplicants.length > 0 ? 'Action needed' : 'All clear'}</p>
               </div>
 
               <div
                 onClick={() => navigate('/chat')}
-                className="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-xs hover:border-[#E5501A]/40 transition-all cursor-pointer"
+                className="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-xs hover:border-[#FF5A36]/40 transition-all cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Messages</span>
-                  <div className="w-7 h-7 rounded-xl bg-orange-50 text-[#E5501A] flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-xl bg-orange-50 text-[#FF5A36] flex items-center justify-center">
                     <MessageCircle className="w-3.5 h-3.5" />
                   </div>
                 </div>
-                <p className="font-serif text-xl sm:text-2xl font-medium text-[#1A1A2E]">{chatCount}</p>
+                <p className="font-serif text-xl sm:text-2xl font-medium text-[#1E2229]">{chatCount}</p>
                 <p className="text-[10px] text-gray-500 mt-0.5 font-medium">Conversations</p>
               </div>
 
               <div
                 onClick={() => navigate('/owner-dashboard?tab=listings')}
-                className="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-xs hover:border-[#E5501A]/40 transition-all cursor-pointer"
+                className="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-xs hover:border-[#FF5A36]/40 transition-all cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Views</span>
@@ -1876,7 +1876,7 @@ export default function OwnerDashboard() {
                   </div>
                 </div>
                 <div className="flex items-baseline gap-1.5">
-                  <p className="font-serif text-xl sm:text-2xl font-medium text-[#1A1A2E]">{totalWeeklyViews}</p>
+                  <p className="font-serif text-xl sm:text-2xl font-medium text-[#1E2229]">{totalWeeklyViews}</p>
                   <span className="text-[10px] text-gray-400 font-medium">week</span>
                 </div>
                 <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{totalAllTimeViews} all time</p>
@@ -1886,10 +1886,10 @@ export default function OwnerDashboard() {
             {/* 3. LISTING / PROPERTY STATUS */}
             <section className="bg-white rounded-2xl p-4 shadow-xs border border-gray-100">
               <div className="flex justify-between items-center mb-3">
-                <h3 className="font-serif text-base font-medium text-[#1A1A2E]">Your Properties ({allListings.length})</h3>
+                <h3 className="font-serif text-base font-medium text-[#1E2229]">Your Properties ({allListings.length})</h3>
                 <button
                   onClick={() => navigate('/owner-dashboard?tab=listings')}
-                  className="text-xs font-semibold text-[#E5501A] flex items-center gap-0.5"
+                  className="text-xs font-semibold text-[#FF5A36] flex items-center gap-0.5"
                 >
                   Manage <ChevronRight className="w-3.5 h-3.5" />
                 </button>
@@ -1900,20 +1900,20 @@ export default function OwnerDashboard() {
                   {allListings.slice(0, 3).map(listing => (
                     <div
                       key={listing.id}
-                      className="p-3 rounded-xl border border-gray-100 bg-[#FBF9F6] flex items-center justify-between gap-3"
+                      className="p-3 rounded-xl border border-gray-100 bg-[#FBFBFC] flex items-center justify-between gap-3"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 shrink-0">
                           {listing.images && listing.images.length > 0 ? (
                             <img src={listing.images[0]} alt={listing.title} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full bg-[#1A1A2E] flex items-center justify-center text-white text-[10px] font-bold">
+                            <div className="w-full h-full bg-[#1E2229] flex items-center justify-center text-white text-[10px] font-bold">
                               NestMate
                             </div>
                           )}
                         </div>
                         <div className="min-w-0">
-                          <h4 className="font-bold text-[#1A1A2E] text-xs truncate">{listing.title || `${listing.locality} Flat`}</h4>
+                          <h4 className="font-bold text-[#1E2229] text-xs truncate">{listing.title || `${listing.locality} Flat`}</h4>
                           <p className="text-[10px] text-gray-500 truncate font-medium">{listing.locality} · ₹{listing.totalRent?.toLocaleString('en-IN')}/mo</p>
                           <span className={`inline-block text-[9px] font-bold px-1.5 py-0.2 rounded-md mt-0.5 uppercase ${
                             listing.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
@@ -1927,7 +1927,7 @@ export default function OwnerDashboard() {
                           handleSelectListing(listing);
                           navigate('/owner-dashboard?tab=listings');
                         }}
-                        className="px-3 py-1.5 bg-[#1A1A2E] text-white rounded-full text-[11px] font-bold shrink-0 shadow-2xs active:scale-95"
+                        className="px-3 py-1.5 bg-[#1E2229] text-white rounded-full text-[11px] font-bold shrink-0 shadow-2xs active:scale-95"
                       >
                         Manage
                       </button>
@@ -1936,7 +1936,7 @@ export default function OwnerDashboard() {
                   {allListings.length > 3 && (
                     <button
                       onClick={() => navigate('/owner-dashboard?tab=listings')}
-                      className="w-full py-2 text-center text-xs font-bold text-[#E5501A] hover:underline"
+                      className="w-full py-2 text-center text-xs font-bold text-[#FF5A36] hover:underline"
                     >
                       + {allListings.length - 3} more properties
                     </button>
@@ -1944,14 +1944,14 @@ export default function OwnerDashboard() {
                 </div>
               ) : (
                 <div className="text-center py-6 px-4">
-                  <div className="w-10 h-10 bg-[#FFF2EB] text-[#E5501A] rounded-2xl flex items-center justify-center mx-auto mb-2.5">
+                  <div className="w-10 h-10 bg-[#FFF2EB] text-[#FF5A36] rounded-2xl flex items-center justify-center mx-auto mb-2.5">
                     <Building2 className="w-5 h-5" />
                   </div>
-                  <h4 className="font-bold text-xs text-[#1A1A2E] mb-1">No properties listed yet</h4>
+                  <h4 className="font-bold text-xs text-[#1E2229] mb-1">No properties listed yet</h4>
                   <p className="text-[11px] text-gray-400 mb-3.5">List your room to connect with verified roommates in your area.</p>
                   <button
                     onClick={() => navigate('/edit-listing/new')}
-                    className="px-4 py-2 bg-[#E5501A] hover:bg-[#D0400B] text-white text-xs font-bold rounded-full shadow-xs inline-flex items-center gap-1 active:scale-95"
+                    className="px-4 py-2 bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs font-bold rounded-full shadow-xs inline-flex items-center gap-1 active:scale-95"
                   >
                     <Plus className="w-3.5 h-3.5" /> List Your Room
                   </button>
@@ -1963,18 +1963,18 @@ export default function OwnerDashboard() {
             <section className="bg-white rounded-2xl p-4 shadow-xs border border-gray-100">
               <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-serif text-base font-medium text-[#1A1A2E]">
+                  <h3 className="font-serif text-base font-medium text-[#1E2229]">
                     Room Seekers Looking Now
                   </h3>
                   {filteredSeekers.length > 0 && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FFF2EB] text-[#E5501A]">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FFF2EB] text-[#FF5A36]">
                       {filteredSeekers.length}
                     </span>
                   )}
                 </div>
                 <button
                   onClick={() => navigate('/owner-dashboard?tab=seekers')}
-                  className="text-xs font-semibold text-[#E5501A] flex items-center gap-0.5"
+                  className="text-xs font-semibold text-[#FF5A36] flex items-center gap-0.5"
                 >
                   Browse All <ChevronRight className="w-3.5 h-3.5" />
                 </button>
@@ -1991,28 +1991,27 @@ export default function OwnerDashboard() {
                       score={score}
                       ownerListing={myListing}
                       onChat={handleChatSeeker}
-                      onCall={handleCallSeeker}
                     />
                   ))}
                   <button
                     type="button"
                     onClick={() => navigate('/owner-dashboard?tab=seekers')}
-                    className="w-full py-2.5 bg-[#FFF2EB] hover:bg-[#FFE5D6] text-[#E5501A] rounded-xl text-xs font-bold transition-all text-center flex items-center justify-center gap-1 cursor-pointer active:scale-95"
+                    className="w-full py-2.5 bg-[#FFF2EB] hover:bg-[#FFE5D6] text-[#FF5A36] rounded-xl text-xs font-bold transition-all text-center flex items-center justify-center gap-1 cursor-pointer active:scale-95"
                   >
                     Browse Seeking Roommates ({filteredSeekers.length} active) →
                   </button>
                 </div>
               ) : (
                 <div className="text-center py-6 px-4">
-                  <div className="w-10 h-10 bg-[#FFF2EB] text-[#E5501A] rounded-2xl flex items-center justify-center mx-auto mb-2.5">
+                  <div className="w-10 h-10 bg-[#FFF2EB] text-[#FF5A36] rounded-2xl flex items-center justify-center mx-auto mb-2.5">
                     <Users className="w-5 h-5" />
                   </div>
-                  <h4 className="font-bold text-xs text-[#1A1A2E] mb-1">Browse verified room seekers</h4>
+                  <h4 className="font-bold text-xs text-[#1E2229] mb-1">Browse verified room seekers</h4>
                   <p className="text-[11px] text-gray-400 mb-3.5">Discover roommate candidates looking for rooms in your area.</p>
                   <button
                     type="button"
                     onClick={() => navigate('/owner-dashboard?tab=seekers')}
-                    className="px-4 py-2 bg-[#E5501A] hover:bg-[#D0400B] text-white text-xs font-bold rounded-full shadow-xs inline-flex items-center gap-1 active:scale-95"
+                    className="px-4 py-2 bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs font-bold rounded-full shadow-xs inline-flex items-center gap-1 active:scale-95"
                   >
                     Browse Seeking Roommates →
                   </button>
@@ -2024,14 +2023,14 @@ export default function OwnerDashboard() {
             <section className="bg-white rounded-2xl p-4 shadow-xs border border-gray-100">
               <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-serif text-base font-medium text-[#1A1A2E]">
+                  <h3 className="font-serif text-base font-medium text-[#1E2229]">
                     Recent Inquiries ({pendingApplicants.length})
                   </h3>
                 </div>
                 {pendingApplicants.length > 0 && (
                   <button
                     onClick={() => navigate('/owner-dashboard?tab=applicants')}
-                    className="text-xs font-semibold text-[#E5501A] flex items-center gap-0.5"
+                    className="text-xs font-semibold text-[#FF5A36] flex items-center gap-0.5"
                   >
                     View all <ChevronRight className="w-3.5 h-3.5" />
                   </button>
@@ -2045,12 +2044,12 @@ export default function OwnerDashboard() {
                     return (
                       <div
                         key={applicant.connection.id}
-                        className="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-100 bg-[#FBF9F6]"
+                        className="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-100 bg-[#FBFBFC]"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <UserAvatar src={p.avatar} name={p.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
                           <div className="min-w-0">
-                            <h4 className="font-bold text-[#1A1A2E] text-xs truncate">{p.name}</h4>
+                            <h4 className="font-bold text-[#1E2229] text-xs truncate">{p.name}</h4>
                             <p className="text-[10px] text-gray-500 truncate font-medium">{applicant.fit.score}% match · ₹{p.budget?.toLocaleString('en-IN') || 'Flex'}</p>
                           </div>
                         </div>
@@ -2066,7 +2065,7 @@ export default function OwnerDashboard() {
                           <button
                             onClick={() => handleAccept(applicant)}
                             disabled={!!processingApplicantId}
-                            className="px-3 py-1.5 bg-[#E5501A] hover:bg-[#D0400B] text-white rounded-full text-xs font-semibold transition-all flex items-center gap-1 shadow-xs cursor-pointer active:scale-95"
+                            className="px-3 py-1.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full text-xs font-semibold transition-all flex items-center gap-1 shadow-xs cursor-pointer active:scale-95"
                           >
                             <Check className="w-3 h-3" /> Accept
                           </button>
@@ -2080,7 +2079,7 @@ export default function OwnerDashboard() {
                   <div className="w-10 h-10 bg-gray-100 text-gray-500 rounded-2xl flex items-center justify-center mx-auto mb-2">
                     <Mail className="w-4 h-4" />
                   </div>
-                  <h4 className="font-bold text-xs text-[#1A1A2E] mb-0.5">No pending roommate requests</h4>
+                  <h4 className="font-bold text-xs text-[#1E2229] mb-0.5">No pending roommate requests</h4>
                   <p className="text-[11px] text-gray-400">When seekers apply to your listing, they will appear here.</p>
                 </div>
               )}
@@ -2089,10 +2088,10 @@ export default function OwnerDashboard() {
             {/* 6. MESSAGES & CONNECTIONS PREVIEW (Requirement 5 & 12) */}
             <section className="bg-white rounded-2xl p-4 shadow-xs border border-gray-100">
               <div className="flex justify-between items-center mb-3">
-                <h3 className="font-serif text-base font-medium text-[#1A1A2E]">Messages &amp; Chats</h3>
+                <h3 className="font-serif text-base font-medium text-[#1E2229]">Messages &amp; Chats</h3>
                 <button
                   onClick={() => navigate('/chat')}
-                  className="text-xs font-semibold text-[#E5501A] flex items-center gap-0.5"
+                  className="text-xs font-semibold text-[#FF5A36] flex items-center gap-0.5"
                 >
                   Open Chats <ChevronRight className="w-3.5 h-3.5" />
                 </button>
@@ -2100,14 +2099,14 @@ export default function OwnerDashboard() {
 
               <div
                 onClick={() => navigate('/chat')}
-                className="p-3 rounded-xl border border-gray-100 bg-[#FBF9F6] flex items-center justify-between gap-3 cursor-pointer hover:border-[#E5501A]/30 transition-all"
+                className="p-3 rounded-xl border border-gray-100 bg-[#FBFBFC] flex items-center justify-between gap-3 cursor-pointer hover:border-[#FF5A36]/30 transition-all"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-xl bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center shrink-0">
                     <MessageCircle className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="font-bold text-[#1A1A2E] text-xs truncate">
+                    <h4 className="font-bold text-[#1E2229] text-xs truncate">
                       {chatCount > 0 ? `${chatCount} Active Conversation${chatCount === 1 ? '' : 's'}` : 'No active chats'}
                     </h4>
                     <p className="text-[10px] text-gray-500 truncate mt-0.5">
@@ -2128,7 +2127,7 @@ export default function OwnerDashboard() {
                         <div key={conn.connection.id} className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
                             <UserAvatar src={p.avatar} name={p.name} className="w-7 h-7 rounded-full object-cover shrink-0" />
-                            <span className="font-bold text-xs text-[#1A1A2E] truncate">{p.name}</span>
+                            <span className="font-bold text-xs text-[#1E2229] truncate">{p.name}</span>
                           </div>
                           <button
                             type="button"
@@ -2138,7 +2137,7 @@ export default function OwnerDashboard() {
                               const roomId = await getOrCreateChatRoom(user.uid, targetId);
                               navigate(`/chat/${roomId}`);
                             }}
-                            className="px-3 py-1 bg-[#1A1A2E] text-white rounded-full text-[11px] font-bold shadow-2xs cursor-pointer"
+                            className="px-3 py-1 bg-[#1E2229] text-white rounded-full text-[11px] font-bold shadow-2xs cursor-pointer"
                           >
                             Chat
                           </button>
@@ -2158,12 +2157,12 @@ export default function OwnerDashboard() {
                     <TrendingUp className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-serif text-sm font-medium text-[#1A1A2E]">Weekly Views</h3>
+                    <h3 className="font-serif text-sm font-medium text-[#1E2229]">Weekly Views</h3>
                     <p className="text-[10px] text-gray-400">Last 7 days traffic</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs font-bold text-[#1A1A2E] block">{totalWeeklyViews} this week</span>
+                  <span className="text-xs font-bold text-[#1E2229] block">{totalWeeklyViews} this week</span>
                   <span className="text-[10px] text-gray-400">{totalAllTimeViews} all time</span>
                 </div>
               </div>
@@ -2182,7 +2181,7 @@ export default function OwnerDashboard() {
                               x={x}
                               y={y + 11}
                               textAnchor="middle"
-                              fill={isToday ? '#E5501A' : '#94a3b8'}
+                              fill={isToday ? '#FF5A36' : '#94a3b8'}
                               fontWeight={isToday ? 700 : 400}
                               fontSize={9}
                             >
@@ -2202,7 +2201,7 @@ export default function OwnerDashboard() {
                         {displayWeeklyViews.map((d, i) => (
                           <Cell
                             key={d.date || i}
-                            fill={d.isToday ? '#E5501A' : d.views > 0 ? '#FB923C' : '#F7F3ED'}
+                            fill={d.isToday ? '#FF5A36' : d.views > 0 ? '#FB923C' : '#FBFBFC'}
                           />
                         ))}
                       </Bar>
@@ -2221,10 +2220,10 @@ export default function OwnerDashboard() {
                 {myListing && (
                   <button
                     onClick={() => navigate(`/edit-listing/${myListing.id}`)}
-                    className="p-2.5 rounded-xl border border-gray-100 bg-[#FBF9F6] hover:bg-white flex items-center gap-2 text-left transition-colors cursor-pointer"
+                    className="p-2.5 rounded-xl border border-gray-100 bg-[#FBFBFC] hover:bg-white flex items-center gap-2 text-left transition-colors cursor-pointer"
                   >
-                    <Edit3 className="w-3.5 h-3.5 text-[#E5501A] shrink-0" />
-                    <span className="text-xs font-semibold text-[#1A1A2E] truncate">Edit Listing</span>
+                    <Edit3 className="w-3.5 h-3.5 text-[#FF5A36] shrink-0" />
+                    <span className="text-xs font-semibold text-[#1E2229] truncate">Edit Listing</span>
                   </button>
                 )}
                 {pendingApplicants.length > 1 && (
@@ -2234,25 +2233,25 @@ export default function OwnerDashboard() {
                       const lQuery = myListing?.id ? `&listingId=${myListing.id}` : '';
                       navigate(ids ? `/applicants/compare?ids=${ids}${lQuery}` : '/applicants/compare');
                     }}
-                    className="p-2.5 rounded-xl border border-gray-100 bg-[#FBF9F6] hover:bg-white flex items-center gap-2 text-left transition-colors cursor-pointer"
+                    className="p-2.5 rounded-xl border border-gray-100 bg-[#FBFBFC] hover:bg-white flex items-center gap-2 text-left transition-colors cursor-pointer"
                   >
                     <Users className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                    <span className="text-xs font-semibold text-[#1A1A2E] truncate">Compare</span>
+                    <span className="text-xs font-semibold text-[#1E2229] truncate">Compare</span>
                   </button>
                 )}
                 <button
                   onClick={() => navigate('/settings')}
-                  className="p-2.5 rounded-xl border border-gray-100 bg-[#FBF9F6] hover:bg-white flex items-center gap-2 text-left transition-colors cursor-pointer"
+                  className="p-2.5 rounded-xl border border-gray-100 bg-[#FBFBFC] hover:bg-white flex items-center gap-2 text-left transition-colors cursor-pointer"
                 >
                   <Settings className="w-3.5 h-3.5 text-gray-600 shrink-0" />
-                  <span className="text-xs font-semibold text-[#1A1A2E] truncate">Settings</span>
+                  <span className="text-xs font-semibold text-[#1E2229] truncate">Settings</span>
                 </button>
                 <button
                   onClick={() => navigate('/safety')}
-                  className="p-2.5 rounded-xl border border-gray-100 bg-[#FBF9F6] hover:bg-white flex items-center gap-2 text-left transition-colors cursor-pointer"
+                  className="p-2.5 rounded-xl border border-gray-100 bg-[#FBFBFC] hover:bg-white flex items-center gap-2 text-left transition-colors cursor-pointer"
                 >
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span className="text-xs font-semibold text-[#1A1A2E] truncate">Safety Center</span>
+                  <span className="text-xs font-semibold text-[#1E2229] truncate">Safety Center</span>
                 </button>
               </div>
             </section>
@@ -2289,8 +2288,8 @@ export default function OwnerDashboard() {
                       <button
                         onClick={() => handleSelectListing(l)}
                         className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all flex items-center gap-1.5 ${isSelected
-                          ? 'border-[#E5501A] bg-[#E5501A] text-white shadow-xs font-bold pr-7'
-                          : 'border-gray-200 bg-white hover:border-[#E5501A]/40 text-gray-700 pr-7'
+                          ? 'border-[#FF5A36] bg-[#FF5A36] text-white shadow-xs font-bold pr-7'
+                          : 'border-gray-200 bg-white hover:border-[#FF5A36]/40 text-gray-700 pr-7'
                           }`}
                       >
                         <span>{l.title ? (l.title.length > 18 ? `${l.title.substring(0, 18)}...` : l.title) : `${l.locality} (${l.flatType})`}</span>
@@ -2317,7 +2316,7 @@ export default function OwnerDashboard() {
 
             <div className="flex items-center justify-between w-full pt-3 border-t border-gray-100">
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-[#E5501A] font-semibold bg-[#FFF2EB] px-2.5 py-0.5 rounded-full border border-[#E5501A]/20">
+                <span className="text-[11px] text-[#FF5A36] font-semibold bg-[#FFF2EB] px-2.5 py-0.5 rounded-full border border-[#FF5A36]/20">
                   Unlimited
                 </span>
                 {ownerVerification?.status === 'APPROVED' ? (
@@ -2332,7 +2331,7 @@ export default function OwnerDashboard() {
               </div>
               <button
                 onClick={() => navigate('/edit-listing/new')}
-                className="px-4 py-1.5 bg-[#E5501A] hover:bg-[#D0400B] text-white text-xs font-semibold rounded-full transition-all flex items-center gap-1 shadow-xs"
+                className="px-4 py-1.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs font-semibold rounded-full transition-all flex items-center gap-1 shadow-xs"
               >
                 <Plus className="w-3.5 h-3.5" /> Add Space
               </button>
@@ -2349,14 +2348,14 @@ export default function OwnerDashboard() {
 
         {/* Hero Section (Mobile) */}
         {myListing ? (
-          <div className="relative rounded-3xl overflow-hidden shadow-md border border-gray-100 bg-[#1A1A2E]">
+          <div className="relative rounded-3xl overflow-hidden shadow-md border border-gray-100 bg-[#1E2229]">
             <div className="absolute inset-0">
               {myListing.images && myListing.images.length > 0 ? (
                 <img src={myListing.images[0]} alt="Listing cover" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full bg-[#1A1A2E]" />
+                <div className="w-full h-full bg-[#1E2229]" />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A2E] via-[#1A1A2E]/85 to-[#1A1A2E]/40" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#1E2229] via-[#1E2229]/85 to-[#1E2229]/40" />
             </div>
 
             <div className="relative p-5 pt-16 text-white flex flex-col justify-end min-h-[300px]">
@@ -2388,7 +2387,7 @@ export default function OwnerDashboard() {
                   {myListing.status === 'active' ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                 </button>
                 {getAvailabilityState(myListing) !== 'available' && myListing.status === 'active' && (
-                  <button onClick={handleConfirmAvailability} className="px-3 py-1 bg-[#E5501A] text-white text-[10px] font-bold rounded-full shadow-md">
+                  <button onClick={handleConfirmAvailability} className="px-3 py-1 bg-[#FF5A36] text-white text-[10px] font-bold rounded-full shadow-md">
                     Confirm Available
                   </button>
                 )}
@@ -2400,7 +2399,7 @@ export default function OwnerDashboard() {
               <div className="mb-4">
                 <h2 className="font-serif text-2xl font-medium mb-1 leading-tight drop-shadow">{myListing.title}</h2>
                 <p className="text-xs text-gray-200 flex items-center gap-1 drop-shadow">
-                  <MapPin className="w-3.5 h-3.5 text-[#E5501A] shrink-0" /> {myListing.locality}, {myListing.city}
+                  <MapPin className="w-3.5 h-3.5 text-[#FF5A36] shrink-0" /> {myListing.locality}, {myListing.city}
                 </p>
               </div>
 
@@ -2425,16 +2424,16 @@ export default function OwnerDashboard() {
             </div>
           </div>
         ) : (
-          <section className="relative bg-[#1A1A2E] rounded-3xl p-6 text-white overflow-hidden shadow-sm">
+          <section className="relative bg-[#1E2229] rounded-3xl p-6 text-white overflow-hidden shadow-sm">
             <div className="relative z-10 w-full">
-              <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center mb-4 text-[#E5501A]">
+              <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center mb-4 text-[#FF5A36]">
                 <FileText className="w-5 h-5" />
               </div>
               <h2 className="font-serif text-xl font-medium mb-1">No listing yet</h2>
               <p className="text-gray-300 text-xs mb-5 leading-relaxed">Create your first listing to start finding great roommates.</p>
               <button
                 onClick={() => navigate('/edit-listing/new')}
-                className="bg-[#E5501A] hover:bg-[#D0400B] text-white px-5 py-2.5 rounded-full font-semibold flex items-center gap-2 transition-colors text-xs"
+                className="bg-[#FF5A36] hover:bg-[#E54E2B] text-white px-5 py-2.5 rounded-full font-semibold flex items-center gap-2 transition-colors text-xs"
               >
                 Create Listing
                 <ArrowRight className="w-4 h-4" />
@@ -2454,11 +2453,11 @@ export default function OwnerDashboard() {
             <section className="bg-white rounded-3xl p-5 shadow-xs border border-gray-100">
               <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#FFF2EB] rounded-2xl flex items-center justify-center text-[#E5501A]">
+                  <div className="w-10 h-10 bg-[#FFF2EB] rounded-2xl flex items-center justify-center text-[#FF5A36]">
                     <Users className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="font-serif text-lg font-medium text-[#1A1A2E]">Inquiries ({pendingApplicants.length})</h2>
+                    <h2 className="font-serif text-lg font-medium text-[#1E2229]">Inquiries ({pendingApplicants.length})</h2>
                     <p className="text-[11px] text-gray-400">Sorted by verified compatibility.</p>
                   </div>
                 </div>
@@ -2469,7 +2468,7 @@ export default function OwnerDashboard() {
                       const lQuery = myListing?.id ? `&listingId=${myListing.id}` : '';
                       navigate(ids ? `/applicants/compare?ids=${ids}${lQuery}` : '/applicants/compare');
                     }}
-                    className="px-3.5 py-1.5 border border-[#E5501A]/30 text-[#E5501A] bg-[#FFF2EB] hover:bg-[#FFE5D6] rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+                    className="px-3.5 py-1.5 border border-[#FF5A36]/30 text-[#FF5A36] bg-[#FFF2EB] hover:bg-[#FFE5D6] rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
                   >
                     <Users className="w-3.5 h-3.5" /> Compare
                   </button>
@@ -2486,15 +2485,15 @@ export default function OwnerDashboard() {
                     key={applicant.connection.id}
                     id={`request-${applicant.connection.id}`}
                     className={`flex flex-col gap-3 p-4 rounded-2xl border transition-all ${isHighlighted
-                      ? 'bg-[#FFF2EB]/50 border-[#E5501A]/40 shadow-sm'
-                      : 'bg-[#FBF9F6] border-gray-100'
+                      ? 'bg-[#FFF2EB]/50 border-[#FF5A36]/40 shadow-sm'
+                      : 'bg-[#FBFBFC] border-gray-100'
                       }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <UserAvatar src={p.avatar} name={p.name} className="w-11 h-11 rounded-full object-cover border border-white shadow-xs shrink-0" />
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <h4 className="font-bold text-[#1A1A2E] text-sm truncate">{p.name}</h4>
+                          <h4 className="font-bold text-[#1E2229] text-sm truncate">{p.name}</h4>
                           {p.workEmailVerified && <span title="Corporate Verified"><CheckCircle2 className="w-3.5 h-3.5 text-blue-500" /></span>}
                           {p.isVerified && <span title="ID Verified"><Shield className="w-3.5 h-3.5 text-emerald-600" /></span>}
                         </div>
@@ -2504,11 +2503,11 @@ export default function OwnerDashboard() {
                           if (!req) return null;
                           const label = req.title ? (req.title.length > 26 ? `${req.title.slice(0, 26)}…` : req.title) : `${req.locality}`;
                           return (
-                            <p className="text-[11px] text-gray-600 mt-0.5 truncate">Interested in: <span className="font-semibold text-[#1A1A2E]">{label}</span></p>
+                            <p className="text-[11px] text-gray-600 mt-0.5 truncate">Interested in: <span className="font-semibold text-[#1E2229]">{label}</span></p>
                           );
                         })()}
                         <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FFF2EB] text-[#E5501A] border border-[#E5501A]/20">{applicant.fit.score}% match</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FFF2EB] text-[#FF5A36] border border-[#FF5A36]/20">{applicant.fit.score}% match</span>
                           {applicant.fit.reasons.slice(0, 1).map(r => (
                             <span key={r} className="text-[10px] text-emerald-800 font-medium inline-flex items-center gap-0.5 bg-emerald-50 px-2 py-0.5 rounded-full"><Check className="w-2.5 h-2.5 text-emerald-600" />{r}</span>
                           ))}
@@ -2522,7 +2521,7 @@ export default function OwnerDashboard() {
                           <button
                             type="button"
                             onClick={() => setSelectedScreeningApplicant(applicant)}
-                            className="px-3 py-1.5 border border-orange-200 bg-orange-50/60 hover:bg-orange-100 text-[#E5501A] rounded-full text-xs font-semibold flex items-center gap-1 shadow-2xs cursor-pointer"
+                            className="px-3 py-1.5 border border-orange-200 bg-orange-50/60 hover:bg-orange-100 text-[#FF5A36] rounded-full text-xs font-semibold flex items-center gap-1 shadow-2xs cursor-pointer"
                           >
                             <FileText className="w-3 h-3" /> Answers
                           </button>
@@ -2545,7 +2544,7 @@ export default function OwnerDashboard() {
                         </button>
                         <button
                           onClick={() => handleAccept(applicant)}
-                          className="px-4 py-1.5 bg-[#E5501A] hover:bg-[#D0400B] text-white rounded-full font-semibold text-xs flex items-center gap-1 shadow-xs cursor-pointer active:scale-95"
+                          className="px-4 py-1.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full font-semibold text-xs flex items-center gap-1 shadow-xs cursor-pointer active:scale-95"
                         >
                           <Check className="w-3.5 h-3.5" /> Accept
                         </button>
@@ -2557,10 +2556,10 @@ export default function OwnerDashboard() {
             </div>
           ) : (
             <div className="flex flex-col items-center text-center py-5">
-              <div className="w-14 h-14 bg-[#FFF2EB] rounded-2xl flex items-center justify-center mb-3 text-[#E5501A]">
+              <div className="w-14 h-14 bg-[#FFF2EB] rounded-2xl flex items-center justify-center mb-3 text-[#FF5A36]">
                 <Mail className="w-6 h-6" />
               </div>
-              <h3 className="font-serif text-base font-medium text-[#1A1A2E] mb-1">No pending requests</h3>
+              <h3 className="font-serif text-base font-medium text-[#1E2229] mb-1">No pending requests</h3>
               <p className="text-xs text-gray-400">{myListing ? 'Your listing is live. Roommate requests will appear here.' : 'Create a listing to start receiving roommate requests.'}</p>
             </div>
           )}
@@ -2573,11 +2572,11 @@ export default function OwnerDashboard() {
               <div className="w-10 h-10 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-700">
                 <Users className="w-5 h-5" />
               </div>
-              <h2 className="font-serif text-base font-medium text-[#1A1A2E]">My Connections ({acceptedConnections.length})</h2>
+              <h2 className="font-serif text-base font-medium text-[#1E2229]">My Connections ({acceptedConnections.length})</h2>
             </div>
             <button
               onClick={() => navigate('/chat')}
-              className="text-[#E5501A] text-xs font-semibold flex items-center gap-1 hover:underline"
+              className="text-[#FF5A36] text-xs font-semibold flex items-center gap-1 hover:underline"
             >
               View all
               <ChevronRight className="w-4 h-4" />
@@ -2591,12 +2590,12 @@ export default function OwnerDashboard() {
                 return (
                   <div
                     key={conn.connection.id}
-                    className="flex items-center justify-between gap-3 p-3 rounded-2xl border border-gray-100 bg-[#FBF9F6]"
+                    className="flex items-center justify-between gap-3 p-3 rounded-2xl border border-gray-100 bg-[#FBFBFC]"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <UserAvatar src={p.avatar} name={p.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
                       <div className="min-w-0">
-                        <h4 className="font-bold text-[#1A1A2E] text-xs truncate">{p.name}</h4>
+                        <h4 className="font-bold text-[#1E2229] text-xs truncate">{p.name}</h4>
                         <p className="text-[11px] text-gray-500 truncate">{p.profession || 'Roommate'}</p>
                       </div>
                     </div>
@@ -2607,7 +2606,7 @@ export default function OwnerDashboard() {
                         const roomId = await getOrCreateChatRoom(user.uid, targetId);
                         navigate(`/chat/${roomId}`);
                       }}
-                      className="px-3.5 py-1.5 bg-[#E5501A] hover:bg-[#D0400B] text-white rounded-full text-xs font-semibold shrink-0 shadow-xs"
+                      className="px-3.5 py-1.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full text-xs font-semibold shrink-0 shadow-xs"
                     >
                       Message
                     </button>
@@ -2620,7 +2619,7 @@ export default function OwnerDashboard() {
               <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mb-3 text-emerald-700">
                 <Users className="w-6 h-6" />
               </div>
-              <h3 className="font-serif text-base font-medium text-[#1A1A2E] mb-1">No accepted connections yet</h3>
+              <h3 className="font-serif text-base font-medium text-[#1E2229] mb-1">No accepted connections yet</h3>
               <p className="text-xs text-gray-400">Accept incoming requests to connect.</p>
             </div>
           )}
@@ -2637,12 +2636,12 @@ export default function OwnerDashboard() {
                   <TrendingUp className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="font-serif text-base font-medium text-[#1A1A2E] leading-tight">Weekly Views</h2>
+                  <h2 className="font-serif text-base font-medium text-[#1E2229] leading-tight">Weekly Views</h2>
                   <span className="text-[11px] text-gray-400">Last 7 days visitor traffic</span>
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-xs font-bold text-[#1A1A2E] block">{totalWeeklyViews} this week</span>
+                <span className="text-xs font-bold text-[#1E2229] block">{totalWeeklyViews} this week</span>
                 <span className="text-[10px] text-gray-400">{totalAllTimeViews} all time</span>
               </div>
             </div>
@@ -2662,7 +2661,7 @@ export default function OwnerDashboard() {
                             x={x}
                             y={y + 11}
                             textAnchor="middle"
-                            fill={isToday ? '#E5501A' : '#94a3b8'}
+                            fill={isToday ? '#FF5A36' : '#94a3b8'}
                             fontWeight={isToday ? 700 : 400}
                             fontSize={10}
                           >
@@ -2682,7 +2681,7 @@ export default function OwnerDashboard() {
                       {displayWeeklyViews.map((d, i) => (
                         <Cell
                           key={d.date || i}
-                          fill={d.isToday ? '#E5501A' : d.views > 0 ? '#FB923C' : '#F7F3ED'}
+                          fill={d.isToday ? '#FF5A36' : d.views > 0 ? '#FB923C' : '#FBFBFC'}
                         />
                       ))}
                     </Bar>
@@ -2697,10 +2696,10 @@ export default function OwnerDashboard() {
               {displayWeeklyViews.map((d, index) => (
                 <div key={d.date || d.day} className="contents">
                   <div className="flex flex-col items-center gap-1">
-                    <span className={`text-[11px] ${d.isToday ? 'font-bold text-[#E5501A]' : 'text-gray-400'}`}>
+                    <span className={`text-[11px] ${d.isToday ? 'font-bold text-[#FF5A36]' : 'text-gray-400'}`}>
                       {d.isToday ? 'Today' : d.day}
                     </span>
-                    <span className={`text-xs font-semibold ${d.isToday ? 'font-bold text-[#E5501A]' : 'text-[#1A1A2E]'}`}>
+                    <span className={`text-xs font-semibold ${d.isToday ? 'font-bold text-[#FF5A36]' : 'text-[#1E2229]'}`}>
                       {d.views}
                     </span>
                   </div>
@@ -2725,15 +2724,15 @@ export default function OwnerDashboard() {
             <button
               type="button"
               onClick={() => navigate('/owner-dashboard')}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#1A1A2E] hover:bg-[#2A2A44] text-white text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer active:scale-95"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#1E2229] hover:bg-[#2A2A44] text-white text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer active:scale-95"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>← Owner Dashboard</span>
             </button>
 
             <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium truncate">
-              <span className="hidden xs:inline">Showing </span><span className="font-bold text-[#1A1A2E]">{filteredSeekers.length}</span> Room Seekers in
-              <span className="font-bold text-[#E5501A] truncate max-w-[120px] sm:max-w-none">
+              <span className="hidden xs:inline">Showing </span><span className="font-bold text-[#1E2229]">{filteredSeekers.length}</span> Room Seekers in
+              <span className="font-bold text-[#FF5A36] truncate max-w-[120px] sm:max-w-none">
                 {seekerCity === 'all' ? 'All Cities' : (seekerCity || (defaultOwnerCity === 'all' ? 'All Cities' : defaultOwnerCity))}
               </span>
             </div>
@@ -2743,12 +2742,12 @@ export default function OwnerDashboard() {
           <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-xs border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2 mb-1">
-                <span className="px-2.5 py-0.5 rounded-full bg-[#FFF2EB] text-[#E5501A] font-extrabold text-[10px] uppercase tracking-wider">
+                <span className="px-2.5 py-0.5 rounded-full bg-[#FFF2EB] text-[#FF5A36] font-extrabold text-[10px] uppercase tracking-wider">
                   Owner Discovery Mode
                 </span>
                 <span className="text-xs text-gray-400 font-medium">Verified Room Seekers</span>
               </div>
-              <h2 className="font-serif text-xl sm:text-2xl font-medium text-[#1A1A2E] tracking-tight">
+              <h2 className="font-serif text-xl sm:text-2xl font-medium text-[#1E2229] tracking-tight">
                 Browse People Seeking Rooms
               </h2>
               <p className="text-xs text-gray-500 max-w-2xl leading-relaxed">
@@ -2757,13 +2756,13 @@ export default function OwnerDashboard() {
             </div>
 
             {myListing && (
-              <div className="bg-[#FBF9F6] border border-gray-200/80 rounded-2xl p-3 sm:p-3.5 shrink-0 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center shrink-0">
+              <div className="bg-[#FBFBFC] border border-gray-200/80 rounded-2xl p-3 sm:p-3.5 shrink-0 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center shrink-0">
                   <Building2 className="w-4 h-4" />
                 </div>
                 <div className="text-left min-w-0 max-w-[220px]">
                   <p className="text-[10px] uppercase font-bold text-gray-400">Scoring Against</p>
-                  <p className="text-xs font-bold text-[#1A1A2E] truncate">{myListing.title}</p>
+                  <p className="text-xs font-bold text-[#1E2229] truncate">{myListing.title}</p>
                 </div>
               </div>
             )}
@@ -2778,7 +2777,7 @@ export default function OwnerDashboard() {
                 <select
                   value={seekerCity}
                   onChange={e => setSeekerCity(e.target.value)}
-                  className="w-full bg-[#FBF9F6] border border-gray-200/90 rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#1A1A2E] outline-none focus:border-[#E5501A] cursor-pointer appearance-none pr-8"
+                  className="w-full bg-[#FBFBFC] border border-gray-200/90 rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#1E2229] outline-none focus:border-[#FF5A36] cursor-pointer appearance-none pr-8"
                 >
                   <option value="all">All Cities</option>
                   {cities.map(c => (
@@ -2798,7 +2797,7 @@ export default function OwnerDashboard() {
                     value={seekerSearchQuery}
                     onChange={e => setSeekerSearchQuery(e.target.value)}
                     placeholder={`Search locality, profession, or name in ${seekerCity === 'all' ? 'all cities' : (seekerCity || (defaultOwnerCity === 'all' ? 'all cities' : defaultOwnerCity))}...`}
-                    className="w-full pl-10 pr-9 py-2.5 bg-[#FBF9F6] border border-gray-200/90 rounded-xl text-xs font-medium text-[#1A1A2E] placeholder:text-gray-400 outline-none focus:border-[#E5501A]"
+                    className="w-full pl-10 pr-9 py-2.5 bg-[#FBFBFC] border border-gray-200/90 rounded-xl text-xs font-medium text-[#1E2229] placeholder:text-gray-400 outline-none focus:border-[#FF5A36]"
                   />
                   {seekerSearchQuery && (
                     <button
@@ -2819,14 +2818,14 @@ export default function OwnerDashboard() {
                   aria-label="Toggle seeker filters"
                   className={`inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all shrink-0 cursor-pointer select-none active:scale-95 ${
                     showSeekerFilters || activeSeekerFiltersCount > 0
-                      ? 'bg-[#1A1A2E] text-white border-[#1A1A2E] shadow-2xs'
-                      : 'bg-[#FBF9F6] text-[#1A1A2E] border-gray-200/90 hover:bg-gray-100 hover:border-gray-300'
+                      ? 'bg-[#1E2229] text-white border-[#1E2229] shadow-2xs'
+                      : 'bg-[#FBFBFC] text-[#1E2229] border-gray-200/90 hover:bg-gray-100 hover:border-gray-300'
                   }`}
                 >
-                  <SlidersHorizontal className={`w-3.5 h-3.5 ${showSeekerFilters || activeSeekerFiltersCount > 0 ? 'text-[#E5501A]' : 'text-gray-500'}`} />
+                  <SlidersHorizontal className={`w-3.5 h-3.5 ${showSeekerFilters || activeSeekerFiltersCount > 0 ? 'text-[#FF5A36]' : 'text-gray-500'}`} />
                   <span>Filters</span>
                   {activeSeekerFiltersCount > 0 && (
-                    <span className="w-4 h-4 rounded-full bg-[#E5501A] text-white text-[10px] font-extrabold flex items-center justify-center">
+                    <span className="w-4 h-4 rounded-full bg-[#FF5A36] text-white text-[10px] font-extrabold flex items-center justify-center">
                       {activeSeekerFiltersCount}
                     </span>
                   )}
@@ -2839,7 +2838,7 @@ export default function OwnerDashboard() {
                 <select
                   value={seekerSort}
                   onChange={e => setSeekerSort(e.target.value as any)}
-                  className="w-full bg-[#FBF9F6] border border-gray-200/90 rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#1A1A2E] outline-none focus:border-[#E5501A] cursor-pointer appearance-none pr-8"
+                  className="w-full bg-[#FBFBFC] border border-gray-200/90 rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#1E2229] outline-none focus:border-[#FF5A36] cursor-pointer appearance-none pr-8"
                 >
                   <option value="match">Best Match</option>
                   <option value="budget_desc">Highest Budget</option>
@@ -2857,7 +2856,7 @@ export default function OwnerDashboard() {
                 </span>
 
                 {seekerCity && seekerCity !== defaultOwnerCity && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FFF2EB] border border-[#E5501A]/20 text-[11px] font-bold text-[#E5501A]">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FFF2EB] border border-[#FF5A36]/20 text-[11px] font-bold text-[#FF5A36]">
                     <MapPin className="w-3 h-3" />
                     <span>{seekerCity === 'all' ? 'All Cities' : seekerCity}</span>
                     <button
@@ -2871,7 +2870,7 @@ export default function OwnerDashboard() {
                 )}
 
                 {seekerGenderFilter !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-[11px] font-bold text-[#1A1A2E] capitalize">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-[11px] font-bold text-[#1E2229] capitalize">
                     <span>{seekerGenderFilter}</span>
                     <button
                       type="button"
@@ -2888,7 +2887,7 @@ export default function OwnerDashboard() {
                   return (
                     <span
                       key={tid}
-                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-[11px] font-bold text-[#1A1A2E]"
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-[11px] font-bold text-[#1E2229]"
                     >
                       <span>{trait?.label || tid}</span>
                       <button
@@ -2903,7 +2902,7 @@ export default function OwnerDashboard() {
                 })}
 
                 {seekerSort !== 'match' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-[11px] font-bold text-[#1A1A2E]">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-[11px] font-bold text-[#1E2229]">
                     <span>Sort: {seekerSort === 'budget_desc' ? 'Highest Budget' : 'Lowest Budget'}</span>
                     <button
                       type="button"
@@ -2918,7 +2917,7 @@ export default function OwnerDashboard() {
                 <button
                   type="button"
                   onClick={handleResetSeekerFilters}
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#E5501A] hover:underline cursor-pointer ml-auto px-1 py-0.5"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#FF5A36] hover:underline cursor-pointer ml-auto px-1 py-0.5"
                 >
                   <RotateCcw className="w-3 h-3" />
                   <span>Reset All</span>
@@ -2932,12 +2931,12 @@ export default function OwnerDashboard() {
                 {/* Drawer Header */}
                 <div className="flex items-center justify-between gap-2 pb-1 border-b border-gray-100">
                   <div className="flex items-center gap-2">
-                    <SlidersHorizontal className="w-4 h-4 text-[#E5501A]" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#1A1A2E]">
+                    <SlidersHorizontal className="w-4 h-4 text-[#FF5A36]" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#1E2229]">
                       Filter & Refine Seekers
                     </span>
                     {activeSeekerFiltersCount > 0 && (
-                      <span className="px-2 py-0.5 rounded-full bg-[#FFF2EB] text-[#E5501A] text-[10px] font-bold">
+                      <span className="px-2 py-0.5 rounded-full bg-[#FFF2EB] text-[#FF5A36] text-[10px] font-bold">
                         {activeSeekerFiltersCount} active
                       </span>
                     )}
@@ -2948,7 +2947,7 @@ export default function OwnerDashboard() {
                       <button
                         type="button"
                         onClick={handleResetSeekerFilters}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-[#E5501A] hover:underline cursor-pointer px-1 py-0.5"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-[#FF5A36] hover:underline cursor-pointer px-1 py-0.5"
                       >
                         <RotateCcw className="w-3 h-3" />
                         <span>Reset</span>
@@ -2970,14 +2969,14 @@ export default function OwnerDashboard() {
                   {/* City Selector */}
                   <div className="space-y-1">
                     <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-[#E5501A]" />
+                      <MapPin className="w-3 h-3 text-[#FF5A36]" />
                       <span>City / Location</span>
                     </label>
                     <div className="relative">
                       <select
                         value={seekerCity}
                         onChange={e => setSeekerCity(e.target.value)}
-                        className="w-full bg-[#FBF9F6] border border-gray-200/90 rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#1A1A2E] outline-none focus:border-[#E5501A] cursor-pointer appearance-none pr-8"
+                        className="w-full bg-[#FBFBFC] border border-gray-200/90 rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#1E2229] outline-none focus:border-[#FF5A36] cursor-pointer appearance-none pr-8"
                       >
                         <option value="all">All Cities</option>
                         {cities.map(c => (
@@ -2991,14 +2990,14 @@ export default function OwnerDashboard() {
                   {/* Sort Selector */}
                   <div className="space-y-1">
                     <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                      <TrendingUp className="w-3 h-3 text-[#E5501A]" />
+                      <TrendingUp className="w-3 h-3 text-[#FF5A36]" />
                       <span>Sort By</span>
                     </label>
                     <div className="relative">
                       <select
                         value={seekerSort}
                         onChange={e => setSeekerSort(e.target.value as any)}
-                        className="w-full bg-[#FBF9F6] border border-gray-200/90 rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#1A1A2E] outline-none focus:border-[#E5501A] cursor-pointer appearance-none pr-8"
+                        className="w-full bg-[#FBFBFC] border border-gray-200/90 rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#1E2229] outline-none focus:border-[#FF5A36] cursor-pointer appearance-none pr-8"
                       >
                         <option value="match">Best Match</option>
                         <option value="budget_desc">Highest Budget</option>
@@ -3012,7 +3011,7 @@ export default function OwnerDashboard() {
                 {/* Gender Preference Filter */}
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                    <User className="w-3 h-3 text-[#E5501A]" />
+                    <User className="w-3 h-3 text-[#FF5A36]" />
                     <span>Seeker Gender Preference</span>
                   </label>
                   <div className="grid grid-cols-3 rounded-xl bg-gray-100 p-0.5 border border-gray-200/70 max-w-sm">
@@ -3023,7 +3022,7 @@ export default function OwnerDashboard() {
                         onClick={() => setSeekerGenderFilter(gender)}
                         className={`py-1.5 px-2.5 rounded-lg text-xs font-bold capitalize transition-colors cursor-pointer text-center ${
                           seekerGenderFilter === gender
-                            ? 'bg-white text-[#1A1A2E] shadow-2xs'
+                            ? 'bg-white text-[#1E2229] shadow-2xs'
                             : 'text-gray-500 hover:text-gray-900'
                         }`}
                       >
@@ -3036,7 +3035,7 @@ export default function OwnerDashboard() {
                 {/* Lifestyle & Habits Pills */}
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-[#E5501A]" />
+                    <Sparkles className="w-3 h-3 text-[#FF5A36]" />
                     <span>Lifestyle & Preferences</span>
                   </label>
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -3053,11 +3052,11 @@ export default function OwnerDashboard() {
                           }}
                           className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 ${
                             isActive
-                              ? 'bg-[#1A1A2E] text-white border-[#1A1A2E] shadow-2xs font-bold'
+                              ? 'bg-[#1E2229] text-white border-[#1E2229] shadow-2xs font-bold'
                               : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                           }`}
                         >
-                          {isActive && <Check className="w-3 h-3 text-[#E5501A]" />}
+                          {isActive && <Check className="w-3 h-3 text-[#FF5A36]" />}
                           <span>{trait.label}</span>
                         </button>
                       );
@@ -3079,7 +3078,7 @@ export default function OwnerDashboard() {
                   <button
                     type="button"
                     onClick={() => setShowSeekerFilters(false)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1A1A2E] hover:bg-[#2A2A44] text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 ml-auto"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1E2229] hover:bg-[#2A2A44] text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 ml-auto"
                   >
                     <span>Show {filteredSeekers.length} Seekers</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -3095,7 +3094,7 @@ export default function OwnerDashboard() {
               <StateLoading label="Finding verified room seekers..." />
             </div>
           ) : filteredSeekers.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
               {filteredSeekers.map(({ profile: s, score }) => (
                 <OwnerSeekerCard
                   key={s.uid}
@@ -3103,7 +3102,6 @@ export default function OwnerDashboard() {
                   score={score}
                   ownerListing={myListing}
                   onChat={handleChatSeeker}
-                  onCall={handleCallSeeker}
                 />
               ))}
             </div>
@@ -3126,7 +3124,7 @@ export default function OwnerDashboard() {
                       setSeekerTraitFilter([]);
                       setSeekerCity('all');
                     }}
-                    className="px-5 py-2.5 rounded-full bg-[#E5501A] hover:bg-[#D0400B] text-white text-xs font-bold shadow-xs cursor-pointer"
+                    className="px-5 py-2.5 rounded-full bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs font-bold shadow-xs cursor-pointer"
                   >
                     View All Room Seekers
                   </button>
@@ -3147,7 +3145,7 @@ export default function OwnerDashboard() {
             <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-red-500">
               <AlertTriangle className="w-6 h-6" />
             </div>
-            <h2 className="font-serif text-xl font-medium text-center text-[#1A1A2E] mb-2">Delete Listing?</h2>
+            <h2 className="font-serif text-xl font-medium text-center text-[#1E2229] mb-2">Delete Listing?</h2>
             <p className="text-gray-500 text-xs text-center mb-6 leading-relaxed">
               This action cannot be undone. All data associated with this listing will be permanently removed.
             </p>

@@ -43,17 +43,17 @@ export default function LivingOptionsSection() {
       {/* Mobile Section Header (matches reference mockup) */}
       <div className="flex items-end justify-between mb-3.5 md:hidden text-left">
         <div>
-          <span className="text-[10px] font-bold tracking-[0.2em] text-[#E5501A] uppercase mb-1 block">
+          <span className="text-[10px] font-bold tracking-[0.2em] text-[#FF5A36] uppercase mb-1 block">
             EXPLORE OPTIONS
           </span>
-          <h2 className="text-xl font-serif font-medium text-[#1A1A2E] tracking-tight">
+          <h2 className="text-xl font-serif font-medium text-[#1E2229] tracking-tight">
             Explore by category
           </h2>
         </div>
         <button
           type="button"
           onClick={() => navigate('/explore?tab=rooms')}
-          className="text-xs font-semibold text-[#E5501A] hover:underline cursor-pointer pb-0.5 shrink-0"
+          className="text-xs font-semibold text-[#FF5A36] hover:underline cursor-pointer pb-0.5 shrink-0"
         >
           See all →
         </button>
@@ -83,7 +83,7 @@ export default function LivingOptionsSection() {
             {/* Card info & arrow button */}
             <div className="px-1 pb-0.5 flex items-center justify-between">
               <div className="min-w-0 pr-1">
-                <h3 className="text-xs font-bold text-[#1A1A2E] leading-tight truncate">
+                <h3 className="text-xs font-bold text-[#1E2229] leading-tight truncate">
                   {opt.title}
                 </h3>
                 <p className="text-[10px] text-gray-500 leading-tight truncate mt-0.5">
@@ -124,7 +124,7 @@ export default function LivingOptionsSection() {
             {/* Card info & arrow button */}
             <div className="px-1.5 pb-1 flex items-center justify-between">
               <div className="text-left min-w-0 pr-2">
-                <h3 className="text-base font-bold text-[#1A1A2E] leading-snug truncate">
+                <h3 className="text-base font-bold text-[#1E2229] leading-snug truncate">
                   {opt.title}
                 </h3>
                 <p className="text-xs text-gray-500 leading-tight truncate mt-0.5">
@@ -133,7 +133,7 @@ export default function LivingOptionsSection() {
               </div>
 
               {/* Arrow circle button */}
-              <div className="w-8 h-8 rounded-full bg-gray-50 border border-gray-200/80 flex items-center justify-center text-gray-600 group-hover:bg-[#E5501A] group-hover:text-white group-hover:border-[#E5501A] transition-colors shrink-0">
+              <div className="w-8 h-8 rounded-full bg-gray-50 border border-gray-200/80 flex items-center justify-center text-gray-600 group-hover:bg-[#FF5A36] group-hover:text-white group-hover:border-[#FF5A36] transition-colors shrink-0">
                 <span className="text-sm leading-none">→</span>
               </div>
             </div>

@@ -23,6 +23,7 @@ import { isDiscoverable } from '@/lib/listingFreshness';
 import { isPubliclyVisibleListing } from '@/lib/marketplaceVisibility';
 // Sprint 4B: filter pipeline extracted to a pure, unit-testable module.
 import { applyClientFilters, type ListingFilters } from '@/lib/listingFilters';
+import { getCityQueryValues } from '@/lib/cityNormalization';
 import { useAnalytics } from './useAnalytics';
 import { getAuth } from 'firebase/auth';
 import { startTrace, endTrace } from '@/lib/perfTrace';
@@ -116,7 +117,7 @@ export function useListings() {
       const enhanceAndSortListings = async (rawListings: Listing[]): Promise<Listing[]> => {
         if (rawListings.length === 0) return [];
         const ownerIds = Array.from(new Set(rawListings.map(r => r.ownerId).filter(Boolean)));
-        let ownersMap = new Map<string, any>();
+        const ownersMap = new Map<string, any>();
         if (ownerIds.length > 0) {
           const now = Date.now();
           const missingIds = ownerIds.filter(id => {
@@ -196,6 +197,7 @@ export function useListings() {
       const dropUnavailable = (ls: Listing[]) => ls.filter(l => isPubliclyVisibleListing(l));
 
       let fetchedResults: Listing[] = [];
+      let constrainedQueryFailed = false;
       try {
         const constraints: any[] = [
           where('status', '==', 'active'),
@@ -206,7 +208,10 @@ export function useListings() {
         if (filters?.city) {
           const newConstraints: any[] = [
             where('status', '==', 'active'),
-            where('city', '==', filters.city),
+            (() => {
+              const values = getCityQueryValues(filters.city!);
+              return values.length > 1 ? where('city', 'in', values) : where('city', '==', values[0]);
+            })(),
             orderBy('createdAt', 'desc'),
             limit(100),
           ];
@@ -229,11 +234,13 @@ export function useListings() {
           fetchedResults = dropUnavailable(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Listing)));
         }
       } catch (e) {
+        constrainedQueryFailed = true;
         console.warn('Firestore constrained listings fetch failed, executing fallback all-listings query:', e);
       }
 
-      // Robust fallback query if constrained query returned no results or failed
-      if (fetchedResults.length === 0) {
+      // A legitimate empty query result stays empty. Full-scan fallback is only
+      // for an unavailable index/transient query failure and is re-filtered below.
+      if (constrainedQueryFailed) {
         try {
           const rawSnap = await getDocs(collection(db, 'listings'));
           fetchedResults = rawSnap.docs
@@ -345,44 +352,129 @@ export function useListings() {
    * Used by RoomDetail to show "Similar Rooms" without the expensive
    * enhanceAndSortListings pipeline.
    */
+  /**
+   * Genuine dynamic similar-listings matching:
+   * Dynamically ranks real active listings by same locality (+40), same flat type (+30),
+   * budget proximity (+30), same city (+50), and lifestyle/gender preferences.
+   * Uses safe single-filter Firestore query to eliminate composite index crashes.
+   */
   const getSimilarListings = useCallback(async (
-    city: string,
-    excludeId: string,
+    target: Partial<Listing> | string,
+    excludeId?: string,
     maxResults: number = 4
   ): Promise<Listing[]> => {
     try {
-      // Fetch a small, targeted set — limit(maxResults + 2) to allow for filtering
-      const q = query(
-        collection(db, 'listings'),
-        where('status', '==', 'active'),
-        where('city', '==', city),
-        orderBy('createdAt', 'desc'),
-        limit(maxResults + 4)
-      );
-      const snap = await getDocs(q);
-      const results = snap.docs
-        .map(d => ({ id: d.id, ...d.data() } as Listing))
-        .filter(r => r.id !== excludeId && isDiscoverable(r) && isPubliclyVisibleListing(r))
-        .slice(0, maxResults);
+      const targetRoom: Partial<Listing> = typeof target === 'string' ? { city: target } : target;
+      const targetCity = (targetRoom.city || '').trim().toLowerCase();
+      const targetLocality = (targetRoom.locality || '').trim().toLowerCase();
+      const targetFlatType = (targetRoom.flatType || '').trim().toLowerCase();
+      const targetRent = Number(targetRoom.partnerShare || targetRoom.totalRent || (targetRoom as any)?.monthlyRent || 0);
+      const targetGender = (targetRoom.preferredGender || '').toLowerCase();
+      const actualExcludeId = excludeId || targetRoom.id || '';
 
-      // If not enough from same city, do a general query (still small)
-      if (results.length < maxResults) {
-        const generalQ = query(
+      // Query active listings with a single-field filter (no composite index required)
+      let snap;
+      try {
+        const q = query(
           collection(db, 'listings'),
           where('status', '==', 'active'),
-          orderBy('createdAt', 'desc'),
-          limit(maxResults + 4)
+          limit(50)
         );
-        const generalSnap = await getDocs(generalQ);
-        const existingIds = new Set(results.map(r => r.id));
-        existingIds.add(excludeId);
-        const additional = generalSnap.docs
-          .map(d => ({ id: d.id, ...d.data() } as Listing))
-          .filter(r => !existingIds.has(r.id) && isDiscoverable(r) && isPubliclyVisibleListing(r))
-          .slice(0, maxResults - results.length);
-        return [...results, ...additional];
+        snap = await getDocs(q);
+      } catch {
+        snap = await getDocs(query(collection(db, 'listings'), limit(50)));
       }
-      return results;
+
+      let candidates: Listing[] = snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as Listing))
+        .filter(r => r.id !== actualExcludeId && isDiscoverable(r) && isPubliclyVisibleListing(r));
+
+      // If strict visibility returned fewer than maxResults, gracefully backfill with any other available listings
+      if (candidates.length < maxResults) {
+        try {
+          const allSnap = await getDocs(query(collection(db, 'listings'), limit(50)));
+          const moreCandidates = allSnap.docs
+            .map(d => ({ id: d.id, ...d.data() } as Listing))
+            .filter(r => r.id !== actualExcludeId && (r.status === 'active' || !r.status) && r.status !== 'closed');
+          const existingIds = new Set(candidates.map(c => c.id));
+          for (const item of moreCandidates) {
+            if (!existingIds.has(item.id)) {
+              candidates.push(item);
+              existingIds.add(item.id);
+            }
+          }
+        } catch (_) {
+          // ignore fallback error
+        }
+      }
+
+      // Dynamically score candidates based on similarity to current room
+      const scored = candidates.map(candidate => {
+        let score = 0;
+        const cCity = (candidate.city || '').trim().toLowerCase();
+        const cLocality = (candidate.locality || '').trim().toLowerCase();
+        const cFlatType = (candidate.flatType || '').trim().toLowerCase();
+        const cRent = Number(candidate.partnerShare || candidate.totalRent || (candidate as any)?.monthlyRent || 0);
+        const cGender = (candidate.preferredGender || '').toLowerCase();
+
+        // 1. City Match (+50 points)
+        if (targetCity && cCity) {
+          if (cCity === targetCity || cCity.includes(targetCity) || targetCity.includes(cCity)) {
+            score += 50;
+          }
+        }
+
+        // 2. Locality Match (+40 for exact, +25 for partial)
+        if (targetLocality && cLocality) {
+          if (cLocality === targetLocality) {
+            score += 40;
+          } else if (cLocality.includes(targetLocality) || targetLocality.includes(cLocality)) {
+            score += 25;
+          }
+        }
+
+        // 3. Property / Flat Type Match (+30 for exact, +15 for category)
+        if (targetFlatType && cFlatType) {
+          if (cFlatType === targetFlatType) {
+            score += 30;
+          } else if (cFlatType.includes('bhk') && targetFlatType.includes('bhk')) {
+            score += 15;
+          } else if ((cFlatType.includes('pg') || cFlatType.includes('hostel')) && (targetFlatType.includes('pg') || targetFlatType.includes('hostel'))) {
+            score += 25;
+          }
+        }
+
+        // 4. Rent Proximity (+30 scaled by difference)
+        if (targetRent > 0 && cRent > 0) {
+          const diffRatio = Math.abs(cRent - targetRent) / targetRent;
+          if (diffRatio <= 0.15) {
+            score += 30;
+          } else if (diffRatio <= 0.3) {
+            score += 20;
+          } else if (diffRatio <= 0.5) {
+            score += 10;
+          }
+        }
+
+        // 5. Gender Preference Match (+10)
+        if (targetGender && cGender) {
+          if (cGender === targetGender || cGender === 'any' || targetGender === 'any') {
+            score += 10;
+          }
+        }
+
+        return { candidate, score };
+      });
+
+      // Sort by score descending; if tied, sort by recency
+      scored.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        const timeA = (a.candidate.createdAt as any)?.toMillis ? (a.candidate.createdAt as any).toMillis() : 0;
+        const timeB = (b.candidate.createdAt as any)?.toMillis ? (b.candidate.createdAt as any).toMillis() : 0;
+        return timeB - timeA;
+      });
+
+      return scored.slice(0, maxResults).map(s => s.candidate);
     } catch {
       return [];
     }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc, arrayRemove, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -42,7 +42,7 @@ export default function SafetyCenter() {
     };
   }, [reportModalOpen]);
 
-  const blockedIds: string[] = profile?.blockedUserIds || [];
+  const blockedIds: string[] = useMemo(() => profile?.blockedUserIds || [], [profile?.blockedUserIds]);
 
   useEffect(() => {
     if (!blockedIds || blockedIds.length === 0) {
@@ -74,7 +74,7 @@ export default function SafetyCenter() {
     }
     loadBlocked();
     return () => { cancelled = true; };
-  }, [blockedIds.join(',')]);
+  }, [blockedIds]);
 
   const handleUnblock = async (targetId: string, name: string) => {
     if (!user?.uid) return;

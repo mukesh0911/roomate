@@ -120,10 +120,10 @@ export default function ScreeningQuestionnaireModal({
         onClick={e => e.stopPropagation()}
       >
         {/* Top Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-[#FBF9F6]">
+        <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-[#FBFBFC]">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider bg-orange-100 text-[#E5501A] px-2.5 py-0.5 rounded-full">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider bg-orange-100 text-[#FF5A36] px-2.5 py-0.5 rounded-full">
                 Question {currentIndex + 1} of {total}
               </span>
               {currentQ.category && (
@@ -150,7 +150,7 @@ export default function ScreeningQuestionnaireModal({
         {/* Progress Bar */}
         <div className="w-full h-1.5 bg-slate-100 relative">
           <div
-            className="h-full bg-gradient-to-r from-orange-400 to-[#E5501A] transition-all duration-300 ease-out"
+            className="h-full bg-gradient-to-r from-orange-400 to-[#FF5A36] transition-all duration-300 ease-out"
             style={{ width: `${progressPct}%` }}
           />
         </div>
@@ -173,7 +173,7 @@ export default function ScreeningQuestionnaireModal({
               <div>
                 <h3
                   id="screening-title"
-                  className="text-lg sm:text-xl font-bold text-[#1A1A2E] leading-snug font-serif"
+                  className="text-lg sm:text-xl font-bold text-[#1E2229] leading-snug font-serif"
                 >
                   {currentQ.title}
                   {currentQ.required && (
@@ -197,11 +197,11 @@ export default function ScreeningQuestionnaireModal({
                       onClick={() => handleValueChange(true)}
                       className={`p-5 rounded-2xl border-2 flex flex-col items-center justify-center gap-2.5 transition-all text-center ${
                         currentValue === true
-                          ? 'border-[#E5501A] bg-orange-50/60 text-[#E5501A] shadow-sm font-bold scale-[1.01]'
+                          ? 'border-[#FF5A36] bg-orange-50/60 text-[#FF5A36] shadow-sm font-bold scale-[1.01]'
                           : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white font-medium'
                       }`}
                     >
-                      <ThumbsUp className={`w-6 h-6 ${currentValue === true ? 'text-[#E5501A]' : 'text-slate-400'}`} />
+                      <ThumbsUp className={`w-6 h-6 ${currentValue === true ? 'text-[#FF5A36]' : 'text-slate-400'}`} />
                       <span className="text-base">Yes, comfortable</span>
                     </button>
                     <button
@@ -231,14 +231,14 @@ export default function ScreeningQuestionnaireModal({
                           onClick={() => handleValueChange(opt)}
                           className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between text-left transition-all ${
                             isSelected
-                              ? 'border-[#E5501A] bg-orange-50/50 text-[#1A1A2E] font-bold shadow-xs'
+                              ? 'border-[#FF5A36] bg-orange-50/50 text-[#1E2229] font-bold shadow-xs'
                               : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
                           }`}
                         >
                           <span className="text-sm">{opt}</span>
                           <div
                             className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                              isSelected ? 'border-[#E5501A] bg-[#E5501A]' : 'border-slate-300'
+                              isSelected ? 'border-[#FF5A36] bg-[#FF5A36]' : 'border-slate-300'
                             }`}
                           >
                             {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
@@ -290,14 +290,14 @@ export default function ScreeningQuestionnaireModal({
                 {currentQ.type === 'TIME' && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#E5501A] flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#FF5A36] flex items-center justify-center shrink-0">
                         <Clock className="w-5 h-5" />
                       </div>
                       <input
                         type="time"
                         value={currentValue || ''}
                         onChange={e => handleValueChange(e.target.value)}
-                        className="flex-1 px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-[#E5501A] focus:outline-hidden font-medium text-slate-900 text-sm"
+                        className="flex-1 px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-[#FF5A36] focus:outline-hidden font-medium text-slate-900 text-sm"
                       />
                     </div>
                     {/* Quick Presets */}
@@ -313,7 +313,7 @@ export default function ScreeningQuestionnaireModal({
                             onClick={() => handleValueChange(t)}
                             className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                               currentValue === t
-                                ? 'bg-[#E5501A] text-white border-[#E5501A]'
+                                ? 'bg-[#FF5A36] text-white border-[#FF5A36]'
                                 : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-transparent'
                             }`}
                           >
@@ -329,7 +329,7 @@ export default function ScreeningQuestionnaireModal({
                 {currentQ.type === 'DATE' && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#E5501A] flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#FF5A36] flex items-center justify-center shrink-0">
                         <Calendar className="w-5 h-5" />
                       </div>
                       <input
@@ -337,7 +337,7 @@ export default function ScreeningQuestionnaireModal({
                         min={new Date().toISOString().split('T')[0]}
                         value={currentValue || ''}
                         onChange={e => handleValueChange(e.target.value)}
-                        className="flex-1 px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-[#E5501A] focus:outline-hidden font-medium text-slate-900 text-sm"
+                        className="flex-1 px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-[#FF5A36] focus:outline-hidden font-medium text-slate-900 text-sm"
                       />
                     </div>
                     <div>
@@ -361,7 +361,7 @@ export default function ScreeningQuestionnaireModal({
                               onClick={() => handleValueChange(dateStr)}
                               className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                                 currentValue === dateStr
-                                  ? 'bg-[#E5501A] text-white border-[#E5501A]'
+                                  ? 'bg-[#FF5A36] text-white border-[#FF5A36]'
                                   : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-transparent'
                               }`}
                             >
@@ -382,7 +382,7 @@ export default function ScreeningQuestionnaireModal({
                       value={currentValue || ''}
                       onChange={e => handleValueChange(e.target.value)}
                       placeholder={currentQ.placeholder || 'Type your response here...'}
-                      className="w-full p-4 rounded-2xl border-2 border-slate-200 focus:border-[#E5501A] focus:outline-hidden text-sm text-slate-900 resize-none"
+                      className="w-full p-4 rounded-2xl border-2 border-slate-200 focus:border-[#FF5A36] focus:outline-hidden text-sm text-slate-900 resize-none"
                     />
                     <div className="flex items-center justify-between text-xs text-slate-400">
                       <span>{currentQ.min ? `Min ${currentQ.min} characters` : ''}</span>
@@ -406,7 +406,7 @@ export default function ScreeningQuestionnaireModal({
                         -
                       </button>
                       <div className="text-center min-w-[120px]">
-                        <span className="text-3xl font-extrabold text-[#1A1A2E]">
+                        <span className="text-3xl font-extrabold text-[#1E2229]">
                           {currentValue ?? currentQ.min ?? 1}
                         </span>
                         {currentQ.unit && (
@@ -434,7 +434,7 @@ export default function ScreeningQuestionnaireModal({
                           onClick={() => handleValueChange(num)}
                           className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
                             Number(currentValue) === num
-                              ? 'bg-[#E5501A] text-white border-[#E5501A]'
+                              ? 'bg-[#FF5A36] text-white border-[#FF5A36]'
                               : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-transparent'
                           }`}
                         >
@@ -450,7 +450,7 @@ export default function ScreeningQuestionnaireModal({
                   <div className="space-y-5">
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                        <IndianRupee className="w-5 h-5 text-[#E5501A]" />
+                        <IndianRupee className="w-5 h-5 text-[#FF5A36]" />
                       </div>
                       <input
                         type="number"
@@ -460,11 +460,11 @@ export default function ScreeningQuestionnaireModal({
                         value={currentValue || ''}
                         onChange={e => handleValueChange(Number(e.target.value))}
                         placeholder="e.g. 15000"
-                        className="w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 border-slate-200 focus:border-[#E5501A] focus:outline-hidden text-lg font-bold text-slate-900"
+                        className="w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 border-slate-200 focus:border-[#FF5A36] focus:outline-hidden text-lg font-bold text-slate-900"
                       />
                     </div>
                     {currentValue && (
-                      <p className="text-center font-bold text-[#E5501A] text-lg font-serif">
+                      <p className="text-center font-bold text-[#FF5A36] text-lg font-serif">
                         ₹{Number(currentValue).toLocaleString()} / month
                       </p>
                     )}
@@ -481,7 +481,7 @@ export default function ScreeningQuestionnaireModal({
                             onClick={() => handleValueChange(amt)}
                             className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                               currentValue === amt
-                                ? 'bg-[#E5501A] text-white border-[#E5501A]'
+                                ? 'bg-[#FF5A36] text-white border-[#FF5A36]'
                                 : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-transparent'
                             }`}
                           >
@@ -505,14 +505,14 @@ export default function ScreeningQuestionnaireModal({
                           onClick={() => handleValueChange(opt)}
                           className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between text-left transition-all ${
                             isSelected
-                              ? 'border-[#E5501A] bg-orange-50/50 text-[#1A1A2E] font-bold shadow-xs'
+                              ? 'border-[#FF5A36] bg-orange-50/50 text-[#1E2229] font-bold shadow-xs'
                               : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
                           }`}
                         >
                           <span className="text-sm">{opt}</span>
                           <div
                             className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                              isSelected ? 'border-[#E5501A] bg-[#E5501A]' : 'border-slate-300'
+                              isSelected ? 'border-[#FF5A36] bg-[#FF5A36]' : 'border-slate-300'
                             }`}
                           >
                             {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
@@ -540,7 +540,7 @@ export default function ScreeningQuestionnaireModal({
                             onClick={() => handleValueChange(num)}
                             className={`h-12 rounded-xl font-bold text-sm border-2 transition-all flex items-center justify-center ${
                               isSelected
-                                ? 'bg-[#E5501A] text-white border-[#E5501A] shadow-md scale-105'
+                                ? 'bg-[#FF5A36] text-white border-[#FF5A36] shadow-md scale-105'
                                 : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300'
                             }`}
                           >
@@ -551,7 +551,7 @@ export default function ScreeningQuestionnaireModal({
                     </div>
                     {currentValue && (
                       <p className="text-center text-xs font-semibold text-slate-600">
-                        Selected Rating: <strong className="text-[#E5501A] text-sm">{currentValue}/10</strong>
+                        Selected Rating: <strong className="text-[#FF5A36] text-sm">{currentValue}/10</strong>
                       </p>
                     )}
                   </div>
@@ -589,7 +589,7 @@ export default function ScreeningQuestionnaireModal({
                 type="button"
                 onClick={handleNext}
                 disabled={isSubmitting}
-                className="px-6 py-2.5 rounded-full bg-[#E5501A] hover:bg-[#D0400B] text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-all active:scale-98 disabled:opacity-50"
+                className="px-6 py-2.5 rounded-full bg-[#FF5A36] hover:bg-[#E54E2B] text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-all active:scale-98 disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <span>Submitting...</span>

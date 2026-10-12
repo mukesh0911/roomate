@@ -71,7 +71,7 @@ export function useAdmin() {
     };
 
     checkAdmin();
-  }, [user?.uid, user?.email, profile?.email]);
+  }, [authLoading, user?.uid, user?.email, profile?.email]);
 
   // --- Dashboard metrics ---
   const getMetrics = useCallback(async () => {
@@ -113,7 +113,9 @@ export function useAdmin() {
     try {
       const pendingListingsSnap = await getDocs(query(collection(db, 'listings'), where('status', '==', 'pending_verification'))).catch(() => ({ docs: [] }));
       pendingListings = pendingListingsSnap.docs.length;
-    } catch {}
+    } catch {
+      // Metrics remain usable with a zero count if this optional query is denied.
+    }
 
     // Chat rooms (proxy for messages activity)
     const chatsSnap = await getDocs(collection(db, 'chatRooms'));
@@ -179,7 +181,9 @@ export function useAdmin() {
         (d: any) => d.data().status === 'SUBMITTED' || d.data().status === 'UNDER_REVIEW'
       ).length;
       pendingVerifications = legacyPending + ownerPending;
-    } catch {}
+    } catch {
+      // Metrics remain usable with a zero count if verification data is unavailable.
+    }
 
     // Pending / open reports count
     let pendingReports = 0;
@@ -188,7 +192,9 @@ export function useAdmin() {
       pendingReports = (reportsSnap.docs || []).filter(
         (d: any) => d.data().status === 'pending' || d.data().status === 'under_review'
       ).length;
-    } catch {}
+    } catch {
+      // Metrics remain usable with a zero count if report data is unavailable.
+    }
 
     return {
       totalUsers, signupsToday, signupsYesterday, activeListings, totalListings,
@@ -219,7 +225,9 @@ export function useAdmin() {
     try {
       const lSnap = await getDocs(query(collection(db, 'listings'), where('ownerId', '==', uid)));
       await Promise.all(lSnap.docs.map(d => updateDoc(doc(db, 'listings', d.id), { status: 'paused', updatedAt: serverTimestamp() })));
-    } catch {}
+    } catch {
+      // User suspension still succeeds if listing cleanup is temporarily unavailable.
+    }
   }, []);
 
   const banUser = useCallback(async (uid: string) => {
@@ -227,7 +235,9 @@ export function useAdmin() {
     try {
       const lSnap = await getDocs(query(collection(db, 'listings'), where('ownerId', '==', uid)));
       await Promise.all(lSnap.docs.map(d => updateDoc(doc(db, 'listings', d.id), { status: 'paused', updatedAt: serverTimestamp() })));
-    } catch {}
+    } catch {
+      // User banning still succeeds if listing cleanup is temporarily unavailable.
+    }
   }, []);
 
   const reinstateUser = useCallback(async (uid: string) => {

@@ -4,7 +4,9 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { toast } from 'sonner';
-import { X, Sparkles, User, Building2, Phone, ShieldCheck, Loader2 } from 'lucide-react';
+import { X, Sparkles, User, Building2, ShieldCheck, Loader2 } from 'lucide-react';
+import { DEMO_MODE_ENABLED } from '@/lib/runtimeConfig';
+import { savePrivateUserData } from '@/lib/privateUserData';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -18,15 +20,19 @@ export default function AuthModal({
   isOpen,
   onClose,
   title = 'Sign in to Connect with Roommates',
-  subtitle = 'Create your account or try a 1-click demo to send connect requests, chat, and save rooms.',
+  subtitle,
   redirectAfterLogin,
 }: AuthModalProps) {
   const navigate = useNavigate();
   const [loadingRole, setLoadingRole] = useState<'seeker' | 'owner' | null>(null);
+  const resolvedSubtitle = subtitle || (DEMO_MODE_ENABLED
+    ? 'Create your account or try a local demo to evaluate the complete workflow.'
+    : 'Sign in or create your account to connect, chat, and save rooms.');
 
   if (!isOpen) return null;
 
   const handleDemoLogin = async (role: 'seeker' | 'owner') => {
+    if (!DEMO_MODE_ENABLED) return;
     setLoadingRole(role);
     try {
       // Anonymous Auth is disabled on the NestMate Firebase project.
@@ -68,7 +74,6 @@ export default function AuthModal({
         updatedAt: new Date(),
       });
 
-      const { savePrivateUserData } = await import('@/lib/privateUserData');
       await savePrivateUserData(uid, {
         phone: role === 'seeker' ? '+919999900001' : '+919999900002',
         email: demoEmail,
@@ -108,10 +113,10 @@ export default function AuthModal({
             <Sparkles className="w-6 h-6 text-white" />
           </div>
           <h2 className="text-xl font-bold text-ink tracking-tight">{title}</h2>
-          <p className="text-xs text-ink/60 mt-1.5 leading-relaxed">{subtitle}</p>
+          <p className="text-xs text-ink/60 mt-1.5 leading-relaxed">{resolvedSubtitle}</p>
         </div>
 
-        <div className="space-y-3 my-4">
+        {DEMO_MODE_ENABLED && <div className="space-y-3 my-4">
           <div className="text-[11px] font-bold text-ink/40 uppercase tracking-wider text-center">
             Instant 1-Click Evaluation
           </div>
@@ -149,14 +154,14 @@ export default function AuthModal({
             </div>
             <ShieldCheck className="w-4 h-4 text-navy/40" />
           </button>
-        </div>
+        </div>}
 
-        <div className="relative my-5">
+        {DEMO_MODE_ENABLED && <div className="relative my-5">
           <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
           <div className="relative flex justify-center text-[10px] uppercase tracking-widest">
             <span className="bg-white px-3 text-ink/40 font-bold">or</span>
           </div>
-        </div>
+        </div>}
 
         <button
           onClick={() => {

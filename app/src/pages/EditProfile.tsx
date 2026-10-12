@@ -269,9 +269,9 @@ export default function EditProfile() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-[#FBF9F6] flex items-center justify-center">
+      <div className="min-h-screen bg-[#FBFBFC] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 text-[#E5501A] animate-spin" />
+          <Loader2 className="w-8 h-8 text-[#FF5A36] animate-spin" />
           <p className="text-sm text-gray-500 font-medium">Loading profile...</p>
         </div>
       </div>
@@ -279,19 +279,19 @@ export default function EditProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FBF9F6] pb-24">
+    <div className="min-h-screen bg-[#FBFBFC] pb-24">
       {/* Header */}
-      <div className="bg-[#FBF9F6]/95 backdrop-blur-md sticky top-0 z-40 border-b border-gray-200/60 px-4 sm:px-6 py-3.5 flex items-center justify-between">
+      <div className="bg-[#FBFBFC]/95 backdrop-blur-md sticky top-0 z-40 border-b border-gray-200/60 px-4 sm:px-6 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/profile')} className="p-2 -ml-2 rounded-full hover:bg-black/5 transition-colors cursor-pointer" aria-label="Back to profile">
-            <ArrowLeft className="w-5 h-5 text-[#1A1A2E]" />
+            <ArrowLeft className="w-5 h-5 text-[#1E2229]" />
           </button>
-          <h1 className="font-serif font-medium text-lg sm:text-xl text-[#1A1A2E]">Edit Profile</h1>
+          <h1 className="font-serif font-medium text-lg sm:text-xl text-[#1E2229]">Edit Profile</h1>
         </div>
         <button
           onClick={handleSave}
           disabled={saving}
-          className="rounded-full bg-[#E5501A] hover:bg-[#D0400B] active:scale-[0.98] text-white px-4 py-1.5 text-xs sm:text-sm font-semibold flex items-center gap-2 cursor-pointer shadow-xs transition-all"
+          className="rounded-full bg-[#FF5A36] hover:bg-[#E54E2B] active:scale-[0.98] text-white px-4 py-1.5 text-xs sm:text-sm font-semibold flex items-center gap-2 cursor-pointer shadow-xs transition-all"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           Save Changes
@@ -309,13 +309,13 @@ export default function EditProfile() {
         {/* Profile Photo */}
         <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-5 sm:p-6 space-y-4">
           <div>
-            <h2 className="font-serif font-medium text-base text-[#1A1A2E]">Profile Photo</h2>
+            <h2 className="font-serif font-medium text-base text-[#1E2229]">Profile Photo</h2>
             <p className="text-xs text-gray-500 mt-0.5">A clear photo helps potential roommates recognize and trust you</p>
           </div>
 
           <div className="flex items-center gap-5 pt-1">
             <div className="relative">
-              <div className="w-20 h-20 rounded-full border-2 border-[#E5501A] p-0.5 bg-[#FBF9F6] overflow-hidden shrink-0 shadow-xs">
+              <div className="w-20 h-20 rounded-full border-2 border-[#FF5A36] p-0.5 bg-[#FBFBFC] overflow-hidden shrink-0 shadow-xs">
                 {(profile?.avatar || user?.photoURL) && !(profile?.avatar || user?.photoURL)?.includes('dicebear') ? (
                   <img
                     src={profile?.avatar || user?.photoURL || undefined}
@@ -325,7 +325,7 @@ export default function EditProfile() {
                     onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                   />
                 ) : (
-                  <div aria-hidden="true" className="w-full h-full rounded-full bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center font-bold text-2xl">
+                  <div aria-hidden="true" className="w-full h-full rounded-full bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center font-bold text-2xl">
                     {(profile?.name || user?.displayName || '?').trim().charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -339,7 +339,7 @@ export default function EditProfile() {
 
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2 flex-wrap">
-                <label className="rounded-full bg-[#E5501A] hover:bg-[#D0400B] text-white px-3.5 py-1.5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all">
+                <label className="rounded-full bg-[#FF5A36] hover:bg-[#E54E2B] text-white px-3.5 py-1.5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all">
                   <Upload className="w-3.5 h-3.5" />
                   <span>{uploadingAvatar ? 'Uploading...' : 'Upload New Photo'}</span>
                   <input
@@ -356,7 +356,7 @@ export default function EditProfile() {
                     type="button"
                     onClick={handleUseGooglePhoto}
                     disabled={uploadingAvatar}
-                    className="rounded-full bg-white border border-gray-200 px-3.5 py-1.5 text-xs font-semibold flex items-center gap-1.5 text-[#1A1A2E] hover:bg-gray-50 shadow-xs cursor-pointer transition-all"
+                    className="rounded-full bg-white border border-gray-200 px-3.5 py-1.5 text-xs font-semibold flex items-center gap-1.5 text-[#1E2229] hover:bg-gray-50 shadow-xs cursor-pointer transition-all"
                   >
                     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
@@ -375,7 +375,7 @@ export default function EditProfile() {
 
         {/* Basic Info */}
         <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-5 sm:p-6 space-y-4">
-          <h2 className="font-serif font-medium text-base text-[#1A1A2E]">Basic Information</h2>
+          <h2 className="font-serif font-medium text-base text-[#1E2229]">Basic Information</h2>
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1.5">Full Name</label>
             <input
@@ -384,7 +384,7 @@ export default function EditProfile() {
               placeholder="Full Name"
               value={formData.name}
               onChange={e => setFormData({ ...formData, name: e.target.value })}
-              className={`w-full px-4 py-2.5 rounded-2xl border text-sm font-medium text-[#1A1A2E] bg-white focus:outline-none focus:border-[#E5501A] shadow-xs ${errors.name ? 'border-rose-400' : 'border-gray-200'}`}
+              className={`w-full px-4 py-2.5 rounded-2xl border text-sm font-medium text-[#1E2229] bg-white focus:outline-none focus:border-[#FF5A36] shadow-xs ${errors.name ? 'border-rose-400' : 'border-gray-200'}`}
             />
             {errors.name && <p className="text-xs text-rose-500 mt-1">{errors.name}</p>}
           </div>
@@ -396,7 +396,7 @@ export default function EditProfile() {
                 type="number"
                 value={formData.age}
                 onChange={e => setFormData({ ...formData, age: e.target.value })}
-                className={`w-full px-4 py-2.5 rounded-2xl border text-sm font-medium text-[#1A1A2E] bg-white focus:outline-none focus:border-[#E5501A] shadow-xs ${errors.age ? 'border-rose-400' : 'border-gray-200'}`}
+                className={`w-full px-4 py-2.5 rounded-2xl border text-sm font-medium text-[#1E2229] bg-white focus:outline-none focus:border-[#FF5A36] shadow-xs ${errors.age ? 'border-rose-400' : 'border-gray-200'}`}
               />
               {errors.age && <p className="text-xs text-rose-500 mt-1">{errors.age}</p>}
             </div>
@@ -405,7 +405,7 @@ export default function EditProfile() {
               <select
                 value={formData.gender}
                 onChange={e => setFormData({ ...formData, gender: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-[#1A1A2E] focus:outline-none focus:border-[#E5501A] shadow-xs"
+                className="w-full px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-[#1E2229] focus:outline-none focus:border-[#FF5A36] shadow-xs"
               >
                 <option value="">Select</option>
                 <option value="female">Female</option>
@@ -420,7 +420,7 @@ export default function EditProfile() {
             <select
               value={formData.profession}
               onChange={e => setFormData({ ...formData, profession: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-[#1A1A2E] focus:outline-none focus:border-[#E5501A] shadow-xs"
+              className="w-full px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-[#1E2229] focus:outline-none focus:border-[#FF5A36] shadow-xs"
             >
               <option value="">Select</option>
               {professions.map(p => <option key={p} value={p}>{p}</option>)}
@@ -436,7 +436,7 @@ export default function EditProfile() {
               maxLength={500}
               value={formData.bio}
               onChange={e => setFormData({ ...formData, bio: e.target.value })}
-              className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-[#1A1A2E] focus:outline-none focus:border-[#E5501A] shadow-xs min-h-[100px] resize-none"
+              className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-[#1E2229] focus:outline-none focus:border-[#FF5A36] shadow-xs min-h-[100px] resize-none"
               placeholder="Tell potential roommates a bit about yourself..."
             />
           </div>
@@ -444,14 +444,14 @@ export default function EditProfile() {
 
         {/* Location */}
         <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-5 sm:p-6 space-y-4">
-          <h2 className="font-serif font-medium text-base text-[#1A1A2E]">Location</h2>
+          <h2 className="font-serif font-medium text-base text-[#1E2229]">Location</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">City</label>
               <select
                 value={formData.city}
                 onChange={e => setFormData({ ...formData, city: e.target.value, locality: '' })}
-                className={`w-full px-4 py-2.5 rounded-2xl border text-sm font-medium text-[#1A1A2E] bg-white focus:outline-none focus:border-[#E5501A] shadow-xs ${errors.city ? 'border-rose-400' : 'border-gray-200'}`}
+                className={`w-full px-4 py-2.5 rounded-2xl border text-sm font-medium text-[#1E2229] bg-white focus:outline-none focus:border-[#FF5A36] shadow-xs ${errors.city ? 'border-rose-400' : 'border-gray-200'}`}
               >
                 <option value="">Select city</option>
                 {cities.map(c => <option key={c} value={c}>{c}</option>)}
@@ -463,7 +463,7 @@ export default function EditProfile() {
               <select
                 value={formData.locality}
                 onChange={e => setFormData({ ...formData, locality: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-[#1A1A2E] focus:outline-none focus:border-[#E5501A] shadow-xs"
+                className="w-full px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-[#1E2229] focus:outline-none focus:border-[#FF5A36] shadow-xs"
                 disabled={!formData.city}
               >
                 <option value="">Select locality</option>
@@ -478,7 +478,7 @@ export default function EditProfile() {
 
         {/* Social Links */}
         <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-5 sm:p-6 space-y-4">
-          <h2 className="font-serif font-medium text-base text-[#1A1A2E]">Social Profiles</h2>
+          <h2 className="font-serif font-medium text-base text-[#1E2229]">Social Profiles</h2>
           <p className="text-xs text-gray-500 -mt-2 mb-2">Add your social profiles to build trust with potential roommates.</p>
 
           <div className="space-y-3">
@@ -491,7 +491,7 @@ export default function EditProfile() {
                 placeholder="LinkedIn Profile URL"
                 value={formData.linkedin}
                 onChange={e => setFormData({ ...formData, linkedin: e.target.value })}
-                className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-[#1A1A2E] focus:outline-none focus:border-[#E5501A] shadow-xs"
+                className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-[#1E2229] focus:outline-none focus:border-[#FF5A36] shadow-xs"
               />
             </div>
 
@@ -504,13 +504,13 @@ export default function EditProfile() {
                 placeholder="Instagram Handle or URL"
                 value={formData.instagram}
                 onChange={e => setFormData({ ...formData, instagram: e.target.value })}
-                className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-[#1A1A2E] focus:outline-none focus:border-[#E5501A] shadow-xs"
+                className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-[#1E2229] focus:outline-none focus:border-[#FF5A36] shadow-xs"
               />
             </div>
 
             {/* WhatsApp Number (Private until connection accepted) */}
             <div className="pt-2 border-t border-gray-100">
-              <label className="text-xs font-bold text-[#1A1A2E] block mb-1">
+              <label className="text-xs font-bold text-[#1E2229] block mb-1">
                 WhatsApp Number
               </label>
               <div className="relative">
@@ -522,7 +522,7 @@ export default function EditProfile() {
                   placeholder="+91 XXXXX XXXXX"
                   value={formData.whatsappNumber}
                   onChange={e => setFormData({ ...formData, whatsappNumber: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-[#1A1A2E] focus:outline-none focus:border-[#E5501A] shadow-xs"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-[#1E2229] focus:outline-none focus:border-[#FF5A36] shadow-xs"
                 />
               </div>
               <p className="text-[11px] text-gray-500 mt-1.5 pl-1 leading-relaxed">
@@ -535,22 +535,22 @@ export default function EditProfile() {
         {/* Identity Verification Portal */}
         <div id="verification" className="bg-white rounded-3xl border border-gray-100 shadow-xs p-5 sm:p-6 space-y-4 scroll-mt-24">
           <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-[#E5501A]" />
-            <h2 className="font-serif font-medium text-base text-[#1A1A2E]">Trust & Verification</h2>
+            <Shield className="w-5 h-5 text-[#FF5A36]" />
+            <h2 className="font-serif font-medium text-base text-[#1E2229]">Trust & Verification</h2>
           </div>
           <p className="text-xs text-gray-500 -mt-2">Upload government ID or work credentials to achieve higher tier badges and boost match visibility.</p>
 
           {/* Active status */}
           {verificationLoading ? (
             <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
-              <Loader2 className="w-4 h-4 animate-spin text-[#E5501A]" /> Loading verifications...
+              <Loader2 className="w-4 h-4 animate-spin text-[#FF5A36]" /> Loading verifications...
             </div>
           ) : verifications.length > 0 ? (
             <div className="space-y-2.5 pt-1">
               {verifications.map((v) => (
-                <div key={v.id} className="flex justify-between items-center bg-[#FBF9F6] border border-gray-100 p-3.5 rounded-2xl">
+                <div key={v.id} className="flex justify-between items-center bg-[#FBFBFC] border border-gray-100 p-3.5 rounded-2xl">
                   <div className="space-y-0.5">
-                    <p className="text-xs font-bold text-[#1A1A2E] capitalize">{v.type.replace('_', ' ')} Upload</p>
+                    <p className="text-xs font-bold text-[#1E2229] capitalize">{v.type.replace('_', ' ')} Upload</p>
                     {v.status === 'pending' && (
                       <p className="text-[10px] text-amber-600 font-semibold flex items-center gap-1"><Clock className="w-3 h-3" /> Under Review</p>
                     )}
@@ -570,7 +570,7 @@ export default function EditProfile() {
                       onClick={() => {
                         setVerifications(prev => prev.filter(x => x.id !== v.id));
                       }}
-                      className="text-[10px] font-bold text-[#E5501A] hover:underline cursor-pointer"
+                      className="text-[10px] font-bold text-[#FF5A36] hover:underline cursor-pointer"
                     >
                       Retry Upload
                     </button>
@@ -597,7 +597,7 @@ export default function EditProfile() {
                     type="button"
                     onClick={() => setSelectedDocType(type)}
                     className={`py-2 px-2 rounded-full text-xs font-semibold capitalize transition-all border cursor-pointer ${selectedDocType === type
-                        ? 'bg-[#E5501A] text-white border-[#E5501A] shadow-xs'
+                        ? 'bg-[#FF5A36] text-white border-[#FF5A36] shadow-xs'
                         : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                       }`}
                   >
@@ -607,7 +607,7 @@ export default function EditProfile() {
               </div>
 
               <div>
-                <label className="border-2 border-dashed border-gray-200 hover:border-[#E5501A]/60 rounded-3xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors bg-[#FBF9F6]">
+                <label className="border-2 border-dashed border-gray-200 hover:border-[#FF5A36]/60 rounded-3xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors bg-[#FBFBFC]">
                   <input
                     type="file"
                     accept="image/*,application/pdf"
@@ -617,13 +617,13 @@ export default function EditProfile() {
                   />
                   {uploadingDoc ? (
                     <div className="text-center space-y-2">
-                      <Loader2 className="w-8 h-8 animate-spin text-[#E5501A] mx-auto" />
-                      <p className="text-xs font-bold text-[#1A1A2E]">Uploading {uploadProgress}%</p>
+                      <Loader2 className="w-8 h-8 animate-spin text-[#FF5A36] mx-auto" />
+                      <p className="text-xs font-bold text-[#1E2229]">Uploading {uploadProgress}%</p>
                     </div>
                   ) : (
                     <div className="text-center space-y-2">
                       <Upload className="w-8 h-8 text-gray-300 mx-auto" />
-                      <p className="text-xs font-bold text-[#1A1A2E]">Upload Document Photo</p>
+                      <p className="text-xs font-bold text-[#1E2229]">Upload Document Photo</p>
                       <p className="text-[10px] text-gray-400 font-medium">JPG, PNG, or PDF up to 5MB</p>
                     </div>
                   )}
@@ -635,13 +635,13 @@ export default function EditProfile() {
 
         {/* Retake Quiz */}
         {profile?.role === 'seeker' && (
-          <div className="bg-gradient-to-br from-[#FFF2EB] to-[#FBF9F6] border border-[#E5501A]/20 rounded-3xl p-6 text-center shadow-xs">
-            <h2 className="font-serif font-medium text-lg text-[#1A1A2E] mb-1.5">Update Your Compatibility Profile</h2>
+          <div className="bg-gradient-to-br from-[#FFF2EB] to-[#FBFBFC] border border-[#FF5A36]/20 rounded-3xl p-6 text-center shadow-xs">
+            <h2 className="font-serif font-medium text-lg text-[#1E2229] mb-1.5">Update Your Compatibility Profile</h2>
             <p className="text-xs sm:text-sm text-gray-600 mb-4 max-w-md mx-auto">Changed your habits or preferences? Retake the quiz to get better roommate matches.</p>
             <button
               onClick={handleRetakeQuiz}
               disabled={retaking}
-              className="rounded-full border border-[#E5501A] text-[#E5501A] hover:bg-[#E5501A] hover:text-white font-semibold text-xs sm:text-sm py-2.5 px-5 transition-all shadow-xs inline-flex items-center justify-center gap-2 cursor-pointer"
+              className="rounded-full border border-[#FF5A36] text-[#FF5A36] hover:bg-[#FF5A36] hover:text-white font-semibold text-xs sm:text-sm py-2.5 px-5 transition-all shadow-xs inline-flex items-center justify-center gap-2 cursor-pointer"
             >
               {retaking ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               Retake Compatibility Quiz
@@ -654,7 +654,7 @@ export default function EditProfile() {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="rounded-full bg-[#E5501A] hover:bg-[#D0400B] active:scale-[0.98] text-white font-semibold text-sm sm:text-base w-full py-3.5 flex items-center justify-center gap-2 shadow-xs cursor-pointer transition-all"
+          className="rounded-full bg-[#FF5A36] hover:bg-[#E54E2B] active:scale-[0.98] text-white font-semibold text-sm sm:text-base w-full py-3.5 flex items-center justify-center gap-2 shadow-xs cursor-pointer transition-all"
         >
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
           Save Changes

@@ -43,12 +43,12 @@ export default function CommunityTestimonialSection() {
           {/* Left Column: Quote, User & Rating */}
           <div className="lg:col-span-5 text-left flex flex-col justify-between">
             {/* Quote Icon */}
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center font-serif text-xl sm:text-2xl font-bold mb-3 sm:mb-5 shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center font-serif text-xl sm:text-2xl font-bold mb-3 sm:mb-5 shrink-0">
               “
             </div>
 
             {/* Main Testimonial Quote */}
-            <blockquote className="text-xl sm:text-3xl lg:text-[32px] font-serif font-medium text-[#1A1A2E] leading-snug tracking-tight mb-5 sm:mb-8">
+            <blockquote className="text-xl sm:text-3xl lg:text-[32px] font-serif font-medium text-[#1E2229] leading-snug tracking-tight mb-5 sm:mb-8">
               {current.quote}
             </blockquote>
 
@@ -62,7 +62,7 @@ export default function CommunityTestimonialSection() {
                     className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-white shadow-xs"
                   />
                   <div>
-                    <div className="text-xs sm:text-sm font-bold text-[#1A1A2E] leading-tight">
+                    <div className="text-xs sm:text-sm font-bold text-[#1E2229] leading-tight">
                       {current.author}
                     </div>
                     <div className="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mt-0.5">
@@ -76,7 +76,7 @@ export default function CommunityTestimonialSection() {
                   <button
                     type="button"
                     onClick={handlePrev}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white border border-gray-200/80 flex items-center justify-center text-gray-600 hover:text-[#E5501A] hover:border-[#E5501A] transition-colors cursor-pointer"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white border border-gray-200/80 flex items-center justify-center text-gray-600 hover:text-[#FF5A36] hover:border-[#FF5A36] transition-colors cursor-pointer"
                     aria-label="Previous story"
                   >
                     <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -84,7 +84,7 @@ export default function CommunityTestimonialSection() {
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white border border-gray-200/80 flex items-center justify-center text-gray-600 hover:text-[#E5501A] hover:border-[#E5501A] transition-colors cursor-pointer"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white border border-gray-200/80 flex items-center justify-center text-gray-600 hover:text-[#FF5A36] hover:border-[#FF5A36] transition-colors cursor-pointer"
                     aria-label="Next story"
                   >
                     <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -127,9 +127,9 @@ export default function CommunityTestimonialSection() {
 
             {/* Handwritten Note pointing to polaroid */}
             <div className="absolute top-1 right-2 sm:top-2 sm:right-8 pointer-events-none select-none z-20">
-              <div className="font-script text-base sm:text-2xl text-[#1A1A2E] leading-tight transform -rotate-6">
+              <div className="font-script text-base sm:text-2xl text-[#1E2229] leading-tight transform -rotate-6">
                 Different People<br />
-                Same Vibe <span className="text-[#E5501A]">♡</span>
+                Same Vibe <span className="text-[#FF5A36]">♡</span>
               </div>
             </div>
           </div>

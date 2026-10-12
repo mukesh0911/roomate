@@ -42,3 +42,18 @@ export function areSameCityAlias(a: string, b: string): boolean {
   if (a === b) return true;
   return CITY_ALIASES.get(a) === b;
 }
+
+/** Exact Firestore values worth querying for a user-entered city name. */
+export function getCityQueryValues(city: string): string[] {
+  const trimmed = city.trim();
+  if (!trimmed) return [];
+  const normalized = trimmed.toLowerCase();
+  const alias = getCityAlias(normalized);
+  const titleCase = (value: string) => value.replace(/\b\w/g, char => char.toUpperCase());
+  return Array.from(new Set([
+    trimmed,
+    normalized,
+    titleCase(normalized),
+    ...(alias ? [alias, titleCase(alias)] : []),
+  ]));
+}

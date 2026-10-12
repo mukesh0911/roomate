@@ -21,7 +21,7 @@ export default function HeroSection() {
             radial-gradient(ellipse 80% 60% at 15% 0%,   #F5EDE0 0%, transparent 60%),
             radial-gradient(ellipse 60% 80% at 90% 100%, #F2E8DF 0%, transparent 55%),
             radial-gradient(ellipse 50% 50% at 50% 50%,  #F8F4EE 0%, transparent 100%),
-            #FBF9F6
+            #FBFBFC
           `,
         }}
       />
@@ -30,7 +30,7 @@ export default function HeroSection() {
       <div
         className="absolute inset-0 -z-10 opacity-[0.028] pointer-events-none"
         style={{
-          backgroundImage: `radial-gradient(circle, #1A1A2E 1px, transparent 1px)`,
+          backgroundImage: `radial-gradient(circle, #1E2229 1px, transparent 1px)`,
           backgroundSize: '28px 28px',
         }}
       />
@@ -72,9 +72,9 @@ export default function HeroSection() {
         fill="none"
         aria-hidden="true"
       >
-        <circle cx="420" cy="0" r="300" stroke="#1A1A2E" strokeWidth="1" />
-        <circle cx="420" cy="0" r="220" stroke="#1A1A2E" strokeWidth="0.8" />
-        <circle cx="420" cy="0" r="150" stroke="#E5501A" strokeWidth="0.6" />
+        <circle cx="420" cy="0" r="300" stroke="#1E2229" strokeWidth="1" />
+        <circle cx="420" cy="0" r="220" stroke="#1E2229" strokeWidth="0.8" />
+        <circle cx="420" cy="0" r="150" stroke="#FF5A36" strokeWidth="0.6" />
       </svg>
 
       {/* Decorative bottom-left arc line — mirror balance */}
@@ -86,8 +86,8 @@ export default function HeroSection() {
         fill="none"
         aria-hidden="true"
       >
-        <circle cx="0" cy="300" r="200" stroke="#1A1A2E" strokeWidth="1" />
-        <circle cx="0" cy="300" r="130" stroke="#1A1A2E" strokeWidth="0.7" />
+        <circle cx="0" cy="300" r="200" stroke="#1E2229" strokeWidth="1" />
+        <circle cx="0" cy="300" r="130" stroke="#1E2229" strokeWidth="0.7" />
       </svg>
 
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 w-full">
@@ -95,31 +95,31 @@ export default function HeroSection() {
         <div className="lg:hidden flex flex-col text-left">
           {/* Eyebrow */}
           <div className="mb-2">
-            <span className="text-[10px] font-bold tracking-[0.2em] text-[#E5501A]/80 uppercase">
+            <span className="text-[10px] font-bold tracking-[0.2em] text-[#FF5A36]/80 uppercase">
               A HOME FOR A BRIGHTER YOU
             </span>
           </div>
 
           {/* Heading + Script side-by-side row */}
           <div className="flex items-start justify-between gap-2.5 mb-2.5">
-            <h1 className="text-[34px] sm:text-4xl font-serif font-medium leading-[1.12] tracking-tight text-[#1A1A2E]">
+            <h1 className="text-[34px] sm:text-4xl font-serif font-medium leading-[1.12] tracking-tight text-[#1E2229]">
               <span className="block">Find your</span>
               <span className="block">people.</span>
-              <span className="italic font-normal text-[#E5501A] block mt-0.5">
+              <span className="italic font-normal text-[#FF5A36] block mt-0.5">
                 Find your place.
               </span>
             </h1>
 
             {/* Handwritten script note aligned to right of heading */}
             <div className="pt-0.5 text-right shrink-0 select-none pointer-events-none">
-              <span className="font-script text-[13px] xs:text-sm sm:text-lg text-[#1A1A2E] leading-tight block transform -rotate-3">
+              <span className="font-script text-[13px] xs:text-sm sm:text-lg text-[#1E2229] leading-tight block transform -rotate-3">
                 Same city
               </span>
-              <span className="font-script text-[13px] xs:text-sm sm:text-lg text-[#1A1A2E] leading-tight block transform -rotate-1">
+              <span className="font-script text-[13px] xs:text-sm sm:text-lg text-[#1E2229] leading-tight block transform -rotate-1">
                 New stories
               </span>
-              <span className="font-script text-[13px] xs:text-sm sm:text-lg text-[#1A1A2E] leading-tight block transform rotate-2">
-                Better you <span className="text-[#E5501A]">♡</span>
+              <span className="font-script text-[13px] xs:text-sm sm:text-lg text-[#1E2229] leading-tight block transform rotate-2">
+                Better you <span className="text-[#FF5A36]">♡</span>
               </span>
             </div>
           </div>
@@ -151,7 +151,7 @@ export default function HeroSection() {
             <div className="absolute top-3 right-3 pointer-events-none select-none">
               <div className="border border-slate-700/30 rounded-full px-2.5 py-1 bg-white/60 backdrop-blur-xs text-center transform rotate-6 shadow-xs">
                 <span className="font-script text-[11px] font-bold text-slate-800 block leading-tight">Good people</span>
-                <span className="font-script text-[11px] font-bold text-slate-800 block leading-tight">Better days <span className="text-[#E5501A]">♡</span></span>
+                <span className="font-script text-[11px] font-bold text-slate-800 block leading-tight">Better days <span className="text-[#FF5A36]">♡</span></span>
               </div>
             </div>
           </div>
@@ -173,24 +173,24 @@ export default function HeroSection() {
 
             {/* Headline */}
             <div className="relative mb-4 sm:mb-5">
-              <h1 className="text-5xl md:text-6xl xl:text-[70px] leading-[1.08] tracking-tight text-[#1A1A2E]">
+              <h1 className="text-5xl md:text-6xl xl:text-[70px] leading-[1.08] tracking-tight text-[#1E2229]">
                 <span className="font-serif block font-medium">Find your</span>
                 <span className="font-serif block font-medium">people.</span>
-                <span className="font-serif italic font-normal text-[#E5501A] block">
+                <span className="font-serif italic font-normal text-[#FF5A36] block">
                   Find your place.
                 </span>
               </h1>
 
               {/* Desktop handwritten script note */}
               <div className="absolute right-0 sm:right-6 top-4 sm:top-8 text-left pointer-events-none select-none">
-                <span className="font-script text-2xl text-[#1A1A2E] leading-tight block transform -rotate-3">
+                <span className="font-script text-2xl text-[#1E2229] leading-tight block transform -rotate-3">
                   Same city
                 </span>
-                <span className="font-script text-2xl text-[#1A1A2E] leading-tight block transform -rotate-1">
+                <span className="font-script text-2xl text-[#1E2229] leading-tight block transform -rotate-1">
                   New stories
                 </span>
-                <span className="font-script text-2xl text-[#1A1A2E] leading-tight block transform rotate-2">
-                  Better you <span className="text-[#E5501A]">♡</span>
+                <span className="font-script text-2xl text-[#1E2229] leading-tight block transform rotate-2">
+                  Better you <span className="text-[#FF5A36]">♡</span>
                 </span>
               </div>
             </div>
@@ -228,7 +228,7 @@ export default function HeroSection() {
                 <div className="absolute top-6 right-6 pointer-events-none select-none">
                   <div className="border border-slate-700/30 rounded-full px-4 py-2 bg-white/50 backdrop-blur-xs text-center transform rotate-6 shadow-xs">
                     <span className="font-script text-base font-bold text-slate-800 block leading-tight">Good People</span>
-                    <span className="font-script text-base font-bold text-slate-800 block leading-tight">Better Homes <span className="text-[#E5501A]">♡</span></span>
+                    <span className="font-script text-base font-bold text-slate-800 block leading-tight">Better Homes <span className="text-[#FF5A36]">♡</span></span>
                   </div>
                 </div>
 
@@ -246,7 +246,7 @@ export default function HeroSection() {
                   </div>
 
                   <div className="text-left min-w-0">
-                    <div className="text-xs font-bold text-[#1A1A2E] leading-tight">
+                    <div className="text-xs font-bold text-[#1E2229] leading-tight">
                       10K+
                     </div>
                     <div className="text-[10px] text-gray-500 font-medium leading-tight truncate">

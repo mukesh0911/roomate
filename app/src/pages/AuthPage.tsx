@@ -146,7 +146,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2] text-[#1A1A2E] relative selection:bg-[#E5501A]/20">
+    <div className="min-h-screen bg-[#FAF7F2] text-[#1E2229] relative selection:bg-[#FF5A36]/20">
 
       {/* ========================================================================= */}
       {/* DESKTOP VIEW (>= 1024px) - CENTERED AUTH CARD                             */}
@@ -157,7 +157,7 @@ export default function AuthPage() {
           {/* Brand Logo Header */}
           <div className="flex justify-center mb-6">
             <Link to="/" className="inline-flex items-center gap-2.5 group">
-              <div className="w-10 h-10 rounded-2xl bg-[#E5501A] flex items-center justify-center text-white shadow-xs transition-transform group-hover:scale-105">
+              <div className="w-10 h-10 rounded-2xl bg-[#FF5A36] flex items-center justify-center text-white shadow-xs transition-transform group-hover:scale-105">
                 <svg
                   viewBox="0 0 24 24"
                   className="w-5 h-5 text-white"
@@ -173,7 +173,7 @@ export default function AuthPage() {
                 </svg>
               </div>
               <div>
-                <span className="text-2xl font-bold tracking-tight text-[#1A1A2E] leading-none block">NestMate</span>
+                <span className="text-2xl font-bold tracking-tight text-[#1E2229] leading-none block">NestMate</span>
                 <span className="text-[9px] font-extrabold tracking-[0.22em] text-[#8C8CA1] uppercase block mt-1">
                   PEOPLE · PLACES · POSSIBILITIES
                 </span>
@@ -195,7 +195,7 @@ export default function AuthPage() {
               {authMethod === 'google' && (
                 <div>
                   <div className="text-center mb-6">
-                    <h2 className="text-[22px] xl:text-[25px] font-bold text-[#1A1A2E] tracking-tight">
+                    <h2 className="text-[22px] xl:text-[25px] font-bold text-[#1E2229] tracking-tight">
                       Find Your Place &amp; People
                     </h2>
                     <p className="text-xs sm:text-sm text-stone-500 mt-1.5 leading-relaxed">
@@ -209,10 +209,10 @@ export default function AuthPage() {
                       type="button"
                       onClick={handleGoogle}
                       disabled={loading}
-                      className="w-full min-h-[50px] flex items-center justify-center gap-3 py-3.5 px-5 bg-white hover:bg-stone-50/90 border border-stone-200/90 hover:border-stone-300 rounded-2xl text-sm font-bold text-[#1A1A2E] transition-all cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-xs active:scale-[0.98] disabled:opacity-50"
+                      className="w-full min-h-[50px] flex items-center justify-center gap-3 py-3.5 px-5 bg-white hover:bg-stone-50/90 border border-stone-200/90 hover:border-stone-300 rounded-2xl text-sm font-bold text-[#1E2229] transition-all cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-xs active:scale-[0.98] disabled:opacity-50"
                     >
                       {loading ? (
-                        <span className="w-5 h-5 border-2 border-stone-300 border-t-[#E5501A] rounded-full animate-spin" />
+                        <span className="w-5 h-5 border-2 border-stone-300 border-t-[#FF5A36] rounded-full animate-spin" />
                       ) : (
                         <>
                           <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
@@ -304,15 +304,15 @@ export default function AuthPage() {
                       setAuthMethod('google');
                       setError('');
                     }}
-                    className="flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-[#1A1A2E] mb-4 transition-colors cursor-pointer"
+                    className="flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-[#1E2229] mb-4 transition-colors cursor-pointer"
                   >
                     ← Back to Google Sign In
                   </button>
 
                   {isAdminRedirect && (
                     <div className="mb-4 p-3 bg-slate-900 text-white rounded-2xl border border-slate-800 shadow-sm flex items-start gap-3">
-                      <div className="w-7 h-7 rounded-lg bg-[#E5501A]/20 border border-[#E5501A]/30 flex items-center justify-center font-bold text-[#E5501A] shrink-0 mt-0.5">
-                        <ShieldCheck className="w-3.5 h-3.5 text-[#E5501A]" />
+                      <div className="w-7 h-7 rounded-lg bg-[#FF5A36]/20 border border-[#FF5A36]/30 flex items-center justify-center font-bold text-[#FF5A36] shrink-0 mt-0.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#FF5A36]" />
                       </div>
                       <div>
                         <p className="text-xs font-bold text-white">Administrator Access</p>
@@ -324,7 +324,7 @@ export default function AuthPage() {
                   )}
 
                   <div className="text-center mb-5">
-                    <h2 className="text-xl font-bold text-[#1A1A2E]">
+                    <h2 className="text-xl font-bold text-[#1E2229]">
                       {isAdminRedirect ? 'Admin Sign In' : 'Sign in with Email'}
                     </h2>
                     <p className="text-xs text-stone-500 mt-1">
@@ -344,7 +344,7 @@ export default function AuthPage() {
                         }}
                         placeholder="you@example.com"
                         aria-label="Email address"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-stone-200 hover:border-stone-300 focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 text-sm font-medium outline-hidden"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-stone-200 hover:border-stone-300 focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 text-sm font-medium outline-hidden"
                         autoFocus
                         onKeyDown={(e) => e.key === 'Enter' && document.getElementById('pw-input')?.focus()}
                       />
@@ -362,7 +362,7 @@ export default function AuthPage() {
                         }}
                         placeholder="Password (min 6 characters)"
                         aria-label="Password"
-                        className="w-full pl-10 pr-10 py-2.5 rounded-2xl border border-stone-200 hover:border-stone-300 focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 text-sm font-medium outline-hidden"
+                        className="w-full pl-10 pr-10 py-2.5 rounded-2xl border border-stone-200 hover:border-stone-300 focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 text-sm font-medium outline-hidden"
                         onKeyDown={(e) => e.key === 'Enter' && handleEmailSubmit()}
                       />
                       <button
@@ -388,7 +388,7 @@ export default function AuthPage() {
                   <button
                     onClick={handleEmailSubmit}
                     disabled={loading}
-                    className="w-full bg-[#E5501A] hover:bg-[#D0400B] text-white font-bold text-sm py-3 px-6 rounded-2xl shadow-md shadow-[#E5501A]/20 flex items-center justify-center gap-2 transition-all active:scale-[0.99] cursor-pointer disabled:opacity-50 mb-3"
+                    className="w-full bg-[#FF5A36] hover:bg-[#E54E2B] text-white font-bold text-sm py-3 px-6 rounded-2xl shadow-md shadow-[#FF5A36]/20 flex items-center justify-center gap-2 transition-all active:scale-[0.99] cursor-pointer disabled:opacity-50 mb-3"
                   >
                     {loading ? (
                       <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -411,7 +411,7 @@ export default function AuthPage() {
                     <button
                       type="button"
                       onClick={handleGoogle}
-                      className="text-[#E5501A] font-semibold hover:underline cursor-pointer"
+                      className="text-[#FF5A36] font-semibold hover:underline cursor-pointer"
                     >
                       Use Google instead
                     </button>
@@ -428,12 +428,12 @@ export default function AuthPage() {
                       setError('');
                       setSuccess('');
                     }}
-                    className="flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-[#1A1A2E] mb-4 transition-colors cursor-pointer"
+                    className="flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-[#1E2229] mb-4 transition-colors cursor-pointer"
                   >
                     ← Back to Email Sign In
                   </button>
                   <div className="text-center mb-5">
-                    <h2 className="text-xl font-bold text-[#1A1A2E]">Reset Password</h2>
+                    <h2 className="text-xl font-bold text-[#1E2229]">Reset Password</h2>
                     <p className="text-xs text-stone-500 mt-1">
                       We'll send a password reset link to your email.
                     </p>
@@ -450,7 +450,7 @@ export default function AuthPage() {
                       }}
                       placeholder="you@example.com"
                       aria-label="Email address"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-stone-200 hover:border-stone-300 focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 text-sm font-medium outline-hidden"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-stone-200 hover:border-stone-300 focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 text-sm font-medium outline-hidden"
                       autoFocus
                       onKeyDown={(e) => e.key === 'Enter' && handleForgot()}
                     />
@@ -472,7 +472,7 @@ export default function AuthPage() {
                   <button
                     onClick={handleForgot}
                     disabled={loading}
-                    className="w-full bg-[#E5501A] hover:bg-[#D0400B] text-white font-bold text-sm py-2.5 px-6 rounded-2xl shadow-md transition-all cursor-pointer disabled:opacity-50"
+                    className="w-full bg-[#FF5A36] hover:bg-[#E54E2B] text-white font-bold text-sm py-2.5 px-6 rounded-2xl shadow-md transition-all cursor-pointer disabled:opacity-50"
                   >
                     {loading ? 'Sending...' : 'Send Reset Link'}
                   </button>
@@ -492,7 +492,7 @@ export default function AuthPage() {
                 setPassword('Nestmate-Emulator-Only-123!');
                 setAuthMethod('email');
               }}
-              className="underline hover:text-[#E5501A]"
+              className="underline hover:text-[#FF5A36]"
             >
               Fill Demo Seeker
             </button>
@@ -504,7 +504,7 @@ export default function AuthPage() {
                 setPassword('Nestmate-Emulator-Only-123!');
                 setAuthMethod('email');
               }}
-              className="underline hover:text-[#E5501A]"
+              className="underline hover:text-[#FF5A36]"
             >
               Fill Admin
             </button>
@@ -519,7 +519,7 @@ export default function AuthPage() {
         {/* Mobile Brand Logo Header */}
         <div className="flex justify-center mb-6">
           <Link to="/" className="inline-flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-2xl bg-[#E5501A] flex items-center justify-center text-white shadow-xs transition-transform group-hover:scale-105">
+            <div className="w-10 h-10 rounded-2xl bg-[#FF5A36] flex items-center justify-center text-white shadow-xs transition-transform group-hover:scale-105">
               <svg
                 viewBox="0 0 24 24"
                 className="w-5 h-5 text-white"
@@ -535,7 +535,7 @@ export default function AuthPage() {
               </svg>
             </div>
             <div>
-              <span className="text-2xl font-bold tracking-tight text-[#1A1A2E] leading-none block">NestMate</span>
+              <span className="text-2xl font-bold tracking-tight text-[#1E2229] leading-none block">NestMate</span>
               <span className="text-[9px] font-extrabold tracking-[0.22em] text-[#8C8CA1] uppercase block mt-1">
                 PEOPLE · PLACES · POSSIBILITIES
               </span>
@@ -547,14 +547,14 @@ export default function AuthPage() {
         <div className="w-full max-w-[400px] mx-auto px-1 sm:px-0">
           <div className="bg-white rounded-[28px] sm:rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.06)] border border-stone-200/80 p-6 sm:p-7 relative transition-all">
             {/* Playful & Trustworthy Brand Element */}
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#FFF2EB] to-[#FFF7ED] text-[#E5501A] flex items-center justify-center mx-auto mb-3.5 border border-[#E5501A]/20 shadow-xs">
-              <Home className="w-6 h-6 text-[#E5501A]" />
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#FFF2EB] to-[#FFF7ED] text-[#FF5A36] flex items-center justify-center mx-auto mb-3.5 border border-[#FF5A36]/20 shadow-xs">
+              <Home className="w-6 h-6 text-[#FF5A36]" />
             </div>
 
             {authMethod === 'google' && (
               <div>
                 <div className="text-center mb-5">
-                  <h2 className="text-xl sm:text-[22px] font-bold text-[#1A1A2E] tracking-tight">
+                  <h2 className="text-xl sm:text-[22px] font-bold text-[#1E2229] tracking-tight">
                     Find Your Place &amp; People
                   </h2>
                   <p className="text-xs text-stone-500 mt-1 leading-relaxed">
@@ -568,10 +568,10 @@ export default function AuthPage() {
                     type="button"
                     onClick={handleGoogle}
                     disabled={loading}
-                    className="w-full min-h-[48px] flex items-center justify-center gap-3 py-3 px-4 bg-white hover:bg-stone-50 border border-stone-200/90 hover:border-stone-300 rounded-2xl text-xs sm:text-sm font-bold text-[#1A1A2E] shadow-[0_2px_8px_rgba(0,0,0,0.04)] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+                    className="w-full min-h-[48px] flex items-center justify-center gap-3 py-3 px-4 bg-white hover:bg-stone-50 border border-stone-200/90 hover:border-stone-300 rounded-2xl text-xs sm:text-sm font-bold text-[#1E2229] shadow-[0_2px_8px_rgba(0,0,0,0.04)] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
                   >
                     {loading ? (
-                      <span className="w-5 h-5 border-2 border-stone-300 border-t-[#E5501A] rounded-full animate-spin" />
+                      <span className="w-5 h-5 border-2 border-stone-300 border-t-[#FF5A36] rounded-full animate-spin" />
                     ) : (
                       <>
                         <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
@@ -672,15 +672,15 @@ export default function AuthPage() {
                     setAuthMethod('google');
                     setError('');
                   }}
-                  className="flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-[#1A1A2E] mb-3 cursor-pointer"
+                  className="flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-[#1E2229] mb-3 cursor-pointer"
                 >
                   ← Back to Google Sign In
                 </button>
 
                 {isAdminRedirect && (
                   <div className="mb-4 p-3 bg-slate-900 text-white rounded-2xl border border-slate-800 shadow-xs flex items-start gap-2.5">
-                    <div className="w-6 h-6 rounded-lg bg-[#E5501A]/20 border border-[#E5501A]/30 flex items-center justify-center font-bold text-[#E5501A] shrink-0 mt-0.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-[#E5501A]" />
+                    <div className="w-6 h-6 rounded-lg bg-[#FF5A36]/20 border border-[#FF5A36]/30 flex items-center justify-center font-bold text-[#FF5A36] shrink-0 mt-0.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-[#FF5A36]" />
                     </div>
                     <div>
                       <p className="text-xs font-bold text-white">Administrator Access</p>
@@ -692,7 +692,7 @@ export default function AuthPage() {
                 )}
 
                 <div className="text-center mb-4">
-                  <h2 className="text-lg font-bold text-[#1A1A2E]">
+                  <h2 className="text-lg font-bold text-[#1E2229]">
                     {isAdminRedirect ? 'Admin Sign In' : 'Sign in with Email'}
                   </h2>
                   <p className="text-xs text-stone-500 mt-1">
@@ -712,7 +712,7 @@ export default function AuthPage() {
                       }}
                       placeholder="you@example.com"
                       aria-label="Email address"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-stone-200 hover:border-stone-300 focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 text-sm font-medium outline-hidden"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-stone-200 hover:border-stone-300 focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 text-sm font-medium outline-hidden"
                       autoFocus
                       onKeyDown={(e) => e.key === 'Enter' && document.getElementById('mobile-pw-input')?.focus()}
                     />
@@ -730,7 +730,7 @@ export default function AuthPage() {
                       }}
                       placeholder="Password (min 6 chars)"
                       aria-label="Password"
-                      className="w-full pl-10 pr-10 py-2.5 rounded-2xl border border-stone-200 hover:border-stone-300 focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 text-sm font-medium outline-hidden"
+                      className="w-full pl-10 pr-10 py-2.5 rounded-2xl border border-stone-200 hover:border-stone-300 focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 text-sm font-medium outline-hidden"
                       onKeyDown={(e) => e.key === 'Enter' && handleEmailSubmit()}
                     />
                     <button
@@ -753,7 +753,7 @@ export default function AuthPage() {
                 <button
                   onClick={handleEmailSubmit}
                   disabled={loading}
-                  className="w-full bg-[#E5501A] hover:bg-[#D0400B] text-white font-bold text-sm py-3 px-5 rounded-2xl shadow-md cursor-pointer disabled:opacity-50 mb-3 flex items-center justify-center gap-2"
+                  className="w-full bg-[#FF5A36] hover:bg-[#E54E2B] text-white font-bold text-sm py-3 px-5 rounded-2xl shadow-md cursor-pointer disabled:opacity-50 mb-3 flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -780,7 +780,7 @@ export default function AuthPage() {
                   <button
                     type="button"
                     onClick={handleGoogle}
-                    className="text-[#E5501A] font-semibold hover:underline cursor-pointer"
+                    className="text-[#FF5A36] font-semibold hover:underline cursor-pointer"
                   >
                     Use Google instead
                   </button>
@@ -797,13 +797,13 @@ export default function AuthPage() {
                     setError('');
                     setSuccess('');
                   }}
-                  className="flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-[#1A1A2E] mb-3 cursor-pointer"
+                  className="flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-[#1E2229] mb-3 cursor-pointer"
                 >
                   ← Back to Email Sign In
                 </button>
 
                 <div className="text-center mb-4">
-                  <h2 className="text-lg font-bold text-[#1A1A2E]">Reset Password</h2>
+                  <h2 className="text-lg font-bold text-[#1E2229]">Reset Password</h2>
                   <p className="text-xs text-stone-500 mt-1">
                     We'll send a password reset link to your email.
                   </p>
@@ -820,7 +820,7 @@ export default function AuthPage() {
                     }}
                     placeholder="you@example.com"
                     aria-label="Email address"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-stone-200 hover:border-stone-300 focus:border-[#E5501A] focus:ring-2 focus:ring-[#E5501A]/10 text-sm font-medium outline-hidden"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-stone-200 hover:border-stone-300 focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/10 text-sm font-medium outline-hidden"
                     autoFocus
                     onKeyDown={(e) => e.key === 'Enter' && handleForgot()}
                   />
@@ -842,7 +842,7 @@ export default function AuthPage() {
                 <button
                   onClick={handleForgot}
                   disabled={loading}
-                  className="w-full bg-[#E5501A] hover:bg-[#D0400B] text-white font-bold text-sm py-2.5 px-6 rounded-2xl shadow-md transition-all cursor-pointer disabled:opacity-50"
+                  className="w-full bg-[#FF5A36] hover:bg-[#E54E2B] text-white font-bold text-sm py-2.5 px-6 rounded-2xl shadow-md transition-all cursor-pointer disabled:opacity-50"
                 >
                   {loading ? 'Sending...' : 'Send Reset Link'}
                 </button>
@@ -862,7 +862,7 @@ export default function AuthPage() {
                 setPassword('Nestmate-Emulator-Only-123!');
                 setAuthMethod('email');
               }}
-              className="underline hover:text-[#E5501A]"
+              className="underline hover:text-[#FF5A36]"
             >
               Demo Seeker
             </button>
@@ -874,7 +874,7 @@ export default function AuthPage() {
                 setPassword('Nestmate-Emulator-Only-123!');
                 setAuthMethod('email');
               }}
-              className="underline hover:text-[#E5501A]"
+              className="underline hover:text-[#FF5A36]"
             >
               Admin
             </button>

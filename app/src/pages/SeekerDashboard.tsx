@@ -146,7 +146,7 @@ export default function SeekerDashboard() {
         read: false
       }).catch(err => console.warn('Failed to push verification notification', err));
     }
-  }, [user?.uid, profile?.role, profile?.isVerified, createNotification]);
+  }, [user?.uid, profile, createNotification]);
 
   // Report & Block State
   const [reportingUser, setReportingUser] = useState<MatchedUser | null>(null);
@@ -241,7 +241,7 @@ export default function SeekerDashboard() {
       })
       .catch(() => toast.error('Failed to load matches.'))
       .finally(() => setIsLoading(false));
-  }, [profile?.uid, profile?.city, filters, findMatches, profile?.blockedUserIds]);
+  }, [profile, filters, findMatches, logEvent, user?.uid]);
 
   // Load More Matches
   const handleLoadMore = useCallback(async () => {
@@ -319,7 +319,7 @@ export default function SeekerDashboard() {
       setChatRoomMap(map);
     });
     return unsub;
-  }, [user?.uid]);
+  }, [subscribeToChatRooms, user?.uid]);
 
   // Real-time connections subscription — updates button state instantly without page refresh
   useEffect(() => {
@@ -327,7 +327,7 @@ export default function SeekerDashboard() {
     const unsub = subscribeToMyConnections(user.uid, setMyConnections);
     getMonthlyConnectCount(user.uid).then(setConnectsUsed).catch(() => { });
     return unsub;
-  }, [user?.uid]);
+  }, [getMonthlyConnectCount, subscribeToMyConnections, user?.uid]);
 
   // Fetch saved rooms dynamically from Firestore
   useEffect(() => {
@@ -754,7 +754,7 @@ export default function SeekerDashboard() {
         }
         return getTimestampMs(b) - getTimestampMs(a);
       });
-  }, [allAvailableMatches, activeTab, savedProfileIds, acceptedConnectedUids, filters, searchQuery, sortMode]);
+  }, [filters, matches, searchQuery, sortMode]);
 
   // bestMatch: the first match with a real score > 0. If all scores are 0
   // (e.g. no quiz data on either side) we show no featured hero card —
@@ -827,7 +827,7 @@ export default function SeekerDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FBF9F6] overflow-x-hidden pb-20">
+    <div className="min-h-screen bg-[#FBFBFC] overflow-x-hidden pb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
 
@@ -837,7 +837,7 @@ export default function SeekerDashboard() {
             <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-5">
               <div className="flex items-center gap-3 mb-4">
                 <div className="relative">
-                  <div className="w-14 h-14 rounded-full border-2 border-[#E5501A] p-0.5 bg-[#FBF9F6] shadow-xs">
+                  <div className="w-14 h-14 rounded-full border-2 border-[#FF5A36] p-0.5 bg-[#FBFBFC] shadow-xs">
                     {(profile?.avatar || user?.photoURL) && !(profile?.avatar || user?.photoURL)?.includes('dicebear') ? (
                       <img
                         src={profile?.avatar || user?.photoURL || undefined}
@@ -847,7 +847,7 @@ export default function SeekerDashboard() {
                         className="w-full h-full rounded-full object-cover"
                       />
                     ) : (
-                      <div aria-hidden="true" className="w-full h-full rounded-full bg-[#FFF2EB] text-[#E5501A] flex items-center justify-center font-bold">
+                      <div aria-hidden="true" className="w-full h-full rounded-full bg-[#FFF2EB] text-[#FF5A36] flex items-center justify-center font-bold">
                         {(profile?.name || user?.displayName || '?').trim().charAt(0).toUpperCase()}
                       </div>
                     )}
@@ -861,7 +861,7 @@ export default function SeekerDashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <h3 className="font-serif font-medium text-sm text-[#1A1A2E] truncate">{profile?.name || 'Guest'}</h3>
+                    <h3 className="font-serif font-medium text-sm text-[#1E2229] truncate">{profile?.name || 'Guest'}</h3>
                     <TrustBadge profile={profile} authProviders={user?.providerData?.map(p => p.providerId)} size="xs" showTooltip />
                   </div>
                   <p className="text-[10px] text-gray-500 truncate font-medium">{profile?.profession || 'Member'}{profile?.city ? ` · ${profile.city}` : ''}</p>
@@ -871,16 +871,16 @@ export default function SeekerDashboard() {
               <ProfileCompleteness profile={profile} compact className="mb-3" />
 
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-[#FBF9F6] border border-gray-100 rounded-2xl p-2">
-                  <p className="text-base font-bold text-[#1A1A2E]">{matches.length}</p>
+                <div className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-2">
+                  <p className="text-base font-bold text-[#1E2229]">{matches.length}</p>
                   <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">Matches</p>
                 </div>
-                <div className="bg-[#FBF9F6] border border-gray-100 rounded-2xl p-2">
-                  <p className="text-base font-bold text-[#1A1A2E]">{chatCount}</p>
+                <div className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-2">
+                  <p className="text-base font-bold text-[#1E2229]">{chatCount}</p>
                   <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">Chats</p>
                 </div>
-                <div className="bg-[#FBF9F6] border border-gray-100 rounded-2xl p-2">
-                  <p className="text-base font-bold text-[#E5501A]">
+                <div className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-2">
+                  <p className="text-base font-bold text-[#FF5A36]">
                     {matches.length > 0 && Math.max(...matches.map(m => m.compatibilityScore)) > 0
                       ? `${Math.max(...matches.map(m => m.compatibilityScore))}%`
                       : '—'}
@@ -890,7 +890,7 @@ export default function SeekerDashboard() {
               </div>
               <button
                 onClick={() => navigate('/edit-profile')}
-                className="mt-3 w-full text-xs font-semibold text-[#1A1A2E] border border-gray-200 rounded-full py-2 hover:bg-gray-50 transition-all cursor-pointer shadow-xs"
+                className="mt-3 w-full text-xs font-semibold text-[#1E2229] border border-gray-200 rounded-full py-2 hover:bg-gray-50 transition-all cursor-pointer shadow-xs"
               >
                 Edit Profile
               </button>
@@ -903,14 +903,14 @@ export default function SeekerDashboard() {
             {profile?.quizAnswers && Object.keys(profile.quizAnswers).length > 0 && (
               <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-serif font-medium text-sm text-[#1A1A2E]">Your Preferences</h4>
-                  <button onClick={() => navigate('/edit-profile')} className="text-xs text-[#E5501A] font-semibold cursor-pointer">Edit</button>
+                  <h4 className="font-serif font-medium text-sm text-[#1E2229]">Your Preferences</h4>
+                  <button onClick={() => navigate('/edit-profile')} className="text-xs text-[#FF5A36] font-semibold cursor-pointer">Edit</button>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {profile.quizAnswers && Object.entries(profile.quizAnswers).slice(0, 5).map(([qId, ansId]: [string, string]) => {
                     const labels: Record<string, string> = { before_10: 'Early Bird', after_12: 'Night Owl', veg: 'Vegetarian', non_veg: 'Non-veg', wfo: 'WFO', wfh: 'WFH' };
                     return (
-                      <span key={qId} className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[#FBF9F6] text-[#1A1A2E] border border-gray-200">
+                      <span key={qId} className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[#FBFBFC] text-[#1E2229] border border-gray-200">
                         {labels[ansId] || ansId}
                       </span>
                     );
@@ -923,15 +923,15 @@ export default function SeekerDashboard() {
             {profile?.savedSearches && profile.savedSearches.length > 0 && (
               <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-serif font-medium text-sm text-[#1A1A2E] flex items-center gap-2"><Bell className="w-4 h-4 text-[#E5501A]" /> Saved Alerts</h4>
+                  <h4 className="font-serif font-medium text-sm text-[#1E2229] flex items-center gap-2"><Bell className="w-4 h-4 text-[#FF5A36]" /> Saved Alerts</h4>
                 </div>
                 <div className="space-y-2">
                   {profile.savedSearches.map(alert => (
-                    <div key={alert.id} className="bg-[#FBF9F6] p-3 rounded-2xl border border-gray-100 flex flex-col gap-2">
+                    <div key={alert.id} className="bg-[#FBFBFC] p-3 rounded-2xl border border-gray-100 flex flex-col gap-2">
                       <div className="flex items-start justify-between">
                         <button
                           onClick={() => updateFilters(alert.filters)}
-                          className="text-left text-xs font-bold text-[#1A1A2E] hover:text-[#E5501A] transition-colors"
+                          className="text-left text-xs font-bold text-[#1E2229] hover:text-[#FF5A36] transition-colors"
                         >
                           {alert.name}
                         </button>
@@ -945,7 +945,7 @@ export default function SeekerDashboard() {
                         </button>
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        {alert.filters.city && <span className="bg-white px-2 py-0.5 rounded-full text-[9px] font-semibold text-[#1A1A2E] border border-gray-200">{alert.filters.city}</span>}
+                        {alert.filters.city && <span className="bg-white px-2 py-0.5 rounded-full text-[9px] font-semibold text-[#1E2229] border border-gray-200">{alert.filters.city}</span>}
                         {alert.filters.budgetMax && <span className="bg-white px-2 py-0.5 rounded-full text-[9px] font-semibold text-emerald-700 border border-emerald-200">₹{alert.filters.budgetMax / 1000}k</span>}
                         {alert.filters.flatType?.map((ft: string) => <span key={ft} className="bg-white px-2 py-0.5 rounded-full text-[9px] font-semibold text-gray-600 border border-gray-200">{ft}</span>)}
                       </div>
@@ -956,25 +956,25 @@ export default function SeekerDashboard() {
             )}
 
             {/* Unlimited Connects Widget */}
-            <div className="bg-[#FFF2EB]/50 rounded-3xl p-4 border border-[#E5501A]/20 shadow-xs">
+            <div className="bg-[#FFF2EB]/50 rounded-3xl p-4 border border-[#FF5A36]/20 shadow-xs">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-semibold text-xs text-[#1A1A2E] flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-[#E5501A]" /> 100% Free Connects
+                  <h4 className="font-semibold text-xs text-[#1E2229] flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-[#FF5A36]" /> 100% Free Connects
                   </h4>
                   <p className="text-[10px] text-gray-500 mt-0.5 font-medium">Connect directly without any hidden fees</p>
                 </div>
-                <span className="text-[10px] font-bold text-[#E5501A] bg-white px-2.5 py-0.5 rounded-full border border-[#E5501A]/30 shadow-2xs">
+                <span className="text-[10px] font-bold text-[#FF5A36] bg-white px-2.5 py-0.5 rounded-full border border-[#FF5A36]/30 shadow-2xs">
                   FREE
                 </span>
               </div>
             </div>
 
             {/* Promo Card: Switch to Owner */}
-            <div className="bg-gradient-to-br from-[#1A1A2E] via-[#24243E] to-[#1A1A2E] text-white rounded-3xl p-5 shadow-xs border border-slate-700/50 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-[#E5501A]/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-xl" />
+            <div className="bg-gradient-to-br from-[#1E2229] via-[#24243E] to-[#1E2229] text-white rounded-3xl p-5 shadow-xs border border-slate-700/50 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[#FF5A36]/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-xl" />
               <div className="flex items-start gap-3.5 relative">
-                <div className="w-10 h-10 bg-[#FFF2EB]/15 rounded-2xl flex items-center justify-center flex-shrink-0 border border-[#E5501A]/30">
+                <div className="w-10 h-10 bg-[#FFF2EB]/15 rounded-2xl flex items-center justify-center flex-shrink-0 border border-[#FF5A36]/30">
                   <Home className="w-5 h-5 text-[#FF7A45]" />
                 </div>
                 <div>
@@ -994,7 +994,7 @@ export default function SeekerDashboard() {
                         navigate('/login');
                       }
                     }}
-                    className="px-4 py-2 w-full rounded-full bg-[#E5501A] hover:bg-[#D0400B] text-white text-xs font-semibold transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+                    className="px-4 py-2 w-full rounded-full bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs font-semibold transition-all cursor-pointer shadow-xs active:scale-[0.98]"
                   >
                     List My Room →
                   </button>
@@ -1013,7 +1013,7 @@ export default function SeekerDashboard() {
 
             {/* Page Header */}
             <div className="mb-4">
-              <h1 className="font-serif font-medium text-2xl sm:text-3xl text-[#1A1A2E]">
+              <h1 className="font-serif font-medium text-2xl sm:text-3xl text-[#1E2229]">
                 {activeTab === 'all'
                   ? 'Find your next roommate'
                   : activeTab === 'saved'
@@ -1037,24 +1037,24 @@ export default function SeekerDashboard() {
             <div className="flex border-b border-gray-200/80 mb-5 overflow-x-auto scrollbar-hide">
               <button
                 onClick={() => setActiveTab('all')}
-                className={`py-3 px-5 sm:px-6 text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap border-b-2 -mb-px cursor-pointer ${activeTab === 'all' ? 'text-[#E5501A] border-[#E5501A]' : 'text-gray-500 hover:text-[#1A1A2E] border-transparent'}`}
+                className={`py-3 px-5 sm:px-6 text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap border-b-2 -mb-px cursor-pointer ${activeTab === 'all' ? 'text-[#FF5A36] border-[#FF5A36]' : 'text-gray-500 hover:text-[#1E2229] border-transparent'}`}
               >
                 All Matches
               </button>
               <button
                 onClick={() => setActiveTab('saved')}
-                className={`py-3 px-5 sm:px-6 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-2 whitespace-nowrap border-b-2 -mb-px cursor-pointer ${activeTab === 'saved' ? 'text-[#E5501A] border-[#E5501A]' : 'text-gray-500 hover:text-[#1A1A2E] border-transparent'}`}
+                className={`py-3 px-5 sm:px-6 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-2 whitespace-nowrap border-b-2 -mb-px cursor-pointer ${activeTab === 'saved' ? 'text-[#FF5A36] border-[#FF5A36]' : 'text-gray-500 hover:text-[#1E2229] border-transparent'}`}
               >
                 Saved
                 {(savedProfileIds.length + savedRoomIds.length) > 0 && (
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'saved' ? 'bg-[#E5501A] text-white' : 'bg-gray-100 text-gray-600'}`}>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'saved' ? 'bg-[#FF5A36] text-white' : 'bg-gray-100 text-gray-600'}`}>
                     {savedProfileIds.length + savedRoomIds.length}
                   </span>
                 )}
               </button>
               <button
                 onClick={() => setActiveTab('connections')}
-                className={`py-3 px-5 sm:px-6 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-2 whitespace-nowrap border-b-2 -mb-px cursor-pointer ${activeTab === 'connections' ? 'text-[#E5501A] border-[#E5501A]' : 'text-gray-500 hover:text-[#1A1A2E] border-transparent'}`}
+                className={`py-3 px-5 sm:px-6 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-2 whitespace-nowrap border-b-2 -mb-px cursor-pointer ${activeTab === 'connections' ? 'text-[#FF5A36] border-[#FF5A36]' : 'text-gray-500 hover:text-[#1E2229] border-transparent'}`}
               >
                 My Connections
                 {(acceptedConnectedUids.length + receivedRequests.length) > 0 && (
@@ -1072,25 +1072,25 @@ export default function SeekerDashboard() {
                 <div className="lg:hidden">
                   <Drawer.Root open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
                     <Drawer.Trigger asChild>
-                      <button className="flex items-center gap-2 px-3.5 py-2 bg-[#FBF9F6] border border-gray-200 rounded-full text-xs font-semibold text-[#1A1A2E] hover:border-[#E5501A] transition-colors cursor-pointer">
-                        <Filter className="w-3.5 h-3.5 text-[#E5501A]" />
+                      <button className="flex items-center gap-2 px-3.5 py-2 bg-[#FBFBFC] border border-gray-200 rounded-full text-xs font-semibold text-[#1E2229] hover:border-[#FF5A36] transition-colors cursor-pointer">
+                        <Filter className="w-3.5 h-3.5 text-[#FF5A36]" />
                         <span>Filters</span>
                       </button>
                     </Drawer.Trigger>
                     <Drawer.Portal>
                       <Drawer.Overlay className="fixed inset-0 bg-black/40 z-[100] backdrop-blur-sm" />
-                      <Drawer.Content className="bg-[#FBF9F6] flex flex-col rounded-t-[28px] max-h-[85vh] mt-24 fixed bottom-0 left-0 right-0 z-[100] shadow-2xl">
+                      <Drawer.Content className="bg-[#FBFBFC] flex flex-col rounded-t-[28px] max-h-[85vh] mt-24 fixed bottom-0 left-0 right-0 z-[100] shadow-2xl">
                         <div className="p-5 bg-white rounded-t-[28px] flex-1 overflow-y-auto">
                           <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-gray-200 mb-5" />
                           <div className="flex items-center justify-between mb-4">
-                            <h2 className="font-serif font-medium text-lg text-[#1A1A2E]">Filters</h2>
+                            <h2 className="font-serif font-medium text-lg text-[#1E2229]">Filters</h2>
                             <button onClick={() => setMobileFiltersOpen(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 cursor-pointer">
                               <X className="w-4 h-4 text-gray-600" />
                             </button>
                           </div>
                           <FilterPanel filters={filters} updateFilters={updateFilters} profile={profile} onSaveSearch={saveSearch} matches={allAvailableMatches} />
                           <div className="mt-6">
-                            <button onClick={() => setMobileFiltersOpen(false)} className="w-full py-3.5 bg-[#E5501A] hover:bg-[#D0400B] text-white rounded-full font-semibold text-sm shadow-xs cursor-pointer">Apply Filters</button>
+                            <button onClick={() => setMobileFiltersOpen(false)} className="w-full py-3.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full font-semibold text-sm shadow-xs cursor-pointer">Apply Filters</button>
                           </div>
                         </div>
                       </Drawer.Content>
@@ -1105,7 +1105,7 @@ export default function SeekerDashboard() {
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     placeholder="Search by name, profession, locality..."
-                    className="w-full pl-9 pr-9 py-2 bg-[#FBF9F6] rounded-full text-xs sm:text-sm border border-gray-200 outline-none focus:border-[#E5501A] font-medium text-[#1A1A2E]"
+                    className="w-full pl-9 pr-9 py-2 bg-[#FBFBFC] rounded-full text-xs sm:text-sm border border-gray-200 outline-none focus:border-[#FF5A36] font-medium text-[#1E2229]"
                   />
                   {searchQuery && (
                     <button onClick={() => setSearchQuery('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer">
@@ -1117,19 +1117,19 @@ export default function SeekerDashboard() {
               <select
                 value={sortMode}
                 onChange={e => setSortMode(e.target.value as any)}
-                className="bg-[#FBF9F6] border border-gray-200 rounded-full px-3.5 py-2 text-xs font-semibold text-[#1A1A2E] outline-none focus:border-[#E5501A] flex-shrink-0 cursor-pointer"
+                className="bg-[#FBFBFC] border border-gray-200 rounded-full px-3.5 py-2 text-xs font-semibold text-[#1E2229] outline-none focus:border-[#FF5A36] flex-shrink-0 cursor-pointer"
               >
                 <option value="best">Best Match</option>
                 <option value="newest">Newest First</option>
                 <option value="budgetAsc">Budget: Low → High</option>
                 <option value="budgetDesc">Budget: High → Low</option>
               </select>
-              <div className="hidden sm:flex bg-[#FBF9F6] rounded-full p-0.5 border border-gray-200 flex-shrink-0">
+              <div className="hidden sm:flex bg-[#FBFBFC] rounded-full p-0.5 border border-gray-200 flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => setViewMode('grid')}
                   aria-label="Grid view"
-                  className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === 'grid' ? 'bg-white shadow-xs text-[#E5501A]' : 'text-gray-400 hover:text-gray-600'}`}
+                  className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === 'grid' ? 'bg-white shadow-xs text-[#FF5A36]' : 'text-gray-400 hover:text-gray-600'}`}
                 >
                   <LayoutGrid className="w-3.5 h-3.5" />
                 </button>
@@ -1137,7 +1137,7 @@ export default function SeekerDashboard() {
                   type="button"
                   onClick={() => setViewMode('list')}
                   aria-label="List view"
-                  className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === 'list' ? 'bg-white shadow-xs text-[#E5501A]' : 'text-gray-400 hover:text-gray-600'}`}
+                  className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === 'list' ? 'bg-white shadow-xs text-[#FF5A36]' : 'text-gray-400 hover:text-gray-600'}`}
                 >
                   <List className="w-3.5 h-3.5" />
                 </button>
@@ -1152,7 +1152,7 @@ export default function SeekerDashboard() {
                   onClick={() => setSavedSubTab('flatmates')}
                   className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                     savedSubTab === 'flatmates'
-                      ? 'bg-[#1A1A2E] text-white shadow-xs'
+                      ? 'bg-[#1E2229] text-white shadow-xs'
                       : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -1163,7 +1163,7 @@ export default function SeekerDashboard() {
                   onClick={() => setSavedSubTab('rooms')}
                   className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                     savedSubTab === 'rooms'
-                      ? 'bg-[#1A1A2E] text-white shadow-xs'
+                      ? 'bg-[#1E2229] text-white shadow-xs'
                       : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -1180,7 +1180,7 @@ export default function SeekerDashboard() {
                   onClick={() => setConnectionSubTab('connected')}
                   className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                     connectionSubTab === 'connected'
-                      ? 'bg-[#1A1A2E] text-white shadow-xs'
+                      ? 'bg-[#1E2229] text-white shadow-xs'
                       : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -1192,7 +1192,7 @@ export default function SeekerDashboard() {
                   onClick={() => setConnectionSubTab('received')}
                   className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                     connectionSubTab === 'received'
-                      ? 'bg-[#1A1A2E] text-white shadow-xs'
+                      ? 'bg-[#1E2229] text-white shadow-xs'
                       : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -1204,7 +1204,7 @@ export default function SeekerDashboard() {
                   onClick={() => setConnectionSubTab('sent')}
                   className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                     connectionSubTab === 'sent'
-                      ? 'bg-[#1A1A2E] text-white shadow-xs'
+                      ? 'bg-[#1E2229] text-white shadow-xs'
                       : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -1221,7 +1221,7 @@ export default function SeekerDashboard() {
             {!isLoading && activeTab === 'all' && (
               <>
                 {filteredMatches.length > 0 ? (
-                  <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5' : 'space-y-3'}>
+                  <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5' : 'space-y-3'}>
                     {filteredMatches.map(match => (
                       <DashboardSeekerCard
                         key={match.profile.uid}
@@ -1229,7 +1229,6 @@ export default function SeekerDashboard() {
                         isSaved={savedProfileIds.includes(match.profile.uid || '')}
                         onToggleSave={handleToggleSave}
                         saving={savingId === match.profile.uid}
-                        onCall={p => setContactModalProfile(p)}
                         onChat={(uid, name) => handleConnect(uid, name)}
                         cState={getConnectState(match.profile.uid || '')}
                         connecting={connectingId === match.profile.uid}
@@ -1276,7 +1275,7 @@ export default function SeekerDashboard() {
                       ))}
                     </div>
                   ) : hasMore ? (
-                    <button onClick={handleLoadMore} className="rounded-full bg-white border border-gray-200 text-[#1A1A2E] hover:bg-gray-50 text-xs sm:text-sm font-semibold px-6 py-2.5 shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer">Show More Matches <ChevronDown className="w-4 h-4" /></button>
+                    <button onClick={handleLoadMore} className="rounded-full bg-white border border-gray-200 text-[#1E2229] hover:bg-gray-50 text-xs sm:text-sm font-semibold px-6 py-2.5 shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer">Show More Matches <ChevronDown className="w-4 h-4" /></button>
                   ) : matches.length > 0 ? (
                     <p className="text-gray-400 text-xs font-semibold">You've reached the end of your matches</p>
                   ) : null}
@@ -1289,7 +1288,7 @@ export default function SeekerDashboard() {
               <>
                 {savedSubTab === 'flatmates' && (
                   savedFlatmates.length > 0 ? (
-                    <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5' : 'space-y-3'}>
+                    <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5' : 'space-y-3'}>
                       {savedFlatmates.map(match => (
                         <DashboardSeekerCard
                           key={match.profile.uid}
@@ -1297,7 +1296,6 @@ export default function SeekerDashboard() {
                           isSaved={true}
                           onToggleSave={handleToggleSave}
                           saving={savingId === match.profile.uid}
-                          onCall={p => setContactModalProfile(p)}
                           onChat={(uid, name) => handleConnect(uid, name)}
                           cState={getConnectState(match.profile.uid || '')}
                           connecting={connectingId === match.profile.uid}
@@ -1315,7 +1313,7 @@ export default function SeekerDashboard() {
                         title="No saved roommates yet"
                         description="Heart roommate profiles while browsing to easily revisit and connect with them here."
                         action={
-                          <button onClick={() => setActiveTab('all')} className="rounded-full bg-[#E5501A] hover:bg-[#D0400B] text-white text-xs sm:text-sm font-semibold px-6 py-2.5 shadow-xs cursor-pointer">
+                          <button onClick={() => setActiveTab('all')} className="rounded-full bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs sm:text-sm font-semibold px-6 py-2.5 shadow-xs cursor-pointer">
                             Browse Roommates
                           </button>
                         }
@@ -1328,7 +1326,7 @@ export default function SeekerDashboard() {
                   loadingSavedRooms ? (
                     <StateSkeletonGrid count={3} />
                   ) : filteredSavedRooms.length > 0 ? (
-                    <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5' : 'space-y-3'}>
+                    <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5' : 'space-y-3'}>
                       {filteredSavedRooms.map(room => (
                         <CompactRoomCard
                           key={room.id}
@@ -1336,7 +1334,6 @@ export default function SeekerDashboard() {
                           isSaved={true}
                           compatibilityScore={profile ? calculateRoomCompatibility(profile, room) : undefined}
                           onToggleSave={handleToggleSaveRoom}
-                          onCall={r => setContactModalProfile({ name: r.title || 'Property Owner', phone: (r as any).contactPhone || '', isOwner: true } as any)}
                           onChat={() => navigate('/chat')}
                         />
                       ))}
@@ -1348,7 +1345,7 @@ export default function SeekerDashboard() {
                         title="No saved rooms yet"
                         description="Save rooms across the platform to easily compare and revisit them here."
                         action={
-                          <button onClick={() => navigate('/explore?tab=rooms')} className="rounded-full bg-[#E5501A] hover:bg-[#D0400B] text-white text-xs sm:text-sm font-semibold px-6 py-2.5 shadow-xs cursor-pointer">
+                          <button onClick={() => navigate('/explore?tab=rooms')} className="rounded-full bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs sm:text-sm font-semibold px-6 py-2.5 shadow-xs cursor-pointer">
                             Explore Rooms
                           </button>
                         }
@@ -1364,7 +1361,7 @@ export default function SeekerDashboard() {
               <>
                 {connectionSubTab === 'connected' && (
                   connectedMatches.length > 0 ? (
-                    <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5' : 'space-y-3'}>
+                    <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5' : 'space-y-3'}>
                       {connectedMatches.map(match => (
                         <DashboardSeekerCard
                           key={match.profile.uid}
@@ -1372,7 +1369,6 @@ export default function SeekerDashboard() {
                           isSaved={savedProfileIds.includes(match.profile.uid || '')}
                           onToggleSave={handleToggleSave}
                           saving={savingId === match.profile.uid}
-                          onCall={p => setContactModalProfile(p)}
                           onChat={(uid, name) => handleConnect(uid, name)}
                           cState="chat"
                           connecting={connectingId === match.profile.uid}
@@ -1390,7 +1386,7 @@ export default function SeekerDashboard() {
                         title="No active connections yet"
                         description="Once you and another roommate connect, their contact details and direct chat will appear here."
                         action={
-                          <button onClick={() => setActiveTab('all')} className="rounded-full bg-[#E5501A] hover:bg-[#D0400B] text-white text-xs sm:text-sm font-semibold px-6 py-2.5 shadow-xs cursor-pointer">
+                          <button onClick={() => setActiveTab('all')} className="rounded-full bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs sm:text-sm font-semibold px-6 py-2.5 shadow-xs cursor-pointer">
                             Find Roommates
                           </button>
                         }
@@ -1401,7 +1397,7 @@ export default function SeekerDashboard() {
 
                 {connectionSubTab === 'received' && (
                   receivedRequests.length > 0 ? (
-                    <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5' : 'space-y-3'}>
+                    <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5' : 'space-y-3'}>
                       {receivedRequests.map(conn => {
                         const match = getMatchForUid(conn.fromUserId);
                         return (
@@ -1412,7 +1408,6 @@ export default function SeekerDashboard() {
                             onAcceptRequest={() => handleAcceptRequest(conn.id, conn.fromUserId, match.profile.name || 'Roommate')}
                             onDeclineRequest={() => handleDeclineRequest(conn.id, match.profile.name || 'Roommate')}
                             connecting={connectingId === conn.fromUserId}
-                            onCall={p => setContactModalProfile(p)}
                             onReport={setReportingUser}
                             onBlock={handleBlockUser}
                             viewMode={viewMode}
@@ -1433,7 +1428,7 @@ export default function SeekerDashboard() {
 
                 {connectionSubTab === 'sent' && (
                   sentRequests.length > 0 ? (
-                    <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5' : 'space-y-3'}>
+                    <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5' : 'space-y-3'}>
                       {sentRequests.map(conn => {
                         const match = getMatchForUid(conn.toUserId);
                         return (
@@ -1442,7 +1437,6 @@ export default function SeekerDashboard() {
                             match={match}
                             isSentRequest={true}
                             onCancelRequest={() => handleCancelRequest(conn.id, match.profile.name || 'Roommate')}
-                            onCall={p => setContactModalProfile(p)}
                             onReport={setReportingUser}
                             onBlock={handleBlockUser}
                             viewMode={viewMode}
@@ -1457,7 +1451,7 @@ export default function SeekerDashboard() {
                         title="No pending requests sent"
                         description="You haven't sent any connection requests yet. Send requests to connect with roommates."
                         action={
-                          <button onClick={() => setActiveTab('all')} className="rounded-full bg-[#E5501A] hover:bg-[#D0400B] text-white text-xs sm:text-sm font-semibold px-6 py-2.5 shadow-xs cursor-pointer">
+                          <button onClick={() => setActiveTab('all')} className="rounded-full bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs sm:text-sm font-semibold px-6 py-2.5 shadow-xs cursor-pointer">
                             Browse Roommates
                           </button>
                         }
@@ -1548,10 +1542,10 @@ export default function SeekerDashboard() {
                   <div key={item.label} className="space-y-1">
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-600 font-medium">{item.label}</span>
-                      <span className="font-bold text-[#1A1A2E]">{item.value}%</span>
+                      <span className="font-bold text-[#1E2229]">{item.value}%</span>
                     </div>
-                    <div className="h-2 bg-[#F7F3ED] rounded-full overflow-hidden">
-                      <div className="h-full bg-[#E5501A] rounded-full transition-all duration-700" style={{ width: `${item.value}%` }} />
+                    <div className="h-2 bg-[#FBFBFC] rounded-full overflow-hidden">
+                      <div className="h-full bg-[#FF5A36] rounded-full transition-all duration-700" style={{ width: `${item.value}%` }} />
                     </div>
                   </div>
                 ))}
@@ -1569,7 +1563,7 @@ export default function SeekerDashboard() {
       <Dialog open={!!reportingUser} onOpenChange={(open) => !open && setReportingUser(null)}>
         <DialogContent className="sm:max-w-[425px] rounded-3xl p-6 bg-white border border-gray-100 shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="font-serif text-xl font-medium text-[#1A1A2E]">Report User</DialogTitle>
+            <DialogTitle className="font-serif text-xl font-medium text-[#1E2229]">Report User</DialogTitle>
             <DialogDescription className="text-xs text-gray-500">
               Help us understand what's happening with {reportingUser?.profile.name}. Your report is anonymous.
             </DialogDescription>
@@ -1578,7 +1572,7 @@ export default function SeekerDashboard() {
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-gray-700">Reason for reporting</label>
               <Select value={reportReason} onValueChange={setReportReason}>
-                <SelectTrigger className="w-full rounded-2xl border-gray-200 bg-[#FBF9F6]">
+                <SelectTrigger className="w-full rounded-2xl border-gray-200 bg-[#FBFBFC]">
                   <SelectValue placeholder="Select a reason" />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-gray-100 bg-white">
@@ -1596,7 +1590,7 @@ export default function SeekerDashboard() {
                 placeholder="Please describe the issue..."
                 value={reportDescription}
                 onChange={(e) => setReportDescription(e.target.value)}
-                className="min-h-[100px] resize-none rounded-2xl border-gray-200 bg-[#FBF9F6] p-3 text-xs"
+                className="min-h-[100px] resize-none rounded-2xl border-gray-200 bg-[#FBFBFC] p-3 text-xs"
               />
             </div>
           </div>
@@ -1605,7 +1599,7 @@ export default function SeekerDashboard() {
               Cancel
             </Button>
             <Button
-              className="bg-[#E5501A] hover:bg-[#D0400B] text-white rounded-full text-xs font-semibold shadow-sm"
+              className="bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full text-xs font-semibold shadow-sm"
               onClick={handleSubmitReport}
               disabled={isSubmittingReport || !reportReason}
             >
@@ -1722,14 +1716,14 @@ function FilterPanel({
     <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-5 sm:p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h4 className="font-serif text-base font-medium text-[#1A1A2E]">Filters</h4>
+          <h4 className="font-serif text-base font-medium text-[#1E2229]">Filters</h4>
           <p className="text-[11px] text-gray-400">Refine match criteria</p>
         </div>
         <div className="flex items-center gap-2.5">
           <button
             onClick={handleSaveAlert}
             disabled={isSavingAlert}
-            className="text-xs text-[#E5501A] font-semibold hover:underline flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FFF2EB]"
+            className="text-xs text-[#FF5A36] font-semibold hover:underline flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FFF2EB]"
           >
             {isSavingAlert ? <Loader2 className="w-3 h-3 animate-spin" /> : <Bell className="w-3 h-3" />}
             Save
@@ -1747,7 +1741,7 @@ function FilterPanel({
           <select
             value={filters.city}
             onChange={e => updateFilters({ city: e.target.value })}
-            className="w-full text-xs font-medium bg-[#FBF9F6] border border-gray-200 rounded-2xl px-3.5 py-2.5 outline-none focus:border-[#E5501A] text-[#1A1A2E]"
+            className="w-full text-xs font-medium bg-[#FBFBFC] border border-gray-200 rounded-2xl px-3.5 py-2.5 outline-none focus:border-[#FF5A36] text-[#1E2229]"
           >
             <option value="">All Cities</option>
             {dynamicCities.map(c => (
@@ -1760,13 +1754,13 @@ function FilterPanel({
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-xs text-gray-500 font-medium">Monthly Budget</label>
-            <span className="text-xs font-bold text-[#1A1A2E]">
+            <span className="text-xs font-bold text-[#1E2229]">
               ₹{localBudget[0].toLocaleString()} - {localBudget[1] >= 100000 ? '₹1,00,000+' : `₹${localBudget[1].toLocaleString()}`}
             </span>
           </div>
           <div className="relative h-2 w-full bg-gray-100 rounded-full mt-2">
             <div
-              className="absolute h-full bg-[#E5501A] rounded-full"
+              className="absolute h-full bg-[#FF5A36] rounded-full"
               style={{
                 left: `${(localBudget[0] / 100000) * 100}%`,
                 right: `${100 - (localBudget[1] / 100000) * 100}%`
@@ -1784,7 +1778,7 @@ function FilterPanel({
               }}
               onMouseUp={() => updateFilters({ budgetMin: localBudget[0] })}
               onTouchEnd={() => updateFilters({ budgetMin: localBudget[0] })}
-              className="absolute w-full h-2 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#E5501A] [&::-webkit-slider-thumb]:shadow-md cursor-pointer"
+              className="absolute w-full h-2 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#FF5A36] [&::-webkit-slider-thumb]:shadow-md cursor-pointer"
               style={{ zIndex: localBudget[0] > 50000 ? 5 : 3 }}
             />
             <input
@@ -1799,7 +1793,7 @@ function FilterPanel({
               }}
               onMouseUp={() => updateFilters({ budgetMax: localBudget[1] })}
               onTouchEnd={() => updateFilters({ budgetMax: localBudget[1] })}
-              className="absolute w-full h-2 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#E5501A] [&::-webkit-slider-thumb]:shadow-md cursor-pointer"
+              className="absolute w-full h-2 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#FF5A36] [&::-webkit-slider-thumb]:shadow-md cursor-pointer"
               style={{ zIndex: 4 }}
             />
           </div>
@@ -1815,7 +1809,7 @@ function FilterPanel({
                 updateFilters({ localities: [...(filters.localities || []), e.target.value] });
               }
             }}
-            className="w-full text-xs bg-[#FBF9F6] border border-gray-200 rounded-2xl px-3.5 py-2.5 outline-none focus:border-[#E5501A] text-[#1A1A2E]"
+            className="w-full text-xs bg-[#FBFBFC] border border-gray-200 rounded-2xl px-3.5 py-2.5 outline-none focus:border-[#FF5A36] text-[#1E2229]"
           >
             <option value="">Add locality...</option>
             {dynamicLocalities.map(l => (
@@ -1825,7 +1819,7 @@ function FilterPanel({
           {filters.localities && filters.localities.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
               {filters.localities.map((l: string) => (
-                <span key={l} className="bg-[#FFF2EB] text-[#E5501A] border border-[#E5501A]/20 text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                <span key={l} className="bg-[#FFF2EB] text-[#FF5A36] border border-[#FF5A36]/20 text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5">
                   {l}
                   <button
                     type="button"
@@ -1843,13 +1837,13 @@ function FilterPanel({
         {/* Gender Filter */}
         <div>
           <label className="text-xs text-gray-500 mb-1.5 block font-medium">Gender Preference</label>
-          <div className="flex gap-1.5 p-1 bg-[#F7F3ED] rounded-2xl">
+          <div className="flex gap-1.5 p-1 bg-[#FBFBFC] rounded-2xl">
             {['any', 'female', 'male'].map(g => (
               <button
                 key={g}
                 type="button"
                 onClick={() => updateFilters({ gender: g })}
-                className={`flex-1 py-1.5 rounded-xl text-xs capitalize transition-all font-semibold ${filters.gender === g ? 'bg-white text-[#1A1A2E] shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
+                className={`flex-1 py-1.5 rounded-xl text-xs capitalize transition-all font-semibold ${filters.gender === g ? 'bg-white text-[#1E2229] shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
               >
                 {g}
               </button>
@@ -1882,7 +1876,7 @@ function FilterPanel({
                   key={ft}
                   type="button"
                   onClick={() => toggleArrayFilter('flatType', ft)}
-                  className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${selected ? 'bg-[#E5501A] text-white border-[#E5501A] shadow-xs' : 'bg-[#FBF9F6] border-gray-200 text-gray-600 hover:border-gray-300'}`}
+                  className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${selected ? 'bg-[#FF5A36] text-white border-[#FF5A36] shadow-xs' : 'bg-[#FBFBFC] border-gray-200 text-gray-600 hover:border-gray-300'}`}
                 >
                   {ft}
                 </button>
@@ -1902,7 +1896,7 @@ function FilterPanel({
                   key={fn}
                   type="button"
                   onClick={() => toggleArrayFilter('furnishing', fn)}
-                  className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${selected ? 'bg-[#E5501A] text-white border-[#E5501A] shadow-xs' : 'bg-[#FBF9F6] border-gray-200 text-gray-600 hover:border-gray-300'}`}
+                  className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${selected ? 'bg-[#FF5A36] text-white border-[#FF5A36] shadow-xs' : 'bg-[#FBFBFC] border-gray-200 text-gray-600 hover:border-gray-300'}`}
                 >
                   {fn}
                 </button>
@@ -1922,7 +1916,7 @@ function FilterPanel({
                   key={amt}
                   type="button"
                   onClick={() => toggleArrayFilter('amenities', amt)}
-                  className={`text-xs font-medium px-2.5 py-1 rounded-full border transition-all ${selected ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs' : 'bg-[#FBF9F6] border-gray-200 text-gray-600 hover:border-gray-300'}`}
+                  className={`text-xs font-medium px-2.5 py-1 rounded-full border transition-all ${selected ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs' : 'bg-[#FBFBFC] border-gray-200 text-gray-600 hover:border-gray-300'}`}
                 >
                   {amt}
                 </button>

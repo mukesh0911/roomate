@@ -8,8 +8,8 @@ import StateEmpty from '@/components/StateEmpty';
 import { toast } from 'sonner';
 
 const iconMap: Record<string, { icon: any; color: string }> = {
-  match: { icon: Bell, color: 'bg-[#FFF2EB] text-[#E5501A]' },
-  message: { icon: MessageCircle, color: 'bg-[#FFF2EB] text-[#E5501A]' },
+  match: { icon: Bell, color: 'bg-[#FFF2EB] text-[#FF5A36]' },
+  message: { icon: MessageCircle, color: 'bg-[#FFF2EB] text-[#FF5A36]' },
   connect: { icon: UserPlus, color: 'bg-emerald-50 text-emerald-700' },
   room: { icon: Home, color: 'bg-teal-50 text-teal-700' },
   agreement: { icon: FileText, color: 'bg-amber-50 text-amber-700' },
@@ -122,7 +122,7 @@ export default function NotificationsPage() {
         unreadCount > 0 ? (
           <button
             onClick={handleMarkAllRead}
-            className="text-xs text-[#E5501A] hover:text-[#D0400B] font-semibold flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#FFF2EB] border border-[#E5501A]/20 transition-all shadow-2xs cursor-pointer"
+            className="text-xs text-[#FF5A36] hover:text-[#E54E2B] font-semibold flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#FFF2EB] border border-[#FF5A36]/20 transition-all shadow-2xs cursor-pointer"
           >
             <CheckCheck className="w-4 h-4" /> Mark all as read
           </button>
@@ -136,7 +136,7 @@ export default function NotificationsPage() {
               <Bell className="w-5 h-5" />
             </div>
             <div>
-              <p className="font-serif font-medium text-base text-[#1A1A2E]">Never miss an inquiry or match!</p>
+              <p className="font-serif font-medium text-base text-[#1E2229]">Never miss an inquiry or match!</p>
               <p className="text-xs text-gray-500 mt-0.5">Enable browser notifications to receive immediate alerts when a roommate connects.</p>
             </div>
           </div>
@@ -156,7 +156,7 @@ export default function NotificationsPage() {
             onClick={() => setFilterTab('all')}
             className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
               filterTab === 'all'
-                ? 'bg-[#1A1A2E] text-white shadow-2xs'
+                ? 'bg-[#1E2229] text-white shadow-2xs'
                 : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
             }`}
           >
@@ -166,14 +166,14 @@ export default function NotificationsPage() {
             onClick={() => setFilterTab('unread')}
             className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
               filterTab === 'unread'
-                ? 'bg-[#E5501A] text-white shadow-2xs'
+                ? 'bg-[#FF5A36] text-white shadow-2xs'
                 : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
             }`}
           >
             <span>Unread</span>
             {unreadCount > 0 && (
               <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
-                filterTab === 'unread' ? 'bg-white text-[#E5501A]' : 'bg-[#FFF2EB] text-[#E5501A]'
+                filterTab === 'unread' ? 'bg-white text-[#FF5A36]' : 'bg-[#FFF2EB] text-[#FF5A36]'
               }`}>
                 {unreadCount}
               </span>
@@ -196,14 +196,14 @@ export default function NotificationsPage() {
               filterTab === 'unread' ? (
                 <button
                   onClick={() => setFilterTab('all')}
-                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-[#1A1A2E] text-xs font-semibold rounded-full transition-all cursor-pointer"
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-[#1E2229] text-xs font-semibold rounded-full transition-all cursor-pointer"
                 >
                   View All Notifications
                 </button>
               ) : (
                 <button
                   onClick={() => navigate('/explore?tab=rooms')}
-                  className="px-5 py-2.5 bg-[#E5501A] hover:bg-[#D0400B] text-white text-xs font-semibold rounded-full transition-all shadow-xs shadow-[#E5501A]/20 cursor-pointer"
+                  className="px-5 py-2.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs font-semibold rounded-full transition-all shadow-xs shadow-[#FF5A36]/20 cursor-pointer"
                 >
                   Browse Listings & Roommates →
                 </button>
@@ -227,7 +227,7 @@ export default function NotificationsPage() {
                       key={notif.id}
                       data-testid="notification-item"
                       className={`w-full flex items-start gap-4 p-4 sm:p-5 rounded-3xl transition-all text-left ${
-                        !notif.read ? 'bg-[#FFF2EB]/80 border border-[#E5501A]/20 shadow-2xs' : 'bg-white border border-gray-100 shadow-2xs hover:border-gray-200'
+                        !notif.read ? 'bg-[#FFF2EB]/80 border border-[#FF5A36]/20 shadow-2xs' : 'bg-white border border-gray-100 shadow-2xs hover:border-gray-200'
                       }`}
                     >
                       <button onClick={() => handleClick(notif)} className="flex items-start gap-4 flex-1 text-left cursor-pointer">
@@ -235,7 +235,7 @@ export default function NotificationsPage() {
                           <Icon className="w-5 h-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-serif font-medium text-sm text-[#1A1A2E] mb-0.5">{notif.title}</p>
+                          <p className="font-serif font-medium text-sm text-[#1E2229] mb-0.5">{notif.title}</p>
                           <p className="text-xs text-gray-600 leading-relaxed font-sans">{notif.description}</p>
                           <p className="text-[10px] text-gray-400 font-medium mt-1.5">
                             {dateObj ? dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''}
@@ -243,7 +243,7 @@ export default function NotificationsPage() {
                         </div>
                       </button>
                       <div className="flex items-center gap-1.5 shrink-0 pt-1">
-                        {!notif.read && <span className="w-2.5 h-2.5 bg-[#E5501A] rounded-full" aria-label="Unread" title="Unread" />}
+                        {!notif.read && <span className="w-2.5 h-2.5 bg-[#FF5A36] rounded-full" aria-label="Unread" title="Unread" />}
                         <button
                           onClick={() => handleDelete(notif.id)}
                           className="p-2 text-gray-300 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 cursor-pointer"
@@ -272,7 +272,7 @@ export default function NotificationsPage() {
                       key={notif.id}
                       data-testid="notification-item"
                       className={`w-full flex items-start gap-4 p-4 sm:p-5 rounded-3xl transition-all text-left ${
-                        !notif.read ? 'bg-[#FFF2EB]/80 border border-[#E5501A]/20 shadow-2xs' : 'bg-white border border-gray-100 shadow-2xs hover:border-gray-200'
+                        !notif.read ? 'bg-[#FFF2EB]/80 border border-[#FF5A36]/20 shadow-2xs' : 'bg-white border border-gray-100 shadow-2xs hover:border-gray-200'
                       }`}
                     >
                       <button onClick={() => handleClick(notif)} className="flex items-start gap-4 flex-1 text-left cursor-pointer">
@@ -280,7 +280,7 @@ export default function NotificationsPage() {
                           <Icon className="w-5 h-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-serif font-medium text-sm text-[#1A1A2E] mb-0.5">{notif.title}</p>
+                          <p className="font-serif font-medium text-sm text-[#1E2229] mb-0.5">{notif.title}</p>
                           <p className="text-xs text-gray-600 leading-relaxed font-sans">{notif.description}</p>
                           <p className="text-[10px] text-gray-400 font-medium mt-1.5">
                             {dateObj ? dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
@@ -288,7 +288,7 @@ export default function NotificationsPage() {
                         </div>
                       </button>
                       <div className="flex items-center gap-1.5 shrink-0 pt-1">
-                        {!notif.read && <span className="w-2.5 h-2.5 bg-[#E5501A] rounded-full" aria-label="Unread" title="Unread" />}
+                        {!notif.read && <span className="w-2.5 h-2.5 bg-[#FF5A36] rounded-full" aria-label="Unread" title="Unread" />}
                         <button
                           onClick={() => handleDelete(notif.id)}
                           className="p-2 text-gray-300 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 cursor-pointer"
