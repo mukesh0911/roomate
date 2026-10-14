@@ -197,11 +197,10 @@ export default function ChatPage() {
               }) as UserProfile;
               newProfiles[otherId] = profileData;
               changed = true;
-              if (profileData.role === 'owner') {
-                const lq = query(collection(db, 'listings'), where('ownerId', '==', otherId));
-                const lsnap = await getDocs(lq);
-                if (!lsnap.empty) newListings[otherId] = lsnap.docs[0].id;
-              }
+              const lq = query(collection(db, 'listings'), where('ownerId', '==', otherId));
+              const lsnap = await getDocs(lq);
+              const activeListing = lsnap.docs.find(listing => listing.data().status === 'active');
+              if (activeListing) newListings[otherId] = activeListing.id;
             }
           } catch (e) { console.error(e); }
         }
@@ -312,19 +311,20 @@ export default function ChatPage() {
       return;
     }
     const requesterPhone = activeChatRoom.phoneSharing?.requesterPhone || '';
-    if (!requesterPhone) {
+    const requesterId = activeChatRoom.phoneSharing?.requestedBy || '';
+    if (!requesterPhone || !requesterId) {
       toast.error('Requester phone missing. Ask them to request again.');
       return;
     }
-    const requesterRole = otherProfile.role;
     try {
       await acceptPhoneShare(
         activeRoom,
         user.uid,
         myProfile.name,
         myPhone,
+        requesterId,
         requesterPhone,
-        requesterRole,
+        otherProfile.role,
         myProfile.role
       );
       setShowPhoneModal(false);
@@ -369,7 +369,10 @@ export default function ChatPage() {
 
   // Phone sharing state for active room
   const phoneSharing = activeChatRoom?.phoneSharing;
-  const phonesShared = !!(phoneSharing?.ownerPhone && phoneSharing?.seekerPhone);
+  const sharedParticipantPhones = phoneSharing?.participantPhones || {};
+  const mySharedPhone = user?.uid ? sharedParticipantPhones[user.uid] : null;
+  const otherSharedPhone = activeOtherId ? sharedParticipantPhones[activeOtherId] : null;
+  const phonesShared = !!(mySharedPhone && otherSharedPhone) || !!(phoneSharing?.ownerPhone && phoneSharing?.seekerPhone);
   const phoneRequested = !!phoneSharing?.requestedBy;
   const iRequested = phoneSharing?.requestedBy === user?.uid;
   const otherRequested = phoneRequested && !iRequested;
@@ -574,27 +577,22 @@ export default function ChatPage() {
                     <span className="hidden sm:inline ml-1.5">Numbers Shared</span>
                   </div>
                 )}
-                {activeOtherProfile?.role === 'owner' && activeListingId ? (
+                {activeOtherProfile && activeListingId ? (
                   <>
                     <button onClick={() => navigate(`/room/${activeListingId}`)} className="flex items-center justify-center p-2 sm:px-3 sm:py-1.5 bg-fire/10 text-fire rounded-full sm:rounded-lg hover:bg-fire/20 transition-all text-xs font-bold" title="View Flat" aria-label="View flat">
                       <Home className="w-4 h-4" />
                       <span className="hidden sm:inline ml-1.5">View Flat</span>
                     </button>
-                    <button onClick={() => navigate(`/match/${activeOtherId}`)} className="flex items-center justify-center p-2 sm:px-3 sm:py-1.5 bg-ink/5 text-ink/80 rounded-full sm:rounded-lg hover:bg-ink/10 transition-all text-xs font-bold" title="View Profile" aria-label="View owner profile">
+                    <button onClick={() => navigate(`/match/${activeOtherId}`)} className="flex items-center justify-center p-2 sm:px-3 sm:py-1.5 bg-ink/5 text-ink/80 rounded-full sm:rounded-lg hover:bg-ink/10 transition-all text-xs font-bold" title="View Profile" aria-label="View profile">
                       <UserIcon className="w-4 h-4" />
                       <span className="hidden sm:inline ml-1.5">Profile</span>
                     </button>
                   </>
-                ) : activeOtherProfile?.role === 'owner' ? (
+                ) : activeOtherProfile ? (
                   // Owner with no active listing — still show profile link
-                  <button onClick={() => navigate(`/match/${activeOtherId}`)} className="flex items-center justify-center p-2 sm:px-3 sm:py-1.5 bg-ink/5 text-ink/80 rounded-full sm:rounded-lg hover:bg-ink/10 transition-all text-xs font-bold" title="View Profile" aria-label="View owner profile">
-                    <UserIcon className="w-4 h-4" />
-                    <span className="hidden sm:inline ml-1.5">Profile</span>
-                  </button>
-                ) : activeOtherProfile?.role === 'seeker' ? (
                   <button onClick={() => navigate(`/match/${activeOtherId}`)} className="flex items-center justify-center p-2 sm:px-3 sm:py-1.5 bg-ink/5 text-ink/80 rounded-full sm:rounded-lg hover:bg-ink/10 transition-all text-xs font-bold" title="View Profile" aria-label="View profile">
                     <UserIcon className="w-4 h-4" />
-                    <span className="hidden sm:inline ml-1.5">View Profile</span>
+                    <span className="hidden sm:inline ml-1.5">Profile</span>
                   </button>
                 ) : null}
               </div>
@@ -612,6 +610,13 @@ export default function ChatPage() {
                 <PhoneCall className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                 <span className="text-[10px] sm:text-xs text-emerald-800 font-medium truncate">
                   {(() => {
+                    if (mySharedPhone && otherSharedPhone) {
+                      const p1Name = myProfile?.name || 'You';
+                      const p2Name = activeOtherProfile?.name || 'Match';
+                      return `${p1Name}: ${mySharedPhone} · ${p2Name}: ${otherSharedPhone}`;
+                    }
+                    // Backward-compatible rendering for chats created before
+                    // participantPhones was introduced.
                     const isBothSeekers = myProfile?.role === 'seeker' && activeOtherProfile?.role === 'seeker';
                     const isBothOwners = myProfile?.role === 'owner' && activeOtherProfile?.role === 'owner';
                     if (isBothSeekers || isBothOwners) {

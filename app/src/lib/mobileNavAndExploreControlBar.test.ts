@@ -4,20 +4,20 @@ import { cities } from '@/lib/staticData';
 
 describe('NestMate Mobile Navigation & Explore Control Bar Architecture', () => {
   describe('Part 1: Mobile Bottom Navigation Specifications', () => {
-    it('defines exactly 4 mobile bottom navigation destinations: Rooms, Messages, Profile, Menu', () => {
+    it('defines the shared-account mobile destinations: Explore, Listings, Post, Messages, Profile', () => {
       const mobileNavDestinations = [
-        { label: 'Rooms', path: '/explore?tab=rooms', icon: 'Building2' },
+        { label: 'Explore', path: '/explore?tab=rooms', icon: 'Building2' },
+        { label: 'Listings', path: '/my-listings', icon: 'Home' },
+        { label: 'Post Room', action: 'newListing', icon: 'PlusCircle' },
         { label: 'Messages', path: '/chat', icon: 'MessageCircle' },
         { label: 'Profile', path: '/profile', icon: 'User' },
-        { label: 'Menu', action: 'toggleDrawer', icon: 'Menu' },
       ];
 
-      expect(mobileNavDestinations).toHaveLength(4);
+      expect(mobileNavDestinations).toHaveLength(5);
       const labels = mobileNavDestinations.map(d => d.label);
-      expect(labels).toEqual(['Rooms', 'Messages', 'Profile', 'Menu']);
+      expect(labels).toEqual(['Explore', 'Listings', 'Post Room', 'Messages', 'Profile']);
 
-      // Home and Flatmates must NOT be independent bottom navigation tabs
-      expect(labels).not.toContain('Home');
+      // Roommates stays a contextual Explore tab, not a separate account mode.
       expect(labels).not.toContain('Flatmates');
     });
 

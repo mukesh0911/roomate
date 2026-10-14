@@ -23,6 +23,8 @@ export interface PhoneSharing {
   requesterPhone?: string | null;
   ownerPhone: string | null;
   seekerPhone: string | null;
+  /** Role-neutral phone map for new chats; legacy fields remain readable. */
+  participantPhones?: Record<string, string | null>;
 }
 
 export interface ChatRoom {
@@ -124,6 +126,7 @@ export function useChat() {
           acceptedBy: null, acceptedAt: null,
           requesterPhone: null,
           ownerPhone: null, seekerPhone: null,
+          participantPhones: {},
         },
       });
       return ref.id;
@@ -212,6 +215,7 @@ export function useChat() {
       accepterId: string,
       accepterName: string,
       accepterPhone: string,
+      requesterId: string,
       requesterPhone: string,
       requesterRole: 'owner' | 'seeker' | null,
       accepterRole: 'owner' | 'seeker' | null
@@ -227,6 +231,8 @@ export function useChat() {
         'phoneSharing.acceptedAt': serverTimestamp(),
         'phoneSharing.ownerPhone': ownerPhone,
         'phoneSharing.seekerPhone': seekerPhone,
+        [`phoneSharing.participantPhones.${requesterId}`]: requesterPhone,
+        [`phoneSharing.participantPhones.${accepterId}`]: accepterPhone,
       });
       await sendSystemMessage(roomId, accepterId, `✅ Phone numbers are now shared between both parties`);
     },

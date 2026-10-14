@@ -14,9 +14,9 @@ export default function HowItWorks() {
   const steps = [
     {
       num: '01',
-      title: 'Sign Up & Choose Role',
-      desc: 'Create your account with just your phone number. Choose whether you are looking for a room (Seeker) or have one to share (Owner).',
-      points: ['OTP verification in seconds', 'No email required', 'Switch roles anytime'],
+      title: 'Sign Up & Set Your Preferences',
+      desc: 'Create one NestMate account, then tell us what matters to you. Browse rooms, find compatible roommates, and post a room when you need to.',
+      points: ['Secure sign-in', 'Personalized discovery', 'Post a room from the same account'],
       icon: Users,
       image: 'signup',
     },

@@ -22,8 +22,9 @@
     "test:api:business": "playwright test tests/api/businessLogicApi.spec.ts tests/api/listingsApi.spec.ts tests/api/connectionsAndQuotaApi.spec.ts tests/api/matchingApi.spec.ts tests/api/messagingAndNotifsApi.spec.ts tests/api/moderationAndVerifApi.spec.ts --project=chromium --reporter=list",
     "test:api:multiuser": "playwright test tests/api/multiUserWorkflowApi.spec.ts --project=chromium --reporter=list",
     "test:api:all": "playwright test tests/api --reporter=list",
-    "test:e2e": "cd app && cross-env FUNCTIONS_DISCOVERY_TIMEOUT=60 npx -y firebase-tools emulators:exec --only auth,firestore,storage,functions --project demo-nestmate \"node ../tests/seed/emulator-universe.cjs seed && cd .. && playwright test\"",
-    "test:e2e:headed": "cd app && cross-env FUNCTIONS_DISCOVERY_TIMEOUT=60 npx -y firebase-tools emulators:exec --only auth,firestore,storage,functions --project demo-nestmate \"node ../tests/seed/emulator-universe.cjs seed && cd .. && playwright test --headed\""
+    "test:e2e": "cross-env FUNCTIONS_DISCOVERY_TIMEOUT=60 npx -y firebase-tools emulators:exec --config app/firebase.e2e.json --only auth,firestore,storage,functions --project demo-nestmate \"node tests/seed/emulator-universe.cjs seed && playwright test\"",
+    "test:e2e:critical": "cross-env FUNCTIONS_DISCOVERY_TIMEOUT=60 npx -y firebase-tools emulators:exec --config app/firebase.e2e.json --only auth,firestore,storage,functions --project demo-nestmate \"node tests/seed/emulator-universe.cjs seed && playwright test tests/e2e/00-environment-smoke.spec.ts tests/e2e/features/explore/exploreRooms.spec.ts tests/e2e/features/explore/exploreRoommates.spec.ts tests/e2e/features/listings/roomDetail.spec.ts tests/e2e/features/profile/profileManagement.spec.ts tests/e2e/features/chat/chatMessaging.spec.ts tests/e2e/features/settings/settingsManagement.spec.ts tests/e2e/security/securityBoundaries.spec.ts\"",
+    "test:e2e:headed": "cross-env FUNCTIONS_DISCOVERY_TIMEOUT=60 npx -y firebase-tools emulators:exec --config app/firebase.e2e.json --only auth,firestore,storage,functions --project demo-nestmate \"node tests/seed/emulator-universe.cjs seed && playwright test --headed\""
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

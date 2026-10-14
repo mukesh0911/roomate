@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { resolveEntityCoordinates } from '@/lib/locationResolver';
+import { mergePreferredLocalities } from '@/lib/profileLocalities';
 import {
   ArrowLeft, Save, RefreshCw, Loader2, Linkedin, Instagram,
   MessageCircle, Shield, CheckCircle2, XCircle, Upload, Clock, FileText
@@ -211,10 +212,12 @@ export default function EditProfile() {
     if (!user?.uid) return;
     setSaving(true);
     try {
+      const localities = mergePreferredLocalities(profile?.localities, formData.locality);
+      const primaryLocality = localities[0] || formData.locality;
       const coords = resolveEntityCoordinates({
         uid: user.uid,
         city: formData.city,
-        locality: formData.locality,
+        locality: primaryLocality,
       });
 
       await updateProfile(user.uid, {
@@ -224,8 +227,8 @@ export default function EditProfile() {
         profession: formData.profession,
         bio: formData.bio,
         city: formData.city,
-        locality: formData.locality,
-        localities: formData.locality ? [formData.locality] : [],
+        locality: primaryLocality,
+        localities,
         workEmail: formData.workEmail,
         whatsappNumber: formData.whatsappNumber,
         // workEmailVerified is admin/OTP-only — never self-grant from typing an email
@@ -233,7 +236,7 @@ export default function EditProfile() {
           linkedin: formData.linkedin,
           instagram: formData.instagram,
         },
-        ...(coords && { geoLocation: { lat: coords.lat, lng: coords.lng, formattedAddress: `${formData.locality || formData.city}, ${formData.city}` } }),
+        ...(coords && { geoLocation: { lat: coords.lat, lng: coords.lng, formattedAddress: `${primaryLocality || formData.city}, ${formData.city}` } }),
       });
       await refreshProfile();
       setSuccess('Profile updated successfully!');
@@ -251,14 +254,9 @@ export default function EditProfile() {
     if (!user?.uid) return;
     setRetaking(true);
     try {
-      await updateProfile(user.uid, {
-        quizAnswers: {},
-        onboardingComplete: false,
-      });
-      // BUG-7 FIX: navigate to the correct onboarding flow based on role.
-      // Previously always went to /onboarding/seeker, breaking owners who retake quiz.
-      const onboardingPath = profile?.role === 'owner' ? '/onboarding/owner' : '/onboarding/seeker';
-      navigate(onboardingPath);
+      // Compatibility setup is an activity, not a role change. Preserve the
+      // existing answers until the member explicitly saves updated ones.
+      navigate('/onboarding/seeker?roommate=1&redirect=%2Fexplore%3Ftab%3Droommates');
     } catch (err) {
       console.error('Error resetting quiz', err);
       setRetaking(false);
@@ -459,7 +457,7 @@ export default function EditProfile() {
               {errors.city && <p className="text-xs text-rose-500 mt-1">{errors.city}</p>}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Locality</label>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Primary locality</label>
               <select
                 value={formData.locality}
                 onChange={e => setFormData({ ...formData, locality: e.target.value })}
@@ -472,6 +470,9 @@ export default function EditProfile() {
                 )}
                 {formData.city && localitiesByCity[formData.city]?.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
+              {profile?.localities && profile.localities.length > 1 && (
+                <p className="mt-1.5 text-[11px] text-gray-400">Your other preferred areas are kept when you save.</p>
+              )}
             </div>
           </div>
         </div>
@@ -634,7 +635,7 @@ export default function EditProfile() {
         </div>
 
         {/* Retake Quiz */}
-        {profile?.role === 'seeker' && (
+        {(
           <div className="bg-gradient-to-br from-[#FFF2EB] to-[#FBFBFC] border border-[#FF5A36]/20 rounded-3xl p-6 text-center shadow-xs">
             <h2 className="font-serif font-medium text-lg text-[#1E2229] mb-1.5">Update Your Compatibility Profile</h2>
             <p className="text-xs sm:text-sm text-gray-600 mb-4 max-w-md mx-auto">Changed your habits or preferences? Retake the quiz to get better roommate matches.</p>

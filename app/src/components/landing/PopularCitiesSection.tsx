@@ -89,7 +89,7 @@ export default function PopularCitiesSection() {
   const { updateFilters } = useStore();
 
   const handleCitySelect = (cityName: string) => {
-    updateFilters({ location: cityName });
+    updateFilters({ city: cityName });
     navigate(`/explore?city=${encodeURIComponent(cityName)}&tab=rooms`);
   };
 

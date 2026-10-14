@@ -8,7 +8,7 @@ import { cities, localitiesByCity, flatTypes, furnishingTypes, amenitiesList, ho
 import {
   ArrowLeft, Save, Trash2, ToggleLeft, ToggleRight, Loader2,
   AlertTriangle, Upload, X, Image as ImageIcon, ShieldAlert, Sparkles,
-  MapPin, Home, CheckCircle2, Check
+  MapPin, Home, CheckCircle2, Check, Eye, Building2, ExternalLink, BedDouble, Users
 } from 'lucide-react';
 import OwnerVerificationGate from '@/components/OwnerVerificationGate';
 import { subscribeToOwnerVerification, type OwnerVerification } from '@/lib/ownerVerification';
@@ -21,13 +21,23 @@ export default function EditListing() {
   const isNew = id === 'new';
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { getListingById, updateListing, deleteListing, createListing } = useListings();
   const { uploadListingImages } = useStorage();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [publishedListing, setPublishedListing] = useState<{
+    id: string;
+    title: string;
+    locality: string;
+    city: string;
+    rent: number;
+    image?: string;
+    isLive: boolean;
+  } | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [ownerVerified, setOwnerVerified] = useState<boolean | undefined>(undefined);
@@ -70,11 +80,14 @@ export default function EditListing() {
     document.title = isNew ? 'Create Listing | NestMate' : `${form.title ? form.title + ' — Edit' : 'Edit Listing'} | NestMate`;
   }, [isNew, form.title]);
 
-  // Escape key and scroll lock for Delete Confirmation Modal
+  // Escape key and scroll lock for Modals
   useEffect(() => {
-    if (!showDeleteConfirm) return;
+    if (!showDeleteConfirm && !showPreviewModal && !publishedListing) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setShowDeleteConfirm(false);
+      if (e.key === 'Escape') {
+        setShowDeleteConfirm(false);
+        setShowPreviewModal(false);
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     const prevOverflow = document.body.style.overflow;
@@ -83,26 +96,27 @@ export default function EditListing() {
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = prevOverflow;
     };
-  }, [showDeleteConfirm]);
+  }, [showDeleteConfirm, showPreviewModal, publishedListing]);
 
   useEffect(() => {
     if (!id) return;
     if (isNew) {
-      if (location.state && (location.state as any).prefill) {
-        const p = (location.state as any).prefill;
-        setForm(prev => ({
-          ...prev,
-          city: p.city || prev.city,
-          locality: p.locality || prev.locality,
-          flatType: p.flatType || prev.flatType,
-          furnishing: p.furnishing || prev.furnishing,
-          monthlyRent: p.monthlyRent || prev.monthlyRent,
-          deposit: p.deposit || prev.deposit,
-          availableFrom: p.availableFrom || prev.availableFrom,
-          amenities: p.amenities || prev.amenities,
-          houseRules: p.houseRules || prev.houseRules,
-        }));
-      }
+      // Navigation prefill takes precedence, then profile preferences fill only
+      // empty fields. This avoids overwriting a draft if the auth profile loads late.
+      const p = (location.state as { prefill?: Record<string, any> } | null)?.prefill || {};
+      const profileLocality = profile?.locality || profile?.localities?.[0] || '';
+      setForm(prev => ({
+        ...prev,
+        city: prev.city || p.city || profile?.city || '',
+        locality: prev.locality || p.locality || profileLocality,
+        flatType: prev.flatType || p.flatType || '',
+        furnishing: prev.furnishing || p.furnishing || '',
+        monthlyRent: prev.monthlyRent || p.monthlyRent || 0,
+        deposit: prev.deposit || p.deposit || 0,
+        availableFrom: prev.availableFrom || p.availableFrom || '',
+        amenities: prev.amenities.length ? prev.amenities : (p.amenities || []),
+        houseRules: prev.houseRules.length ? prev.houseRules : (p.houseRules || []),
+      }));
       setLoading(false);
       return;
     }
@@ -139,15 +153,18 @@ export default function EditListing() {
       setExistingImages(listing.images || []);
       setLoading(false);
     });
-  }, [getListingById, id, user?.uid, isNew, location.state]);
+  }, [getListingById, id, user?.uid, isNew, location.state, profile?.city, profile?.locality, profile?.localities]);
 
   const handleSave = async () => {
     if (!id || !user?.uid) return;
 
     const effectiveLocality = form.locality || (localitiesByCity[form.city] || [])[0] || '';
     // Sprint 2E: required-field validation before any write for new listings
-    if (isNew && (!form.title.trim() || !form.city || !effectiveLocality || !(form.monthlyRent > 0))) {
-      setError('Please fill in title, city, locality and monthly rent.');
+    if (isNew && (
+      form.title.trim().length < 3 || form.title.trim().length > 160 || !form.city || !effectiveLocality
+      || !form.flatType || !form.furnishing || !(form.monthlyRent > 0)
+    )) {
+      setError('Add a 3–160 character title, city, locality, configuration, furnishing status, and monthly rent.');
       return;
     }
 
@@ -183,7 +200,7 @@ export default function EditListing() {
       const coords = resolveEntityCoordinates({
         id: listingId,
         city: form.city,
-        locality: form.locality,
+        locality: finalLocality,
       });
 
       // Security: unverified owner cannot update status to active
@@ -199,8 +216,21 @@ export default function EditListing() {
         images: finalImages,
         ...(coords && { lat: coords.lat, lng: coords.lng }),
       } as any);
-      setSuccess(isNew ? 'Listing created! Identity verification required before it goes live.' : 'Listing updated successfully!');
-      setTimeout(() => navigate('/owner-dashboard'), 1600);
+      if (isNew) {
+        setShowPreviewModal(false);
+        setPublishedListing({
+          id: listingId,
+          title: form.title || `${finalLocality} Room`,
+          locality: finalLocality,
+          city: form.city,
+          rent: monthlyRent,
+          image: finalImages[0] || (newPreviews[0] ?? undefined),
+          isLive: isApproved,
+        });
+      } else {
+        setSuccess('Listing updated successfully!');
+        setTimeout(() => navigate('/my-listings'), 1200);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to save listing');
     } finally {
@@ -214,7 +244,7 @@ export default function EditListing() {
     setSaving(true);
     try {
       await deleteListing(id);
-      navigate('/owner-dashboard');
+      navigate('/my-listings');
     } catch (err: any) {
       setError(err.message || 'Failed to delete');
       setSaving(false);
@@ -305,10 +335,10 @@ export default function EditListing() {
         {/* Top bar with back and status toggle */}
         <div className="flex items-center justify-between gap-2.5 mb-6 flex-wrap sm:flex-nowrap">
           <button
-            onClick={() => navigate('/owner-dashboard')}
+            onClick={() => navigate('/my-listings')}
             className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold text-gray-600 hover:text-[#1E2229] bg-white px-3.5 sm:px-4 py-2 rounded-full border border-gray-200/80 shadow-2xs hover:shadow-xs transition-all shrink-0 cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4" /> <span>Dashboard<span className="hidden sm:inline"> / Portfolio</span></span>
+            <ArrowLeft className="w-4 h-4" /> <span>My Listings</span>
           </button>
 
           {!isNew && (
@@ -842,6 +872,14 @@ export default function EditListing() {
           <div className="hidden md:flex gap-4 pt-2">
             <button
               type="button"
+              onClick={() => setShowPreviewModal(true)}
+              className="px-6 py-4 border border-gray-200 text-gray-700 hover:text-[#1E2229] hover:bg-gray-50 rounded-full font-semibold text-sm active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer shadow-2xs"
+            >
+              <Eye className="w-4 h-4 text-[#FF5A36]" /> Preview Listing
+            </button>
+
+            <button
+              type="button"
               onClick={handleSave}
               disabled={saving || isUploading}
               className="flex-1 py-4 bg-[#FF5A36] text-white rounded-full font-semibold text-sm hover:bg-[#E54E2B] active:scale-[0.98] transition-all shadow-sm shadow-[#FF5A36]/20 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
@@ -869,6 +907,15 @@ export default function EditListing() {
 
         {/* Sticky Mobile Bottom Bar (< 768px) */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 p-3.5 bg-white/95 backdrop-blur-md border-t border-gray-200/80 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] z-40 flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setShowPreviewModal(true)}
+            className="py-3 px-3.5 border border-gray-200 text-gray-700 rounded-full font-bold text-xs hover:bg-gray-50 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+          >
+            <Eye className="w-3.5 h-3.5 text-[#FF5A36]" />
+            <span>Preview</span>
+          </button>
+
           <button
             type="button"
             onClick={handleSave}
@@ -932,6 +979,243 @@ export default function EditListing() {
                   {saving ? 'Deleting...' : 'Yes, Delete'}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Listing Preview Modal */}
+        {showPreviewModal && (
+          <div
+            onClick={(e) => { if (e.target === e.currentTarget) setShowPreviewModal(false); }}
+            className="fixed inset-0 bg-black/65 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto animate-in fade-in duration-200"
+          >
+            <div className="bg-white rounded-3xl max-w-2xl w-full border border-gray-100 shadow-2xl overflow-hidden my-8">
+              {/* Preview Header */}
+              <div className="px-6 py-4 border-b border-gray-100 bg-[#FBFBFC] flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#FF5A36]" />
+                  <h3 className="font-serif font-medium text-lg text-[#1E2229]">Listing Preview</h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-[#FF5A36]">
+                    How Seekers Will See This
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPreviewModal(false)}
+                  className="p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
+                  aria-label="Close Preview"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Preview Content */}
+              <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                {/* Photo Gallery Preview */}
+                <div className="relative rounded-2xl overflow-hidden bg-gray-100 aspect-video flex items-center justify-center">
+                  {(existingImages.length > 0 || newPreviews.length > 0) ? (
+                    <img
+                      src={existingImages[0] || newPreviews[0]}
+                      alt="Cover Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-gray-400">
+                      <ImageIcon className="w-10 h-10" />
+                      <span className="text-xs font-semibold">No cover photo uploaded yet</span>
+                    </div>
+                  )}
+                  <div className="absolute top-3 left-3 flex gap-2">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-black/60 text-white backdrop-blur-md">
+                      {form.flatType || 'Flat Share'}
+                    </span>
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/90 text-[#1E2229] backdrop-blur-md">
+                      {form.furnishing || 'Furnished'}
+                    </span>
+                  </div>
+                  <div className="absolute bottom-3 right-3 px-3 py-1 rounded-full text-xs font-bold bg-black/70 text-white backdrop-blur-md">
+                    {existingImages.length + newPreviews.length} photos
+                  </div>
+                </div>
+
+                {/* Title & Key Pricing */}
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-gray-100 pb-5">
+                  <div className="min-w-0">
+                    <h2 className="font-serif text-2xl font-medium text-[#1E2229]">
+                      {form.title || `${form.locality || 'Locality'} Flat Share`}
+                    </h2>
+                    <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-1">
+                      <MapPin className="w-3.5 h-3.5 text-[#FF5A36] shrink-0" />
+                      <span>{form.locality || 'Locality'}, {form.city || 'City'}</span>
+                    </p>
+                  </div>
+                  <div className="text-left sm:text-right shrink-0">
+                    <p className="font-serif text-2xl font-bold text-[#FF5A36]">
+                      ₹{(form.monthlyRent || 0).toLocaleString()}
+                      <span className="text-xs font-normal text-gray-500"> / month</span>
+                    </p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">Deposit: ₹{(form.deposit || 0).toLocaleString()}</p>
+                  </div>
+                </div>
+
+                {/* Property Stats */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="p-3 rounded-2xl bg-[#FBFBFC] border border-gray-100 text-center">
+                    <span className="text-[10px] uppercase font-bold text-gray-400 block">Available</span>
+                    <span className="text-xs font-bold text-[#1E2229] mt-0.5 block truncate">
+                      {form.availableFrom || 'Immediate'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-[#FBFBFC] border border-gray-100 text-center">
+                    <span className="text-[10px] uppercase font-bold text-gray-400 block">Roommates Needed</span>
+                    <span className="text-xs font-bold text-[#1E2229] mt-0.5 block">
+                      {form.partnersNeeded} Person(s)
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-[#FBFBFC] border border-gray-100 text-center">
+                    <span className="text-[10px] uppercase font-bold text-gray-400 block">Preference</span>
+                    <span className="text-xs font-bold text-[#1E2229] mt-0.5 block capitalize truncate">
+                      {form.genderPreference === 'any' ? 'All Genders' : `${form.genderPreference} Only`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Description</h4>
+                  <p className="text-xs sm:text-sm text-gray-600 leading-relaxed font-sans whitespace-pre-line bg-[#FBFBFC] p-4 rounded-2xl border border-gray-100">
+                    {form.description || 'No detailed description provided yet.'}
+                  </p>
+                </div>
+
+                {/* Amenities */}
+                {form.amenities.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Amenities ({form.amenities.length})</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {form.amenities.map(a => (
+                        <span key={a} className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/60">
+                          ✓ {a}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* House Rules */}
+                {form.houseRules.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">House Rules ({form.houseRules.length})</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {form.houseRules.map(r => (
+                        <span key={r} className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                          • {r}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Preview Footer Actions */}
+              <div className="p-4 sm:p-6 border-t border-gray-100 bg-[#FBFBFC] flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowPreviewModal(false)}
+                  className="px-5 py-3 border border-gray-200 text-gray-700 rounded-full font-semibold text-xs sm:text-sm hover:bg-white transition-all cursor-pointer"
+                >
+                  Back to Editing
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving || isUploading}
+                  className="flex-1 sm:flex-none px-6 py-3 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full font-bold text-xs sm:text-sm shadow-sm shadow-[#FF5A36]/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                >
+                  {saving || isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  <span>Publish Listing Now</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Post-Publication Success Modal */}
+        {publishedListing && (
+          <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+          >
+            <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-gray-100 shadow-2xl text-center space-y-6">
+              {/* Glowing Success Icon */}
+              <div className="mx-auto w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/10">
+                <CheckCircle2 className="w-9 h-9" />
+              </div>
+
+              <div className="space-y-1.5">
+                <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                  publishedListing.isLive
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                }`}>
+                  {publishedListing.isLive ? '✓ Listing Live' : 'Pending Verification'}
+                </span>
+                <h2 className="font-serif text-2xl font-medium text-[#1E2229]">
+                  {publishedListing.isLive ? 'Your Listing is Live!' : 'Listing Created Successfully!'}
+                </h2>
+                <p className="text-xs text-gray-600 max-w-sm mx-auto leading-relaxed">
+                  {publishedListing.isLive
+                    ? `Your room is live and discoverable by flatmate seekers in ${publishedListing.city}.`
+                    : 'Your listing is saved to your account. Complete ID verification so seekers can discover and contact you.'}
+                </p>
+              </div>
+
+              {/* Published Property Snapshot */}
+              <div className="p-3.5 rounded-2xl bg-[#FBFBFC] border border-gray-100 flex items-center gap-3.5 text-left">
+                <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-200 shrink-0">
+                  {publishedListing.image ? (
+                    <img src={publishedListing.image} alt={publishedListing.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-[#1E2229] flex items-center justify-center text-white text-xs font-bold">
+                      <Home className="w-6 h-6 text-[#FF5A36]" />
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-bold text-[#1E2229] text-sm truncate">{publishedListing.title}</h4>
+                  <p className="text-xs text-gray-500 truncate flex items-center gap-1 mt-0.5">
+                    <MapPin className="w-3 h-3 text-[#FF5A36] shrink-0" />
+                    {publishedListing.locality}, {publishedListing.city}
+                  </p>
+                  <p className="text-xs font-bold text-[#FF5A36] mt-1">
+                    ₹{publishedListing.rent.toLocaleString()}<span className="text-[10px] font-normal text-gray-500"> / month</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons: View Listing vs Manage Listing */}
+              <div className="flex flex-col gap-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/room/${publishedListing.id}`)}
+                  className="w-full py-3.5 px-4 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full font-bold text-xs sm:text-sm shadow-sm shadow-[#FF5A36]/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span>View Public Listing</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => navigate('/my-listings')}
+                  className="w-full py-3 px-4 border border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-full font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Building2 className="w-4 h-4 text-gray-500" />
+                  <span>Manage in My Listings</span>
+                </button>
+              </div>
+
+              <p className="text-[11px] text-gray-400">
+                You can manage this listing anytime under your profile menu or at <span className="font-semibold text-gray-600">/my-listings</span>.
+              </p>
             </div>
           </div>
         )}

@@ -19,8 +19,9 @@ test.describe('Feature: Room Detail & Listing Inspection', () => {
     const titleLocator = page.getByRole('heading', { name: /Sunny room in Koramangala/i }).first();
     await expect(titleLocator).toBeVisible({ timeout: 10000 });
 
-    // Verify pricing and locality details are displayed
-    await expect(page.locator('text=/₹|Rent|Deposit|Koramangala/i').first()).toBeVisible({ timeout: 10000 });
+    // Use an explicit heading so the mobile project cannot match a hidden desktop element.
+    await expect(page.getByRole('heading', { name: /Rent Info/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Deposit', { exact: true })).toBeVisible({ timeout: 10000 });
 
     await context.close();
   });
@@ -37,9 +38,8 @@ test.describe('Feature: Room Detail & Listing Inspection', () => {
     const amenitiesSection = page.locator('text=/Amenities|Features|WiFi|Furnished|Balcony|AC/i').first();
     await expect(amenitiesSection).toBeVisible({ timeout: 10000 });
 
-    // Verify verified badge or owner information
-    const ownerInfo = page.locator('text=/Verified|Ramesh|Host|Owner/i').first();
-    await expect(ownerInfo).toBeVisible({ timeout: 10000 });
+    // Verify an accessible verification cue rather than matching hidden desktop text.
+    await expect(page.locator('[aria-label="Verified host"]:visible')).toHaveCount(1, { timeout: 10000 });
 
     await context.close();
   });

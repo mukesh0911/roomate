@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { cities, localitiesByCity, professions } from '@/lib/staticData';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useStorage } from '@/hooks/useStorage';
 import { useMatches } from '@/hooks/useMatches';
 import { resolveEntityCoordinates } from '@/lib/locationResolver';
+import { getPostOnboardingDestination } from '@/lib/roleNavigation';
 import {
   Building2, User, Users, ShieldCheck, Check,
   ArrowRight, X, Sparkles, ChevronRight, Home, Camera,
@@ -62,6 +63,7 @@ const CITY_SVG_ICONS: Record<string, React.ReactNode> = {
 
 export default function SeekerOnboarding() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, profile: authProfile, refreshProfile } = useAuth();
   const { updateProfile } = useUserProfile();
   const { uploadProfilePicture } = useStorage();
@@ -74,6 +76,13 @@ export default function SeekerOnboarding() {
 
   // 1. Seeker Intent / Housing Mode
   const [housingIntent, setHousingIntent] = useState<'find_room' | 'team_up'>('find_room');
+  const roommateSetupRequested = new URLSearchParams(location.search).get('roommate') === '1';
+  const [roommateDiscoveryEnabled, setRoommateDiscoveryEnabled] = useState(() =>
+    roommateSetupRequested || authProfile?.roommateDiscoveryEnabled === true
+  );
+  const returnDestination = new URLSearchParams(location.search).get('redirect');
+  const postOnboardingDestination = getPostOnboardingDestination(housingIntent, returnDestination);
+  const hasReturnDestination = postOnboardingDestination !== (housingIntent === 'team_up' ? '/explore?tab=roommates' : '/explore?tab=rooms');
 
   // 2. Personal Basics & Avatar
   const googlePhoto = user ? (user.photoURL || user.providerData?.find(p => p.photoURL)?.photoURL || '') : '';
@@ -125,12 +134,12 @@ export default function SeekerOnboarding() {
     }
   }, [authProfile, user, avatarPreview, avatarFile, name]);
 
-  // If user has already completed onboarding upon initial mount, redirect to explore
+  // Completed users do not need to repeat setup; preserve any requested local destination.
   useEffect(() => {
-    if (authProfile?.onboardingComplete && matchScreenState === 'form') {
-      navigate('/explore?tab=rooms', { replace: true });
+    if (authProfile?.onboardingComplete && !roommateSetupRequested && matchScreenState === 'form') {
+      navigate(postOnboardingDestination, { replace: true });
     }
-  }, [authProfile?.onboardingComplete, matchScreenState, navigate]);
+  }, [authProfile?.onboardingComplete, roommateSetupRequested, matchScreenState, navigate, postOnboardingDestination]);
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -213,9 +222,9 @@ export default function SeekerOnboarding() {
         budget,
         housingIntent,
         moveInDate: moveIn,
-        quizAnswers,
+        ...(roommateDiscoveryEnabled ? { quizAnswers } : {}),
+        roommateDiscoveryEnabled,
         onboardingComplete: true,
-        role: 'seeker',
         ...(fallbackAvatar ? { avatar: fallbackAvatar } : {}),
         ...(resolvedGeo && {
           geoLocation: {
@@ -234,7 +243,7 @@ export default function SeekerOnboarding() {
       }
 
       const updated = await refreshProfile(user.uid);
-      if (updated) {
+      if (updated && roommateDiscoveryEnabled) {
         try {
           const matches = await findMatches(updated, city);
           setMatchCount(matches.length);
@@ -297,22 +306,23 @@ export default function SeekerOnboarding() {
             You're all set, {name.split(' ')[0]}!
           </h2>
           <p className="text-sm sm:text-base text-slate-600 mb-2">
-            We discovered{' '}
-            <span className="font-bold text-[#FF5A36] text-xl">
-              {matchCount > 0 ? matchCount : 'new'}
-            </span>{' '}
-            compatible roommates in {city}.
+            {roommateDiscoveryEnabled ? <>We discovered{' '}
+              <span className="font-bold text-[#FF5A36] text-xl">
+                {matchCount > 0 ? matchCount : 'new'}
+              </span>{' '}compatible roommates in {city}.</> : 'Your shared NestMate profile is ready.'}
           </p>
           <p className="text-xs text-slate-400 max-w-xs mx-auto mb-8">
-            Ranked by mutual budget overlap, lifestyle norms, and neighborhood proximity.
+            {roommateDiscoveryEnabled
+              ? 'Ranked by mutual budget overlap, lifestyle norms, and neighborhood proximity.'
+              : 'You can set up roommate discovery later without changing accounts.'}
           </p>
 
           <button
             type="button"
-            onClick={() => navigate('/explore?tab=roommates', { replace: true })}
+            onClick={() => navigate(postOnboardingDestination, { replace: true })}
             className="w-full sm:w-auto min-w-[280px] px-9 py-4 rounded-full bg-gradient-to-r from-[#FF5A36] to-[#F26428] hover:from-[#E54E2B] hover:to-[#FF5A36] text-white font-bold text-sm sm:text-base transition-all duration-200 shadow-[0_4px_16px_rgba(229,80,26,0.22),0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-[0_6px_22px_rgba(229,80,26,0.32),0_2px_5px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] inline-flex items-center justify-center gap-2.5 mx-auto cursor-pointer"
           >
-            <span>View My Matches</span>
+            <span>{hasReturnDestination ? 'Continue' : housingIntent === 'team_up' ? 'View My Matches' : 'View Rooms'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -333,7 +343,7 @@ export default function SeekerOnboarding() {
         {/* Top-Right Dismiss Button */}
         <button
           type="button"
-          onClick={() => navigate('/explore?tab=rooms')}
+          onClick={() => navigate(postOnboardingDestination)}
           aria-label="Close"
           className="absolute top-5 right-5 sm:top-7 sm:right-7 w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 bg-slate-100/90 hover:bg-slate-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all cursor-pointer"
         >
@@ -344,13 +354,13 @@ export default function SeekerOnboarding() {
         <div className="text-center pt-2 sm:pt-0 mb-10 sm:mb-12">
           <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#FFF2EB] border border-[#FF5A36]/20 text-[#FF5A36] text-xs font-semibold mb-3.5 shadow-[0_1px_3px_rgba(229,80,26,0.06)]">
             <Sparkles className="w-3.5 h-3.5 text-[#FF5A36]" />
-            <span>NestMate Seeker Setup</span>
+            <span>NestMate profile setup</span>
           </div>
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-display font-medium text-slate-900 tracking-tight">
-            Set up your seeker profile
+            Set up your NestMate profile
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-md mx-auto leading-relaxed">
-            Enter your living preferences and lifestyle habits to get verified and discover compatible roommates.
+            Add your shared details once. Roommate compatibility is optional and can be enabled when you want it.
           </p>
         </div>
 
@@ -399,7 +409,7 @@ export default function SeekerOnboarding() {
 
               {/* Option B: Team-Up to Rent Together */}
               <div
-                onClick={() => setHousingIntent('team_up')}
+                onClick={() => { setHousingIntent('team_up'); setRoommateDiscoveryEnabled(true); }}
                 className={`p-5 sm:p-6 rounded-2xl border transition-all duration-200 cursor-pointer ${
                   housingIntent === 'team_up'
                     ? 'border-[#FF5A36] bg-gradient-to-br from-[#FFFBF9] via-[#FFF8F4] to-[#FFF1EA] shadow-[0_4px_16px_rgba(229,80,26,0.12),0_12px_32px_-6px_rgba(229,80,26,0.16)] ring-1 ring-[#FF5A36]/20'
@@ -429,7 +439,7 @@ export default function SeekerOnboarding() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 xl:gap-16 pt-2">
 
             {/* LEFT COLUMN: SEEKER IDENTITY & SEARCH CRITERIA */}
-            <div className="space-y-7 sm:space-y-8">
+            <div className={roommateDiscoveryEnabled ? 'space-y-7 sm:space-y-8' : 'hidden'}>
               <div className="flex items-center gap-2.5 pb-2.5 border-b border-slate-100">
                 <User className="w-4 h-4 text-[#FF5A36]" />
                 <h2 className="text-sm font-semibold text-slate-900 tracking-wide">
@@ -1005,7 +1015,7 @@ export default function SeekerOnboarding() {
                 <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>Find Compatible Roommates</span>
+                  <span>{hasReturnDestination ? 'Complete Setup & Continue' : housingIntent === 'team_up' ? 'Find Compatible Roommates' : 'Find a Room'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -1023,7 +1033,7 @@ export default function SeekerOnboarding() {
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/explore?tab=rooms')}
+                onClick={() => navigate(postOnboardingDestination)}
                 disabled={loading}
                 className="py-2.5 px-5 border border-slate-200/90 rounded-full text-xs font-semibold text-slate-700 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.03),0_2px_6px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] hover:border-slate-300 hover:bg-slate-50 transition-all cursor-pointer"
               >
@@ -1031,18 +1041,10 @@ export default function SeekerOnboarding() {
               </button>
             </div>
 
-            {/* Bottom Role Switch Link */}
+            {/* Shared account setup: listing creation remains available after completion. */}
             <div className="pt-2 text-center">
               <p className="text-xs text-slate-400">
-                Have a room to list or rent out instead?{' '}
-                <button
-                  type="button"
-                  onClick={() => navigate('/onboarding/owner')}
-                  className="font-semibold text-[#FF5A36] hover:underline cursor-pointer inline-flex items-center gap-0.5"
-                >
-                  <span>Switch to Owner Onboarding</span>
-                  <ChevronRight className="w-3 h-3 stroke-[2.5]" />
-                </button>
+                Have a room to list? Complete this shared profile setup, then post your listing.
               </p>
             </div>
           </div>

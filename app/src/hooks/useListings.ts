@@ -385,7 +385,7 @@ export function useListings() {
         snap = await getDocs(query(collection(db, 'listings'), limit(50)));
       }
 
-      let candidates: Listing[] = snap.docs
+      const candidates: Listing[] = snap.docs
         .map(d => ({ id: d.id, ...d.data() } as Listing))
         .filter(r => r.id !== actualExcludeId && isDiscoverable(r) && isPubliclyVisibleListing(r));
 
@@ -395,7 +395,7 @@ export function useListings() {
           const allSnap = await getDocs(query(collection(db, 'listings'), limit(50)));
           const moreCandidates = allSnap.docs
             .map(d => ({ id: d.id, ...d.data() } as Listing))
-            .filter(r => r.id !== actualExcludeId && (r.status === 'active' || !r.status) && r.status !== 'closed');
+            .filter(r => r.id !== actualExcludeId && (r.status === 'active' || !r.status));
           const existingIds = new Set(candidates.map(c => c.id));
           for (const item of moreCandidates) {
             if (!existingIds.has(item.id)) {

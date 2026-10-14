@@ -118,6 +118,8 @@ export interface UserProfile {
   householdExpectations?: any;
   preferences?: any;
   housingIntent?: string;
+  /** Explicit opt-in to appear in the roommate discovery directory. */
+  roommateDiscoveryEnabled?: boolean;
   preferredRoomType?: string;
   state?: string;
   lastActiveAt?: any;

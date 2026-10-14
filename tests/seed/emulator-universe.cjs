@@ -64,6 +64,9 @@ function profile(persona, now, createdAt) {
     bio: complete ? `Deterministic QA profile for ${persona.key}.` : '',
     avatar: '',
     housingIntent: persona.role === 'owner' ? 'offer_room' : 'find_room',
+    // Fixtures model explicit discovery consent. Production legacy profiles
+    // without this field remain undiscoverable after the privacy cutover.
+    ...(complete && persona.role === 'seeker' ? { roommateDiscoveryEnabled: true } : {}),
     moveInDate: 'Within 2 weeks',
     onboardingComplete: complete,
     isVerified: persona.verified,

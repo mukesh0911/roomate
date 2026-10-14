@@ -59,12 +59,10 @@ export default function AuthPage() {
         return;
       }
 
-      if (isNew || !role) {
-        navigate('/role-select');
-      } else if (!onboardingComplete) {
-        navigate(role === 'owner' ? '/onboarding/owner' : '/onboarding/seeker');
+      if (isNew || !role || !onboardingComplete) {
+        navigate('/onboarding/seeker');
       } else {
-        navigate(role === 'owner' ? '/owner-dashboard' : '/explore?tab=rooms');
+        navigate('/explore?tab=rooms');
       }
     } catch (e: any) {
       setError(e.message || 'Google sign-in failed.');
@@ -95,12 +93,10 @@ export default function AuthPage() {
         navigate(redirectParam);
         return;
       }
-      if (isNew || !role) {
-        navigate('/role-select');
-      } else if (!onboardingComplete) {
-        navigate(role === 'owner' ? '/onboarding/owner' : '/onboarding/seeker');
+      if (isNew || !role || !onboardingComplete) {
+        navigate('/onboarding/seeker');
       } else {
-        navigate(role === 'owner' ? '/owner-dashboard' : '/explore?tab=rooms');
+        navigate('/explore?tab=rooms');
       }
     } catch (e: any) {
       if (e?.code === 'auth/user-not-found' || e?.code === 'auth/invalid-credential') {
@@ -110,7 +106,7 @@ export default function AuthPage() {
             navigate(redirectParam || '/admin');
             return;
           }
-          navigate('/role-select');
+          navigate('/onboarding/seeker');
           return;
         } catch (signupErr: any) {
           if (signupErr?.code === 'auth/email-already-in-use' || signupErr?.message?.includes('email-already-in-use')) {

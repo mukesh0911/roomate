@@ -3,6 +3,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  deleteDoc,
   updateDoc,
   arrayUnion,
   arrayRemove,
@@ -15,6 +16,7 @@ import type { UserProfile } from './useAuth';
 import { sanitizePublicProfile } from '@/lib/sanitizeProfile';
 import { savePrivateUserData, stripPiiFromWrite } from '@/lib/privateUserData';
 import { validateReport } from '@/lib/reportValidation';
+import { toPublicProfile } from '@/lib/privacyContracts';
 
 export function useUserProfile() {
   /** Public profile only — contact PII stripped. */
@@ -65,6 +67,20 @@ export function useUserProfile() {
         whatsappNumber: '',
         updatedAt: serverTimestamp(),
       }, { merge: true });
+
+      // Discovery is an explicit, allowlisted projection. Legacy data never
+      // creates one because the mapper requires a literal true opt-in.
+      const discoveryCard = toPublicProfile({
+        ...existing,
+        ...publicData,
+        uid: userId,
+      } as UserProfile);
+      const cardRef = doc(db, 'publicProfiles', userId);
+      if (discoveryCard) {
+        await setDoc(cardRef, { ...discoveryCard, updatedAt: serverTimestamp() }, { merge: true });
+      } else {
+        await deleteDoc(cardRef);
+      }
     } catch (setDocErr: any) {
       console.error('CRITICAL setDoc failure:', setDocErr.code, setDocErr.message);
       throw setDocErr;

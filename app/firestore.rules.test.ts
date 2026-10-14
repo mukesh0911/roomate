@@ -50,6 +50,29 @@ const SEEKER = 'seeker-1';
 const OWNER = 'owner-1';
 const OTHER_OWNER = 'owner-2';
 const ATTACKER = 'attacker-1';
+const ROLE_FREE_MEMBER = 'role-free-member';
+const DISCOVERABLE = 'discoverable-1';
+
+function validListing(overrides: Record<string, unknown> = {}) {
+    return {
+        title: 'Legitimate Pending Room',
+        ownerId: OWNER,
+        city: 'Chennai',
+        locality: 'Adyar',
+        flatType: '2 BHK',
+        furnishing: 'Furnished',
+        totalRent: 24000,
+        partnerShare: 12000,
+        partnersNeeded: 1,
+        images: [],
+        amenities: [],
+        houseRules: [],
+        screeningQuestions: [],
+        status: 'pending_verification',
+        ownerVerified: false,
+        ...overrides,
+    };
+}
 
 let env: RulesTestEnvironment;
 
@@ -84,6 +107,12 @@ function ownerDb(): Firestore {
 function attackerDb(): Firestore {
     return fsOf(env.authenticatedContext(ATTACKER));
 }
+function discoverableDb(): Firestore {
+    return fsOf(env.authenticatedContext(DISCOVERABLE));
+}
+function roleFreeMemberDb(): Firestore {
+    return fsOf(env.authenticatedContext(ROLE_FREE_MEMBER));
+}
 function bannedDb(): Firestore {
     return fsOf(env.authenticatedContext('banned-1'));
 }
@@ -97,10 +126,23 @@ async function seed() {
         await setDoc(doc(db, 'users', OWNER), { name: 'Owner', role: 'owner', status: 'active', onboardingComplete: true });
         await setDoc(doc(db, 'users', OTHER_OWNER), { name: 'Other Owner', role: 'owner', status: 'active', onboardingComplete: true });
         await setDoc(doc(db, 'users', ATTACKER), { name: 'Attacker', role: 'seeker', status: 'active', onboardingComplete: true });
+        await setDoc(doc(db, 'users', DISCOVERABLE), {
+            name: 'Discoverable', role: 'seeker', status: 'active', onboardingComplete: true,
+            roommateDiscoveryEnabled: true,
+        });
         await setDoc(doc(db, 'users', 'banned-1'), { name: 'Banned', role: 'owner', status: 'banned', onboardingComplete: true });
         // Listings
         await setDoc(doc(db, 'listings', 'listing-owned-by-owner'), { title: 'Room A', ownerId: OWNER, city: 'Chennai', status: 'active' });
         await setDoc(doc(db, 'listings', 'listing-owned-by-other'), { title: 'Room B', ownerId: OTHER_OWNER, city: 'Chennai', status: 'active' });
+        await setDoc(doc(db, 'publicProfiles', DISCOVERABLE), {
+            uid: DISCOVERABLE, displayName: 'Discoverable', city: 'Chennai', localities: ['Adyar'],
+            roommateDiscoveryEnabled: true, discoverySetupVersion: 1, schemaVersion: 1,
+        });
+        await setDoc(doc(db, 'publicListings', 'approved-public-listing'), {
+            ownerId: OWNER, ownerName: 'Owner', title: 'Approved Public Room', city: 'Chennai', locality: 'Adyar',
+            flatType: '2 BHK', furnishing: 'Furnished', totalRent: 24000, partnerShare: 12000, partnersNeeded: 1,
+            amenities: [], houseRules: [], images: [], status: 'active', ownerVerified: true, schemaVersion: 1,
+        });
     });
 }
 
@@ -117,6 +159,9 @@ d('Firestore security rules (emulator)', () => {
                 rules: readFileSync(RULES_PATH, 'utf8'),
             },
         });
+        // The emulator can remain running between test commands. Clear its
+        // project data so static fixture IDs behave identically on every run.
+        await env.clearFirestore();
         await seed();
     }, 30_000);
 
@@ -379,10 +424,43 @@ d('Firestore security rules (emulator)', () => {
     // ── Suspended / banned enforcement ─────────────────────────────
     it('BANNED user CANNOT create a listing', async () => {
         await assertFails(
-            addDoc(collection(bannedDb(), 'listings'), {
-                title: 'Sneaky Room', ownerId: 'banned-1', city: 'Chennai', status: 'active',
-            })
+            addDoc(collection(bannedDb(), 'listings'), validListing({
+                title: 'Sneaky Room', ownerId: 'banned-1',
+            }))
         );
+    });
+
+    it('UNAUTHENTICATED user CANNOT create a listing', async () => {
+        const anonDb = env.unauthenticatedContext().firestore() as unknown as Firestore;
+        await assertFails(addDoc(collection(anonDb, 'listings'), validListing()));
+    });
+
+    it('role-free member CAN complete shared onboarding and create their own pending listing', async () => {
+        await seedDisabled(async (db) => {
+            await setDoc(doc(db, 'users', ROLE_FREE_MEMBER), {
+                name: 'Unified Member', status: 'active', onboardingComplete: false,
+                city: 'Chennai', localities: ['Adyar'],
+            });
+        });
+        await assertSucceeds(setDoc(doc(roleFreeMemberDb(), 'users', ROLE_FREE_MEMBER), {
+            onboardingComplete: true,
+        }, { merge: true }));
+        await assertSucceeds(addDoc(collection(roleFreeMemberDb(), 'listings'), validListing({
+            ownerId: ROLE_FREE_MEMBER,
+        })));
+    });
+
+    it('role-free member CANNOT complete onboarding without a preferred locality', async () => {
+        await seedDisabled(async (db) => {
+            await setDoc(doc(db, 'users', 'role-free-no-locality'), {
+                name: 'Incomplete Member', status: 'active', onboardingComplete: false,
+                city: 'Chennai', localities: [],
+            });
+        });
+        const incompleteDb = fsOf(env.authenticatedContext('role-free-no-locality'));
+        await assertFails(setDoc(doc(incompleteDb, 'users', 'role-free-no-locality'), {
+            onboardingComplete: true,
+        }, { merge: true }));
     });
 
     // ── Chat ───────────────────────────────────────────────────────
@@ -502,38 +580,81 @@ d('Firestore security rules (emulator)', () => {
 
         it('Owner CANNOT create a listing with status=active', async () => {
             await assertFails(
-                addDoc(collection(ownerDb(), 'listings'), {
-                    title: 'Bypass Room',
-                    ownerId: OWNER,
-                    city: 'Chennai',
-                    status: 'active',
-                    ownerVerified: false,
-                })
+                addDoc(collection(ownerDb(), 'listings'), validListing({ title: 'Bypass Room', status: 'active' }))
             );
         });
 
         it('Owner CANNOT create a listing with ownerVerified=true', async () => {
             await assertFails(
-                addDoc(collection(ownerDb(), 'listings'), {
-                    title: 'Bypass Room 2',
-                    ownerId: OWNER,
-                    city: 'Chennai',
-                    status: 'pending_verification',
-                    ownerVerified: true,
-                })
+                addDoc(collection(ownerDb(), 'listings'), validListing({ title: 'Bypass Room 2', ownerVerified: true }))
             );
         });
 
         it('Owner CAN create a listing with status=pending_verification and ownerVerified=false', async () => {
             await assertSucceeds(
-                addDoc(collection(ownerDb(), 'listings'), {
-                    title: 'Legitimate Pending Room',
-                    ownerId: OWNER,
-                    city: 'Chennai',
-                    status: 'pending_verification',
-                    ownerVerified: false,
-                })
+                addDoc(collection(ownerDb(), 'listings'), validListing())
             );
+        });
+
+        it('completed profile is required to create a listing', async () => {
+            const incompleteUid = 'incomplete-listing-user';
+            await seedDisabled(async (db) => {
+                await setDoc(doc(db, 'users', incompleteUid), {
+                    name: 'Incomplete', status: 'active', onboardingComplete: false,
+                });
+            });
+            const incompleteDb = fsOf(env.authenticatedContext(incompleteUid));
+            await assertFails(addDoc(collection(incompleteDb, 'listings'), validListing({ ownerId: incompleteUid })));
+        });
+
+        it('a legacy authenticated account without a users profile cannot create a listing', async () => {
+            const legacyUid = 'legacy-without-profile';
+            const legacyDb = fsOf(env.authenticatedContext(legacyUid));
+            await assertFails(addDoc(collection(legacyDb, 'listings'), validListing({ ownerId: legacyUid })));
+        });
+
+        it('listing creation rejects incomplete or malformed data', async () => {
+            await assertFails(addDoc(collection(ownerDb(), 'listings'), validListing({ title: 'x' })));
+            await assertFails(addDoc(collection(ownerDb(), 'listings'), validListing({ flatType: '' })));
+            await assertFails(addDoc(collection(ownerDb(), 'listings'), validListing({ totalRent: 0 })));
+            await assertFails(addDoc(collection(ownerDb(), 'listings'), validListing({ amenities: Array.from({ length: 31 }, (_, i) => `amenity-${i}`) })));
+            await assertFails(addDoc(collection(ownerDb(), 'listings'), validListing({ ownerId: OTHER_OWNER })));
+        });
+
+        it('listing views may only be incremented one at a time', async () => {
+            const listingId = 'listing-view-counter';
+            await seedDisabled(async (db) => {
+                await setDoc(doc(db, 'listings', listingId), {
+                    title: 'Counted Room', ownerId: OWNER, city: 'Chennai', status: 'active', views: 0,
+                });
+            });
+            const guestDb = env.unauthenticatedContext().firestore() as unknown as Firestore;
+            await assertSucceeds(updateDoc(doc(guestDb, 'listings', listingId), { views: 1 }));
+            await assertFails(updateDoc(doc(guestDb, 'listings', listingId), { views: 0 }));
+            await assertFails(updateDoc(doc(guestDb, 'listings', listingId), { views: 3 }));
+            await assertFails(updateDoc(doc(guestDb, 'listings', listingId), { views: 99 }));
+        });
+
+        it('daily listing-view records are listing-bound and append-only', async () => {
+            const date = '2026-10-13';
+            const listingId = 'listing-owned-by-owner';
+            const viewId = `${listingId}_${date}`;
+            const guestDb = env.unauthenticatedContext().firestore() as unknown as Firestore;
+
+            await assertFails(setDoc(doc(guestDb, 'listingViews', `missing-listing_${date}`), {
+                listingId: 'missing-listing', ownerId: OWNER, date, count: 1,
+            }));
+            await assertFails(setDoc(doc(guestDb, 'listingViews', `wrong_${date}`), {
+                listingId, ownerId: OWNER, date, count: 1,
+            }));
+            await assertFails(setDoc(doc(guestDb, 'listingViews', viewId), {
+                listingId, ownerId: OTHER_OWNER, date, count: 1,
+            }));
+            await assertSucceeds(setDoc(doc(guestDb, 'listingViews', viewId), {
+                listingId, ownerId: OWNER, date, count: 1,
+            }));
+            await assertFails(updateDoc(doc(guestDb, 'listingViews', viewId), { count: 99 }));
+            await assertSucceeds(updateDoc(doc(guestDb, 'listingViews', viewId), { count: 2 }));
         });
 
         it('Owner CANNOT activate an unverified listing via updateDoc', async () => {
@@ -571,6 +692,69 @@ d('Firestore security rules (emulator)', () => {
                     ownerVerified: true,
                 })
             );
+        });
+
+        it('an approved active listing remains publicly visible', async () => {
+            const listingId = 'approved-public-listing';
+            await seedDisabled(async (db) => {
+                await setDoc(doc(db, 'listings', listingId), {
+                    title: 'Approved Public Room', ownerId: OWNER, city: 'Chennai',
+                    status: 'active', ownerVerified: true,
+                });
+            });
+            const anonDb = env.unauthenticatedContext().firestore() as unknown as Firestore;
+            await assertSucceeds(getDoc(doc(anonDb, 'listings', listingId)));
+        });
+
+        it('anonymous callers CANNOT read authenticated discovery cards', async () => {
+            const anonDb = env.unauthenticatedContext().firestore() as unknown as Firestore;
+            await assertFails(getDoc(doc(anonDb, 'publicProfiles', DISCOVERABLE)));
+        });
+
+        it('authenticated callers CAN read an explicit active discovery card', async () => {
+            await assertSucceeds(getDoc(doc(attackerDb(), 'publicProfiles', DISCOVERABLE)));
+        });
+
+        it('owner CAN create only an allowlisted card after explicit opt-in', async () => {
+            await assertSucceeds(setDoc(doc(discoverableDb(), 'publicProfiles', DISCOVERABLE), {
+                uid: DISCOVERABLE, displayName: 'Discoverable', city: 'Chennai', localities: ['Adyar'],
+                roommateDiscoveryEnabled: true, discoverySetupVersion: 1, schemaVersion: 1,
+                ageRange: '25-30',
+            }));
+        });
+
+        it('legacy or opted-out account CANNOT publish a discovery card', async () => {
+            await assertFails(setDoc(doc(seekerDb(), 'publicProfiles', SEEKER), {
+                uid: SEEKER, displayName: 'Seeker', city: 'Chennai', localities: ['Adyar'],
+                roommateDiscoveryEnabled: true, discoverySetupVersion: 1, schemaVersion: 1,
+            }));
+        });
+
+        it('discovery cards reject contact, raw answers, and unknown fields', async () => {
+            await assertFails(setDoc(doc(discoverableDb(), 'publicProfiles', DISCOVERABLE), {
+                uid: DISCOVERABLE, displayName: 'Discoverable', city: 'Chennai', localities: ['Adyar'],
+                roommateDiscoveryEnabled: true, discoverySetupVersion: 1, schemaVersion: 1,
+                phone: '9999999999', quizAnswers: { smoking: 'never' }, socialLinks: { instagram: 'x' },
+            }));
+        });
+
+        it('opt-out makes an existing discovery card unreadable', async () => {
+            await seedDisabled(async (db) => {
+                await updateDoc(doc(db, 'users', DISCOVERABLE), { roommateDiscoveryEnabled: false });
+            });
+            await assertFails(getDoc(doc(attackerDb(), 'publicProfiles', DISCOVERABLE)));
+            await seedDisabled(async (db) => {
+                await updateDoc(doc(db, 'users', DISCOVERABLE), { roommateDiscoveryEnabled: true });
+            });
+        });
+
+        it('anonymous callers see only the approved listing projection', async () => {
+            const anonDb = env.unauthenticatedContext().firestore() as unknown as Firestore;
+            const snap = await assertSucceeds(getDoc(doc(anonDb, 'publicListings', 'approved-public-listing')));
+            expect(snap.data()).toMatchObject({ title: 'Approved Public Room', status: 'active', ownerVerified: true });
+            expect(snap.data()).not.toHaveProperty('ownerQuizAnswers');
+            expect(snap.data()).not.toHaveProperty('address');
+            await assertFails(setDoc(doc(anonDb, 'publicListings', 'forged'), { title: 'forged' }));
         });
     });
 });

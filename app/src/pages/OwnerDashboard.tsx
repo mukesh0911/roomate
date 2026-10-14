@@ -84,6 +84,7 @@ export default function OwnerDashboard() {
   const [processingApplicantId, setProcessingApplicantId] = useState<string | null>(null);
   const [ownerVerification, setOwnerVerification] = useState<OwnerVerification | null>(null);
   const [selectedScreeningApplicant, setSelectedScreeningApplicant] = useState<PendingApplicant | null>(null);
+  const [showTrafficChart, setShowTrafficChart] = useState(false);
 
   // Deep-link & tab support: /owner-dashboard?tab=listings | applicants, ?request={connectionId}
   const [searchParams, setSearchParams] = useSearchParams();
@@ -820,6 +821,30 @@ export default function OwnerDashboard() {
           {/* ========================================================================= */}
           {activeTab === 'overview' && (
             <div id="overview-section" className="flex flex-col gap-6">
+              {/* Getting Started Hero (when 0 properties listed) */}
+              {allListings.length === 0 && (
+                <div className="bg-gradient-to-br from-orange-50 via-white to-amber-50/50 rounded-3xl p-6 sm:p-7 border border-[#FF5A36]/20 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-5">
+                  <div className="space-y-1.5 text-center sm:text-left">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1 rounded-full bg-[#FFF2EB] text-[#FF5A36] border border-[#FF5A36]/20">
+                      <Sparkles className="w-3.5 h-3.5" /> Start Hosting on NestMate
+                    </span>
+                    <h3 className="font-serif text-xl sm:text-2xl font-medium text-[#1E2229]">
+                      You haven't listed a room yet
+                    </h3>
+                    <p className="text-xs sm:text-sm text-gray-600 max-w-lg leading-relaxed">
+                      Publish your room or flat to start receiving verified tenant inquiries with lifestyle compatibility matching.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => navigate('/edit-listing/new')}
+                    className="px-6 py-3.5 bg-[#FF5A36] hover:bg-[#E54E2B] text-white text-xs sm:text-sm font-bold rounded-full transition-all flex items-center gap-2 shadow-sm shadow-[#FF5A36]/20 shrink-0 cursor-pointer active:scale-95"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>+ List Your First Room</span>
+                  </button>
+                </div>
+              )}
+
               {/* 4 KPI Summary Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {/* 1. Live Properties */}
@@ -1546,72 +1571,81 @@ export default function OwnerDashboard() {
           {/* Weekly Views Analytics (Desktop) */}
           {(activeTab === 'overview' || activeTab === 'listings') && (
             <section className="bg-white rounded-3xl p-6 shadow-xs border border-gray-100 relative">
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex justify-between items-center mb-4">
                 <div>
                   <h3 className="font-serif text-lg font-medium text-[#1E2229]">Weekly Views</h3>
                   <p className="text-xs text-gray-400 mt-0.5">Last 7 days visitor traffic</p>
                 </div>
                 <div className="text-right">
                   <span className="text-sm font-bold text-[#1E2229] block">{totalWeeklyViews} this week</span>
-                  <span className="text-xs text-gray-400">{totalAllTimeViews} all time</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowTrafficChart(!showTrafficChart)}
+                    className="text-[11px] font-semibold text-[#FF5A36] hover:underline flex items-center gap-1 mt-0.5 cursor-pointer ml-auto"
+                  >
+                    {showTrafficChart ? 'Hide Chart' : 'Show Chart'}
+                    <ChevronDown className={`w-3 h-3 transition-transform ${showTrafficChart ? 'rotate-180' : ''}`} />
+                  </button>
                 </div>
               </div>
 
-              {totalWeeklyViews > 0 ? (
-                <div className="h-32 mb-6">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={displayWeeklyViews} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
-                      <XAxis
-                        dataKey="day"
-                        tick={({ x, y, payload }) => {
-                          const item = displayWeeklyViews.find(d => d.day === payload.value);
-                          const isToday = item?.isToday;
-                          return (
-                            <text
-                              x={x}
-                              y={y + 12}
-                              textAnchor="middle"
-                              fill={isToday ? '#FF5A36' : '#94a3b8'}
-                              fontWeight={isToday ? 700 : 400}
-                              fontSize={11}
-                            >
-                              {isToday ? 'Today' : payload.value}
-                            </text>
-                          );
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                      <Tooltip
-                        contentStyle={{ fontSize: 12, borderRadius: 16, border: '1px solid #f1f5f9', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
-                        formatter={(v: number) => [v, 'Views']}
-                        labelFormatter={(label, payload) => {
-                          const item = payload?.[0]?.payload as WeeklyViewItem;
-                          return item ? `${item.day} (${item.date})${item.isToday ? ' - Today' : ''}` : label;
-                        }}
-                      />
-                      <Bar dataKey="views" radius={[6, 6, 0, 0]}>
-                        {displayWeeklyViews.map((d, i) => (
-                          <Cell
-                            key={d.date || i}
-                            fill={d.isToday ? '#FF5A36' : d.views > 0 ? '#FB923C' : '#FBFBFC'}
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center text-center mb-6 py-4">
-                  <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-3">
-                    <TrendingUp className="w-5 h-5" />
+              {showTrafficChart && (
+                totalWeeklyViews > 0 ? (
+                  <div className="h-32 mb-6 animate-in fade-in duration-200">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={displayWeeklyViews} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+                        <XAxis
+                          dataKey="day"
+                          tick={({ x, y, payload }) => {
+                            const item = displayWeeklyViews.find(d => d.day === payload.value);
+                            const isToday = item?.isToday;
+                            return (
+                              <text
+                                x={x}
+                                y={y + 12}
+                                textAnchor="middle"
+                                fill={isToday ? '#FF5A36' : '#94a3b8'}
+                                fontWeight={isToday ? 700 : 400}
+                                fontSize={11}
+                              >
+                                {isToday ? 'Today' : payload.value}
+                              </text>
+                            );
+                          }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                        <Tooltip
+                          contentStyle={{ fontSize: 12, borderRadius: 16, border: '1px solid #f1f5f9', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+                          formatter={(v: number) => [v, 'Views']}
+                          labelFormatter={(label, payload) => {
+                            const item = payload?.[0]?.payload as WeeklyViewItem;
+                            return item ? `${item.day} (${item.date})${item.isToday ? ' - Today' : ''}` : label;
+                          }}
+                        />
+                        <Bar dataKey="views" radius={[6, 6, 0, 0]}>
+                          {displayWeeklyViews.map((d, i) => (
+                            <Cell
+                              key={d.date || i}
+                              fill={d.isToday ? '#FF5A36' : d.views > 0 ? '#FB923C' : '#FBFBFC'}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
-                  <h4 className="font-bold text-[#1E2229] text-sm mb-1">No views yet this week</h4>
-                  <p className="text-gray-400 text-xs max-w-[240px]">
-                    Share your listing or complete verification to boost your search presence.
-                  </p>
-                </div>
+                ) : (
+                  <div className="flex flex-col items-center text-center mb-6 py-4 animate-in fade-in duration-200">
+                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-3">
+                      <TrendingUp className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-bold text-[#1E2229] text-sm mb-1">No views yet this week</h4>
+                    <p className="text-gray-400 text-xs max-w-[240px]">
+                      Share your listing or complete verification to boost your search presence.
+                    </p>
+                  </div>
+                )
               )}
 
               <div className="flex justify-between items-end border-t border-gray-100 pt-4 px-2">

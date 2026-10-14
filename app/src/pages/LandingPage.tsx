@@ -30,14 +30,14 @@ export default function LandingPage() {
 
   const handleListSpace = () => {
     if (user?.uid) {
-      navigate('/owner-dashboard');
+      navigate('/edit-listing/new');
     } else {
       openAuthModal({
         title: 'Post Your Room Listing',
         subtitle: DEMO_MODE_ENABLED
-          ? 'Sign in or use the local demo to evaluate the owner workflow.'
+          ? 'Sign in or use the local demo to evaluate the listing workflow.'
           : 'Sign in to create and manage your room listing.',
-        redirect: '/owner-dashboard',
+        redirect: '/edit-listing/new',
       });
     }
   };

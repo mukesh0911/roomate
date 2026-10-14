@@ -89,7 +89,7 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
   };
 
   const isAuthenticated = !!(user && profile);
-  const dashboardPath = profile?.role === 'owner' ? '/owner-dashboard' : '/dashboard';
+  const dashboardPath = '/explore?tab=rooms';
 
   return (
     <header

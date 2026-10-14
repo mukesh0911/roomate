@@ -6,6 +6,10 @@ import {
   resolveOwnerExploreRedirect,
   getLogoDestination,
   resolvePostRoomAction,
+  getManageListingsRoute,
+  getListingDetailRoute,
+  getSafeReturnDestination,
+  getPostOnboardingDestination,
 } from './roleNavigation';
 
 describe('roleNavigation utilities', () => {
@@ -16,11 +20,10 @@ describe('roleNavigation utilities', () => {
       expect(getDashboardRoute(false, 'seeker')).toBe('/login');
     });
 
-    it('routes Owner to /owner-dashboard with or without tab', () => {
-      expect(getDashboardRoute(true, 'owner')).toBe('/owner-dashboard');
-      expect(getDashboardRoute(true, 'owner', 'listings')).toBe('/owner-dashboard?tab=listings');
-      expect(getDashboardRoute(true, 'owner', 'seekers')).toBe('/owner-dashboard?tab=seekers');
-      expect(getDashboardRoute(true, 'owner', 'applicants')).toBe('/owner-dashboard?tab=applicants');
+    it('routes users to /explore or /my-listings', () => {
+      expect(getDashboardRoute(true, 'owner')).toBe('/explore?tab=rooms');
+      expect(getDashboardRoute(true, 'owner', 'listings')).toBe('/my-listings');
+      expect(getDashboardRoute(true, 'owner', 'roommates')).toBe('/explore?tab=roommates');
     });
 
     it('routes Seeker to /explore with or without tab', () => {
@@ -30,37 +33,26 @@ describe('roleNavigation utilities', () => {
     });
   });
 
-  describe('getBrowseSeekersRoute (OWNER vs SEEKER discovery)', () => {
-    it('routes Owner to Owner Seeker Discovery (/owner-dashboard?tab=seekers)', () => {
-      expect(getBrowseSeekersRoute('owner')).toBe('/owner-dashboard?tab=seekers');
-    });
-
-    it('routes Seeker to Consumer Flatmate Explore (/explore?tab=roommates)', () => {
+  describe('getBrowseSeekersRoute (Unified discovery)', () => {
+    it('routes all users to Consumer Flatmate Explore (/explore?tab=roommates)', () => {
+      expect(getBrowseSeekersRoute('owner')).toBe('/explore?tab=roommates');
       expect(getBrowseSeekersRoute('seeker')).toBe('/explore?tab=roommates');
       expect(getBrowseSeekersRoute(null)).toBe('/explore?tab=roommates');
     });
   });
 
   describe('getBrowseRoomsRoute', () => {
-    it('routes Owner to Owner Listings tab (/owner-dashboard?tab=listings)', () => {
-      expect(getBrowseRoomsRoute('owner')).toBe('/owner-dashboard?tab=listings');
-    });
-
-    it('routes Seeker to Rooms Explore tab (/explore?tab=rooms)', () => {
+    it('routes both Owner and Seeker to Rooms Explore tab (/explore?tab=rooms)', () => {
+      expect(getBrowseRoomsRoute('owner')).toBe('/explore?tab=rooms');
       expect(getBrowseRoomsRoute('seeker')).toBe('/explore?tab=rooms');
       expect(getBrowseRoomsRoute(null)).toBe('/explore?tab=rooms');
     });
   });
 
   describe('resolveOwnerExploreRedirect', () => {
-    it('redirects Owner attempting to access consumer roommates tab to Owner Seeker Discovery', () => {
-      const redirect = resolveOwnerExploreRedirect('owner', 'roommates');
-      expect(redirect).toBe('/owner-dashboard?tab=seekers');
-    });
-
-    it('does not redirect Owner on public rooms tab', () => {
-      const redirect = resolveOwnerExploreRedirect('owner', 'rooms');
-      expect(redirect).toBeNull();
+    it('allows Owner to freely browse rooms and roommates without forced redirect', () => {
+      expect(resolveOwnerExploreRedirect('owner', 'roommates')).toBeNull();
+      expect(resolveOwnerExploreRedirect('owner', 'rooms')).toBeNull();
     });
 
     it('does not redirect Seeker on roommates tab', () => {
@@ -70,33 +62,57 @@ describe('roleNavigation utilities', () => {
   });
 
   describe('getLogoDestination', () => {
-    it('returns /owner-dashboard for Owner', () => {
-      expect(getLogoDestination('owner')).toBe('/owner-dashboard');
-    });
-
-    it('returns / for Seeker and unauthenticated visitors', () => {
+    it('returns / for all users to reach the home discovery experience', () => {
+      expect(getLogoDestination('owner')).toBe('/');
       expect(getLogoDestination('seeker')).toBe('/');
       expect(getLogoDestination(null)).toBe('/');
     });
   });
 
-  describe('resolvePostRoomAction', () => {
-    it('prompts auth when unauthenticated', () => {
+  describe('resolvePostRoomAction (Unified Account & Listing Creation)', () => {
+    it('prompts auth with redirect to /edit-listing/new when unauthenticated', () => {
       const action = resolvePostRoomAction(false, null);
       expect(action.type).toBe('auth_prompt');
-      expect(action.path).toBe('/owner-dashboard');
+      expect(action.path).toBe('/edit-listing/new');
     });
 
-    it('navigates to /edit-listing/new for Owners', () => {
+    it('navigates directly to /edit-listing/new for Owners', () => {
       const action = resolvePostRoomAction(true, 'owner');
       expect(action.type).toBe('navigate_new_listing');
       expect(action.path).toBe('/edit-listing/new');
     });
 
-    it('prompts role switch for Seekers without silently bouncing to owner-dashboard', () => {
+    it('navigates seamlessly to /edit-listing/new for Seekers without requiring role switch', () => {
       const action = resolvePostRoomAction(true, 'seeker');
-      expect(action.type).toBe('seeker_role_prompt');
-      expect(action.path).toBe('/settings');
+      expect(action.type).toBe('navigate_new_listing');
+      expect(action.path).toBe('/edit-listing/new');
+    });
+  });
+
+  describe('Listing Management & Detail Routes', () => {
+    it('returns the standard management route /my-listings', () => {
+      expect(getManageListingsRoute()).toBe('/my-listings');
+    });
+
+    it('returns the public room detail route for a given listing ID', () => {
+      expect(getListingDetailRoute('listing-xyz-123')).toBe('/room/listing-xyz-123');
+    });
+  });
+
+  describe('onboarding return destinations', () => {
+    it('preserves valid local destinations and rejects unsafe or looping paths', () => {
+      expect(getSafeReturnDestination('/edit-listing/new')).toBe('/edit-listing/new');
+      expect(getSafeReturnDestination('/room/room-1?source=cta')).toBe('/room/room-1?source=cta');
+      expect(getSafeReturnDestination('https://example.com')).toBeNull();
+      expect(getSafeReturnDestination('//example.com')).toBeNull();
+      expect(getSafeReturnDestination('/login')).toBeNull();
+      expect(getSafeReturnDestination('/onboarding/seeker')).toBeNull();
+    });
+
+    it('uses the return destination first, otherwise follows the selected intent', () => {
+      expect(getPostOnboardingDestination('find_room', '/edit-listing/new')).toBe('/edit-listing/new');
+      expect(getPostOnboardingDestination('find_room')).toBe('/explore?tab=rooms');
+      expect(getPostOnboardingDestination('team_up')).toBe('/explore?tab=roommates');
     });
   });
 });

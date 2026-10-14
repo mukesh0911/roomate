@@ -186,7 +186,7 @@ export default function ApplicantCompare() {
     }
     setConfirmSelectModal(false);
     setTimeout(() => {
-      navigate('/owner-dashboard');
+      navigate('/my-listings');
     }, 1000);
   };
 
@@ -240,11 +240,11 @@ export default function ApplicantCompare() {
       <div className="bg-white/80 backdrop-blur-md border-b border-gray-100 py-4 px-4 sticky top-0 z-30 shadow-2xs">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <button
-            onClick={() => navigate('/owner-dashboard')}
+            onClick={() => navigate('/my-listings')}
             className="flex items-center gap-2 text-xs font-semibold text-gray-600 hover:text-[#1E2229] bg-white px-3.5 py-1.5 rounded-full border border-gray-200 shadow-2xs transition-all"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Dashboard</span>
+            <span>My Listings</span>
           </button>
 
           <div className="flex items-center gap-2">
@@ -278,10 +278,10 @@ export default function ApplicantCompare() {
               When prospective tenants submit inquiries and connect with your property, you can compare up to 3 candidates here side-by-side.
             </p>
             <Link
-              to="/owner-dashboard"
+              to="/my-listings"
               className="inline-flex items-center gap-2 bg-[#FF5A36] hover:bg-[#E54E2B] text-white py-3 px-6 rounded-full font-semibold text-xs shadow-sm shadow-[#FF5A36]/20 transition-all"
             >
-              Back to Owner Dashboard
+              Back to My Listings
             </Link>
           </div>
         ) : (

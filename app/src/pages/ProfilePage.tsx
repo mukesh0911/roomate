@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useStore } from '@/store/useStore';
-import { useUserProfile } from '@/hooks/useUserProfile';
 import { useReviews } from '@/hooks/useReviews';
 import { useMatches } from '@/hooks/useMatches';
 import { useConnections, formatWhatsAppDeepLink } from '@/hooks/useConnections';
@@ -11,7 +9,7 @@ import { useListings } from '@/hooks/useListings';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
-  Crown, Shield, Star, Settings, Bell, Lock, HelpCircle, LogOut, SwitchCamera,
+  Crown, Shield, Star, Settings, Bell, Lock, HelpCircle, LogOut,
   ChevronRight, TrendingUp, MessageSquare, MessageCircle, CheckCircle2, Linkedin, Instagram,
   ShieldCheck, Users, Sliders, Building2, Sparkles, Brain, Share2
 } from 'lucide-react';
@@ -24,9 +22,7 @@ import { toast } from 'sonner';
 export default function ProfilePage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, profile, logout, refreshProfile } = useAuth();
-  const { currentRole, setCurrentRole } = useStore();
-  const { setRole } = useUserProfile();
+  const { user, profile, logout } = useAuth();
   const { reviews, getReviewsForUser } = useReviews();
   const { findMatches } = useMatches();
   const { getMyConnections } = useConnections();
@@ -58,9 +54,6 @@ export default function ProfilePage() {
     }
   }, [location.state]);
 
-  // Derive the effective role from Firebase profile or Zustand store
-  const effectiveRole = profile?.role || currentRole || 'seeker';
-
   useEffect(() => {
     if (user?.uid) {
       getReviewsForUser(user.uid);
@@ -89,21 +82,19 @@ export default function ProfilePage() {
         }
         setAcceptedConnections(list);
       }).catch(() => { });
-      if (profile && effectiveRole === 'seeker') {
+      if (profile) {
         findMatches(profile, profile.city).then(matches => {
           if (matches && matches.length > 0) {
             const top = Math.max(...matches.map(m => m.compatibilityScore || 0));
             setTopMatchScore(top);
           }
-        });
-      }
-      if (effectiveRole === 'owner') {
-        getMyListings(user.uid).then(listings => {
-          setOwnerListings(listings || []);
         }).catch(() => {});
       }
+      getMyListings(user.uid).then(listings => {
+        setOwnerListings(listings || []);
+      }).catch(() => {});
     }
-  }, [user?.uid, profile, effectiveRole, findMatches, getMyConnections, getMyListings, getReviewsForUser]);
+  }, [user?.uid, profile, findMatches, getMyConnections, getMyListings, getReviewsForUser]);
 
   const averageRating = reviews.length > 0
     ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
@@ -174,18 +165,6 @@ export default function ProfilePage() {
     navigate('/');
   };
 
-  const handleSwitchRole = async () => {
-    const newRole = effectiveRole === 'seeker' ? 'owner' : 'seeker';
-    setCurrentRole(newRole);
-    if (user?.uid) {
-      await setRole(user.uid, newRole);
-      // BUG-4 FIX: wait for profile to update before navigating so App.tsx
-      // onSnapshot sees the new role and doesn't bounce back to the old dashboard.
-      await refreshProfile(user.uid);
-    }
-    navigate(newRole === 'seeker' ? '/explore?tab=rooms' : '/owner-dashboard');
-  };
-
   return (
     <PageShell maxWidth="max-w-6xl">
       <div className="flex flex-col lg:flex-row gap-6 items-start">
@@ -245,37 +224,18 @@ export default function ProfilePage() {
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2 text-center mb-4">
-                {effectiveRole === 'owner' ? (
-                  <>
-                    <div className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-2.5 cursor-pointer hover:bg-[#FFF2EB]/40 transition-colors" onClick={() => navigate('/owner-dashboard?tab=listings')}>
-                      <p className="text-lg font-bold text-[#1E2229]">{ownerListings.length}</p>
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Properties</p>
-                    </div>
-                    <div className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-2.5 cursor-pointer hover:bg-[#FFF2EB]/40 transition-colors" onClick={() => navigate('/owner-dashboard?tab=applicants')}>
-                      <p className="text-lg font-bold text-[#1E2229]">{connectsCount || 0}</p>
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Applicants</p>
-                    </div>
-                    <div className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-2.5 cursor-pointer hover:bg-[#FFF2EB]/40 transition-colors" onClick={() => navigate('/chat')}>
-                      <p className="text-lg font-bold text-[#1E2229]">{chatRooms?.length || 0}</p>
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Chats</p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-2.5">
-                      <p className="text-lg font-bold text-[#1E2229]">{connectsCount || profile?.connectsUsed || 0}</p>
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Connects</p>
-                    </div>
-                    <div className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-2.5 cursor-pointer hover:bg-[#FFF2EB]/40 transition-colors" onClick={() => navigate('/chat')}>
-                      <p className="text-lg font-bold text-[#1E2229]">{chatRooms?.length || 0}</p>
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Chats</p>
-                    </div>
-                    <div className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-2.5">
-                      <p className="text-lg font-bold text-[#FF5A36]">{topMatchScore > 0 ? `${topMatchScore}%` : '—'}</p>
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Top Match</p>
-                    </div>
-                  </>
-                )}
+                <div className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-2.5">
+                  <p className="text-lg font-bold text-[#1E2229]">{connectsCount || profile?.connectsUsed || 0}</p>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Connects</p>
+                </div>
+                <div className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-2.5 cursor-pointer hover:bg-[#FFF2EB]/40 transition-colors" onClick={() => navigate('/chat')}>
+                  <p className="text-lg font-bold text-[#1E2229]">{chatRooms?.length || 0}</p>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Chats</p>
+                </div>
+                <div className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-2.5 cursor-pointer hover:bg-[#FFF2EB]/40 transition-colors" onClick={() => navigate('/my-listings')}>
+                  <p className="text-lg font-bold text-[#FF5A36]">{ownerListings.length}</p>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Listings</p>
+                </div>
               </div>
               <button
                 onClick={() => navigate('/edit-profile')}
@@ -286,45 +246,31 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Preferences / Hosting Details */}
+          {/* Preferences */}
           <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-5">
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-serif font-medium text-base text-[#1E2229]">
-                {effectiveRole === 'owner' ? 'Hosting Details' : 'Preferences'}
+                Preferences &amp; Living
               </h4>
               <button
-                onClick={() => navigate(effectiveRole === 'owner' ? '/owner-dashboard?tab=listings' : '/preferences')}
+                onClick={() => navigate('/preferences')}
                 className="text-xs text-[#FF5A36] font-semibold hover:underline cursor-pointer"
               >
-                {effectiveRole === 'owner' ? 'Manage' : 'Edit'}
+                Edit
               </button>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {effectiveRole === 'owner' ? (
-                [
-                  { label: 'Role', value: 'Property Owner' },
-                  { label: 'City', value: profile?.city || 'Not specified' },
-                  { label: 'Properties', value: `${ownerListings.length} Listed` },
-                  { label: 'Status', value: profile?.isVerified ? 'Verified Owner' : 'Pending' },
-                ].map(p => (
-                  <div key={p.label} className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-2.5">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{p.label}</p>
-                    <p className="text-xs sm:text-sm font-semibold text-[#1E2229] truncate mt-0.5">{p.value}</p>
-                  </div>
-                ))
-              ) : (
-                [
-                  { label: 'Budget', value: profile?.budget ? `₹${profile.budget.toLocaleString()}/mo` : 'Flexible' },
-                  { label: 'Role', value: 'Room Seeker' },
-                  { label: 'City', value: profile?.city || 'Not specified' },
-                  { label: 'Move-in', value: profile?.moveInDate ? new Date(profile.moveInDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Flexible' },
-                ].map(p => (
-                  <div key={p.label} className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-2.5">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{p.label}</p>
-                    <p className="text-xs sm:text-sm font-semibold text-[#1E2229] truncate mt-0.5">{p.value}</p>
-                  </div>
-                ))
-              )}
+              {[
+                { label: 'City', value: profile?.city || 'Not specified' },
+                { label: 'Budget', value: profile?.budget ? `₹${profile.budget.toLocaleString()}/mo` : 'Flexible' },
+                { label: 'Move-in', value: profile?.moveInDate ? new Date(profile.moveInDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Flexible' },
+                { label: 'Listings', value: `${ownerListings.length} ${ownerListings.length === 1 ? 'Room' : 'Rooms'}` },
+              ].map(p => (
+                <div key={p.label} className="bg-[#FBFBFC] border border-gray-100 rounded-2xl p-2.5">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{p.label}</p>
+                  <p className="text-xs sm:text-sm font-semibold text-[#1E2229] truncate mt-0.5">{p.value}</p>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -397,24 +343,17 @@ export default function ProfilePage() {
 
           {/* Account Menu */}
           <div className="bg-white rounded-3xl border border-gray-100 shadow-xs p-2 space-y-0.5">
-            <button onClick={handleSwitchRole} className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-[#FBFBFC] transition-all text-left text-xs sm:text-sm font-semibold text-[#1E2229] cursor-pointer">
-              <SwitchCamera className="w-4 h-4 text-[#FF5A36]" />
-              <span className="flex-1">Switch to {effectiveRole === 'seeker' ? 'Owner' : 'Seeker'} Mode</span>
+            <button onClick={() => navigate('/my-listings')} className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-[#FBFBFC] transition-all text-left text-xs sm:text-sm font-semibold text-[#1E2229] cursor-pointer">
+              <Building2 className="w-4 h-4 text-[#FF5A36]" />
+              <span className="flex-1">My Listings</span>
+              <span className="text-[11px] font-bold text-gray-400 mr-1">{ownerListings.length}</span>
               <ChevronRight className="w-4 h-4 text-gray-400" />
             </button>
-            {effectiveRole === 'seeker' ? (
-              <button onClick={() => navigate('/preferences')} className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-[#FBFBFC] transition-all text-left text-xs sm:text-sm font-semibold text-[#1E2229] cursor-pointer">
-                <Sliders className="w-4 h-4 text-gray-500" />
-                <span className="flex-1">Roommate Preferences</span>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              </button>
-            ) : (
-              <button onClick={() => navigate('/owner-dashboard?tab=listings')} className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-[#FBFBFC] transition-all text-left text-xs sm:text-sm font-semibold text-[#1E2229] cursor-pointer">
-                <Building2 className="w-4 h-4 text-gray-500" />
-                <span className="flex-1">My Properties & Listings</span>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              </button>
-            )}
+            <button onClick={() => navigate('/preferences')} className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-[#FBFBFC] transition-all text-left text-xs sm:text-sm font-semibold text-[#1E2229] cursor-pointer">
+              <Sliders className="w-4 h-4 text-gray-500" />
+              <span className="flex-1">Roommate Preferences</span>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </button>
             <button onClick={() => navigate('/safety')} className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-[#FBFBFC] transition-all text-left text-xs sm:text-sm font-semibold text-[#1E2229] cursor-pointer">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
               <span className="flex-1">Safety & Verification Center</span>
@@ -459,11 +398,11 @@ export default function ProfilePage() {
                   Verified members get 3x higher response rates, instant applicant contact reveals, and trusted community standing.
                 </p>
                 <button
-                  onClick={() => navigate(effectiveRole === 'owner' ? '/owner-dashboard?tab=listings' : '/trust')}
+                  onClick={() => navigate('/trust')}
                   className="rounded-full bg-[#FF5A36] hover:bg-[#E54E2B] active:scale-[0.98] text-white font-semibold px-5 py-2.5 text-xs sm:text-sm transition-all shadow-xs cursor-pointer inline-flex items-center gap-2"
                 >
                   <ShieldCheck className="w-4 h-4" />
-                  {effectiveRole === 'owner' ? 'Verify Property & ID' : 'Get Verified Badge'}
+                  Get Verified Badge
                 </button>
               </div>
             </div>

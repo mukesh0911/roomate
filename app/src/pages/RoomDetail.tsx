@@ -112,7 +112,7 @@ export default function RoomDetail() {
   const [similarRooms, setSimilarRooms] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
-  const [requestSent, setRequestSent] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'none' | 'pending' | 'accepted'>('none');
   const [messagingOwner, setMessagingOwner] = useState(false);
   const [savingRoom, setSavingRoom] = useState(false);
   const [copyToast, setCopyToast] = useState(false);
@@ -128,16 +128,18 @@ export default function RoomDetail() {
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
 
   const isSaved = !!(profile?.savedRoomIds && id && profile.savedRoomIds.includes(id));
+  const requestSent = connectionStatus !== 'none';
+  const canMessageOwner = connectionStatus === 'accepted';
 
   // Sync connection state to prevent duplicate connection requests
   useEffect(() => {
     if (!user?.uid || !room?.ownerId) return;
     const unsub = subscribeToMyConnections(user.uid, (conns) => {
-      const active = conns.some(
+      const active = conns.find(
         c => (c.toUserId === room.ownerId || c.fromUserId === room.ownerId) &&
           (c.status === 'pending' || c.status === 'accepted')
       );
-      if (active) setRequestSent(true);
+      setConnectionStatus(active?.status === 'accepted' ? 'accepted' : active ? 'pending' : 'none');
     });
     return () => unsub();
   }, [user?.uid, room?.ownerId, subscribeToMyConnections]);
@@ -231,10 +233,10 @@ export default function RoomDetail() {
         title: 'New Interest in Your Listing!',
         description: `${profile?.name || 'Someone'} expressed interest in "${room.title}".`,
         read: false,
-        actionUrl: '/owner-dashboard?tab=applicants',
+        actionUrl: '/my-listings',
         connectionId,
       });
-      setRequestSent(true);
+      setConnectionStatus('pending');
       toast.success('Interest and screening answers sent to owner!');
     } catch (err) {
       console.error(err);
@@ -256,6 +258,12 @@ export default function RoomDetail() {
       return;
     }
     if (!room?.ownerId || messagingOwner) return;
+    if (!canMessageOwner) {
+      toast.info(connectionStatus === 'pending'
+        ? 'Your interest is pending. You can message after the owner accepts it.'
+        : 'Send interest first. Messaging opens after the owner accepts it.');
+      return;
+    }
     setMessagingOwner(true);
     try {
       const roomId = await getOrCreateChatRoom(user.uid, room.ownerId);
@@ -608,7 +616,7 @@ export default function RoomDetail() {
                   {ownerDisplayName}
                 </h2>
                 {isVerifiedListing && (
-                  <span title="Verified Host" className="text-emerald-500">
+                  <span aria-label="Verified host" title="Verified Host" className="text-emerald-500">
                     <CheckCircle2 className="w-4 h-4 fill-emerald-500 text-white" />
                   </span>
                 )}
@@ -625,10 +633,20 @@ export default function RoomDetail() {
               </div>
 
               {/* ONE Single Prominent Action Button (NO CALL BUTTON) */}
-              {requestSent ? (
+              {connectionStatus === 'accepted' ? (
+                <button
+                  type="button"
+                  onClick={handleMessageOwner}
+                  disabled={messagingOwner}
+                  className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-[#FF5A36] hover:bg-[#E54E2B] text-white shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 disabled:opacity-85 mb-3"
+                >
+                  {messagingOwner ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <MessageCircle className="w-4 h-4" />}
+                  <span>Chat with Owner</span>
+                </button>
+              ) : requestSent ? (
                 <div className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center gap-2 mb-3">
                   <Check className="w-4 h-4 text-emerald-600" />
-                  <span>Interest Sent to Owner</span>
+                  <span>Interest Sent — Awaiting Owner</span>
                 </div>
               ) : (
                 <button
@@ -642,7 +660,7 @@ export default function RoomDetail() {
                   ) : (
                     <>
                       <MessageCircle className="w-4 h-4" />
-                      <span>Chat with Owner</span>
+                      <span>Express Interest</span>
                     </>
                   )}
                 </button>
@@ -657,7 +675,7 @@ export default function RoomDetail() {
                   className="flex-1 py-2 px-3 rounded-xl font-semibold text-xs border border-gray-200 hover:bg-gray-50 text-gray-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                 >
                   {messagingOwner ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MessageCircle className="w-3.5 h-3.5 text-gray-500" />}
-                  <span>Direct Message</span>
+                  <span>{canMessageOwner ? 'Message Owner' : 'Messaging After Acceptance'}</span>
                 </button>
 
                 <button
@@ -731,8 +749,18 @@ export default function RoomDetail() {
                     name={ownerDisplayName}
                     isVerified={isVerifiedListing}
                     illustrationType={ownerDisplayName.toLowerCase().includes('arun') ? 'arun' : undefined}
-                    className="w-24 h-24 rounded-full border border-gray-200 shadow-xs object-cover"
-                  />
+                  className="w-24 h-24 rounded-full border border-gray-200 shadow-xs object-cover"
+                />
+                </div>
+
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <span className="text-sm font-bold text-[#1E2229]">{ownerDisplayName}</span>
+                  {isVerifiedListing && (
+                    <span aria-label="Verified host" className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
+                      <CheckCircle2 className="w-4 h-4 fill-emerald-500 text-white" aria-hidden="true" />
+                      Verified host
+                    </span>
+                  )}
                 </div>
 
                 <h1 className="text-xl font-bold text-[#1E2229] tracking-tight">
@@ -755,10 +783,20 @@ export default function RoomDetail() {
 
                 {/* Single Primary Action Button on Mobile (NO CALL BUTTON) */}
                 <div className="w-full max-w-sm mt-4">
-                  {requestSent ? (
+                  {connectionStatus === 'accepted' ? (
+                    <button
+                      type="button"
+                      onClick={handleMessageOwner}
+                      disabled={messagingOwner}
+                      className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-[#FF5A36] hover:bg-[#E54E2B] text-white shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 disabled:opacity-85"
+                    >
+                      {messagingOwner ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <MessageCircle className="w-4 h-4" />}
+                      <span>Chat with Owner</span>
+                    </button>
+                  ) : requestSent ? (
                     <div className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center gap-2">
                       <Check className="w-4 h-4 text-emerald-600" />
-                      <span>Interest Sent to Owner</span>
+                      <span>Interest Sent — Awaiting Owner</span>
                     </div>
                   ) : (
                     <button
@@ -772,7 +810,7 @@ export default function RoomDetail() {
                       ) : (
                         <>
                           <MessageCircle className="w-4 h-4" />
-                          <span>Chat with Owner</span>
+                          <span>Express Interest</span>
                         </>
                       )}
                     </button>
@@ -1139,7 +1177,7 @@ export default function RoomDetail() {
                       useStore.getState().openAuthModal({ title: 'Sign in to Save Rooms', redirect: `/room/${id}` });
                       return;
                     }
-                    await toggleSavedRoom(user.uid, roomId, profile?.savedRoomIds?.includes(roomId));
+                    await toggleSavedRoom(user.uid, roomId, !!profile?.savedRoomIds?.includes(roomId));
                     await refreshProfile();
                   }}
                   onClick={() => {
@@ -1177,15 +1215,20 @@ export default function RoomDetail() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {requestSent ? (
+          {connectionStatus === 'accepted' ? (
             <button
               type="button"
               onClick={handleMessageOwner}
+              disabled={messagingOwner}
               className="px-5 py-2.5 rounded-full font-bold text-xs bg-[#FF5A36] text-white shadow-xs cursor-pointer flex items-center gap-1.5"
             >
               <MessageCircle className="w-3.5 h-3.5" />
               <span>Chat with Owner</span>
             </button>
+          ) : requestSent ? (
+            <div className="px-4 py-2.5 rounded-full font-bold text-xs bg-emerald-50 text-emerald-700 border border-emerald-200">
+              Awaiting Owner
+            </div>
           ) : (
             <button
               type="button"
@@ -1198,7 +1241,7 @@ export default function RoomDetail() {
               ) : (
                 <>
                   <MessageCircle className="w-3.5 h-3.5" />
-                  <span>Chat with Owner</span>
+                  <span>Express Interest</span>
                 </>
               )}
             </button>

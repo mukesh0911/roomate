@@ -43,7 +43,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm --prefix app run dev -- --mode test --host 127.0.0.1 --port 4173 --strictPort',
+    command: 'cross-env VITE_FIREBASE_AUTH_EMULATOR_PORT=19099 VITE_FIRESTORE_EMULATOR_PORT=18080 VITE_FIREBASE_STORAGE_EMULATOR_PORT=19199 VITE_FIREBASE_FUNCTIONS_EMULATOR_PORT=15001 npm --prefix app run dev -- --mode test --host 127.0.0.1 --port 4173 --strictPort',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: false,
     timeout: 120000,

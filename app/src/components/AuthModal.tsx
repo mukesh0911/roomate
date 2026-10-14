@@ -84,7 +84,7 @@ export default function AuthModal({
       if (redirectAfterLogin) {
         navigate(redirectAfterLogin);
       } else {
-        navigate(role === 'seeker' ? '/dashboard' : '/owner-dashboard');
+        navigate(role === 'owner' ? '/my-listings' : '/explore?tab=rooms');
       }
     } catch (err: any) {
       console.error('Demo login error:', err);

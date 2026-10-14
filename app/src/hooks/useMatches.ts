@@ -24,6 +24,7 @@ import { isAccountActive } from '@/lib/accountStatus';
 import { isDemoProfile } from '@/lib/demoUsers';
 import { isPubliclyVisibleProfile, isPubliclyVisibleListing } from '@/lib/marketplaceVisibility';
 import { areSameCityAlias, getCityQueryValues } from '@/lib/cityNormalization';
+import { isRoommateDiscoverable } from '@/lib/profileEligibility';
 
 export { calculateCompatibility, calculateProfileCompatibility, calculateRoomCompatibility, getRoomMatchReasons, getActiveStatus } from '@/lib/matching';
 
@@ -74,14 +75,9 @@ export function useMatches() {
           : where('city', '==', cityValues[0]));
       }
 
-      // Role-based filtering:
-      // If an explicit role filter is passed, respect it.
-      // If current user is an owner, they search for seekers.
-      // If current user is a seeker, they can discover both seekers (roommates) and owners (with rooms).
-      const targetRole = filters?.role || (currentUser.role === 'owner' ? 'seeker' : null);
-      if (targetRole) {
-        constraints.push(where('role', '==', targetRole));
-      }
+      // Role is legacy account metadata, not a roommate-discovery gate.
+      // Keep the optional filters argument for call-site compatibility.
+      void filters;
 
       const skippedIds = new Set(currentUser.skippedUserIds || []);
       const blockedIds = new Set(currentUser.blockedUserIds || []);
@@ -130,10 +126,6 @@ export function useMatches() {
                 const requestedCity = targetCity.trim().toLowerCase();
                 if (!areSameCityAlias(candidateCity, requestedCity)) return false;
               }
-              if (targetRole) {
-                const r = (u.role || '').toLowerCase();
-                return r === targetRole.toLowerCase();
-              }
               return true;
             });
         } catch (err) {
@@ -149,11 +141,14 @@ export function useMatches() {
         && !blockedIds.has(u.uid || '')
         && isAccountActive((u as any).status)
         && !isDemoProfile(u as any)
+        && isRoommateDiscoverable(u)
       );
 
-      // If the seeker is looking for owners, fetch active listings and combine with owner profiles
+      // Listings only enrich people who are already roommate-discoverable.
+      // Owning a listing must not inject someone into this directory.
       const listingMap = new Map<string, any>();
-      if (targetRole === 'owner' || !targetRole || currentUser.role === 'seeker') {
+      const includeListingOwners = false;
+      {
 
         const lqConstraints: any[] = [where('status', '==', 'active')];
         if (targetCity) {
@@ -164,8 +159,7 @@ export function useMatches() {
         }
         try {
           const lsnap = await getDocs(query(collection(db, 'listings'), ...lqConstraints));
-          const existingOwnerIds = new Set(candidates.map(c => c.uid));
-
+          const existingOwnerIds = new Set(candidates.map(candidate => candidate.uid));
           for (const d of lsnap.docs) {
             const ldata = { id: d.id, ...d.data() } as any;
             const ownerId = ldata.ownerId;
@@ -174,10 +168,12 @@ export function useMatches() {
             // listings must never appear as matches.
             if (!isPubliclyVisibleListing(ldata)) continue;
 
-            listingMap.set(ownerId, ldata);
+            if (candidates.some(candidate => candidate.uid === ownerId)) {
+              listingMap.set(ownerId, ldata);
+            }
 
             // If this owner is not already in candidates array, fetch or generate their profile
-            if (!existingOwnerIds.has(ownerId)) {
+            if (includeListingOwners) { // Retained only for a later legacy-code cleanup.
               existingOwnerIds.add(ownerId);
               try {
                 const ownerSnap = await getDoc(doc(db, 'users', ownerId));

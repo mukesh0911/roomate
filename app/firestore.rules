@@ -18,13 +18,12 @@ service cloud.firestore {
     // The email comes from the Firebase Auth token (server-verified),
     // never from client-supplied data. Bootstrap: create admins/<email>
     // manually in the Firebase console (see docs/security/ADMIN_BOOTSTRAP.md).
-    function adminEmail() {
-      return request.auth.token.email.lower();
-    }
     function isAdmin() {
-      return isAuthenticated()
-        && 'email' in request.auth.token
-        && exists(/databases/$(database)/documents/admins/$(adminEmail()));
+      // The conditional keeps anonymous and phone-authenticated requests from
+      // evaluating an absent auth/email claim in unrelated allow clauses.
+      return request.auth == null
+        ? false
+        : exists(/databases/$(database)/documents/admins/$(request.auth.token.get('email', '').lower()));
     }
 
     function myUserDoc() {
@@ -93,21 +92,18 @@ service cloud.firestore {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status']);
     }
 
-    // Onboarding completion requires meaningful profile data so that
-    // compatibility discovery cannot be gamed with empty profiles.
+    // Shared onboarding completion requires meaningful location data but is
+    // deliberately independent of a permanent owner/seeker account mode.
+    // Roommate discoverability has an additional client/data eligibility gate;
+    // listing creation remains protected by its own schema and approval rules.
     function onboardingDataValid() {
       return request.resource.data.get('name', '') is string
         && request.resource.data.get('name', '').size() > 0
-        && request.resource.data.get('role', '') in ['seeker', 'owner']
-        && (
-          (request.resource.data.get('role', '') == 'seeker'
-            && request.resource.data.get('quizAnswers', {}) is map
-            && request.resource.data.get('quizAnswers', {}).size() >= 5)
-          ||
-          (request.resource.data.get('role', '') == 'owner'
-            && request.resource.data.get('city', '') is string
-            && request.resource.data.get('city', '').size() > 0)
-        );
+        && request.resource.data.get('city', '') is string
+        && request.resource.data.get('city', '').size() > 0
+        && request.resource.data.get('localities', []) is list
+        && request.resource.data.get('localities', []).size() > 0
+        && request.resource.data.get('localities', []).size() <= 3;
     }
 
     function onboardingFlipValid() {
@@ -165,6 +161,82 @@ service cloud.firestore {
       allow read, write: if isOwner(userId) || isAdmin();
     }
 
+    // Authenticated, explicitly opted-in roommate discovery cards. This is a
+    // narrow projection, never a public view of users/{uid}.
+    function publicProfileLocalitiesValid() {
+      return request.resource.data.localities is list
+        && request.resource.data.localities.size() > 0
+        && request.resource.data.localities.size() <= 3
+        && request.resource.data.localities[0] is string
+        && request.resource.data.localities[0].size() > 0
+        && request.resource.data.localities[0].size() <= 80
+        && (request.resource.data.localities.size() < 2 || (
+          request.resource.data.localities[1] is string
+          && request.resource.data.localities[1].size() > 0
+          && request.resource.data.localities[1].size() <= 80
+        ))
+        && (request.resource.data.localities.size() < 3 || (
+          request.resource.data.localities[2] is string
+          && request.resource.data.localities[2].size() > 0
+          && request.resource.data.localities[2].size() <= 80
+        ));
+    }
+
+    function publicProfileShapeValid(userId) {
+      return request.resource.data.keys().hasOnly([
+          'uid', 'displayName', 'city', 'localities', 'roommateDiscoveryEnabled',
+          'discoverySetupVersion', 'schemaVersion', 'updatedAt',
+          'avatar', 'ageRange', 'budgetRange'
+        ])
+        && request.resource.data.uid == userId
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 80
+        && request.resource.data.city is string
+        && request.resource.data.city.size() > 0
+        && request.resource.data.city.size() <= 64
+        && publicProfileLocalitiesValid()
+        && request.resource.data.roommateDiscoveryEnabled == true
+        && request.resource.data.discoverySetupVersion == 1
+        && request.resource.data.schemaVersion == 1
+        && (!('avatar' in request.resource.data) || (
+          request.resource.data.avatar is string && request.resource.data.avatar.size() <= 2048
+        ))
+        && (!('ageRange' in request.resource.data) || (
+          request.resource.data.ageRange is string && request.resource.data.ageRange.size() <= 32
+        ))
+        && (!('budgetRange' in request.resource.data) || (
+          request.resource.data.budgetRange is string && request.resource.data.budgetRange.size() <= 32
+        ));
+    }
+
+    function discoverySourceActive(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId))
+        && get(/databases/$(database)/documents/users/$(userId)).data.get('onboardingComplete', false) == true
+        && get(/databases/$(database)/documents/users/$(userId)).data.get('roommateDiscoveryEnabled', false) == true
+        && get(/databases/$(database)/documents/users/$(userId)).data.get('status', 'active') == 'active';
+    }
+
+    match /publicProfiles/{userId} {
+      allow read: if isAuthenticated()
+        && resource.data.roommateDiscoveryEnabled == true
+        && discoverySourceActive(userId);
+      allow create, update: if isAdmin() || (
+        isOwner(userId)
+        && publicProfileShapeValid(userId)
+        && discoverySourceActive(userId)
+      );
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // Server/admin-maintained anonymous listing projection. The source listing
+    // remains a private workflow record during the staged migration.
+    match /publicListings/{listingId} {
+      allow read: if resource.data.status == 'active'
+        && resource.data.ownerVerified == true;
+      allow write: if isAdmin();
+    }
+
     // Shared contact cards (WhatsApp number) — accessible only to owner, admin, or accepted connection partners
     match /userContacts/{userId} {
       allow read: if isAuthenticated() && (
@@ -209,7 +281,7 @@ service cloud.firestore {
     }
 
     // Listings: public read access so visitors can browse room listings.
-    // Creation requires an active, onboarded owner and self-owned ownerId.
+    // Creation requires an active, onboarded user and self-owned ownerId.
     // Sprint 2A: status is restricted to the known lifecycle values and
     // suspended/banned owners cannot modify their listings. Availability
     // confirmation (`lastConfirmedAt`) may only be set by the owner or an
@@ -217,6 +289,43 @@ service cloud.firestore {
     function listingStatusValid() {
       return request.resource.data.get('status', 'pending_verification')
         in ['draft', 'active', 'paused', 'filled', 'closed', 'pending_verification'];
+    }
+
+    // Client validation improves the form experience, but this is the
+    // authoritative boundary for direct Firestore writes.
+    function listingCreateDataValid() {
+      return request.resource.data.get('title', '') is string
+        && request.resource.data.get('title', '').size() >= 3
+        && request.resource.data.get('title', '').size() <= 160
+        && request.resource.data.get('city', '') is string
+        && request.resource.data.get('city', '').size() > 0
+        && request.resource.data.get('city', '').size() <= 64
+        && request.resource.data.get('locality', '') is string
+        && request.resource.data.get('locality', '').size() > 0
+        && request.resource.data.get('locality', '').size() <= 128
+        && request.resource.data.get('flatType', '') is string
+        && request.resource.data.get('flatType', '').size() > 0
+        && request.resource.data.get('furnishing', '') is string
+        && request.resource.data.get('furnishing', '').size() > 0
+        && request.resource.data.get('totalRent', 0) is number
+        && request.resource.data.get('totalRent', 0) > 0
+        && request.resource.data.get('partnerShare', 0) is number
+        && request.resource.data.get('partnerShare', 0) >= 0
+        && request.resource.data.get('partnersNeeded', 0) is int
+        && request.resource.data.get('partnersNeeded', 0) >= 0
+        && request.resource.data.get('images', []) is list
+        && request.resource.data.get('images', []).size() <= 12
+        && request.resource.data.get('amenities', []) is list
+        && request.resource.data.get('amenities', []).size() <= 30
+        && request.resource.data.get('houseRules', []) is list
+        && request.resource.data.get('houseRules', []).size() <= 20
+        && request.resource.data.get('screeningQuestions', []) is list
+        && request.resource.data.get('screeningQuestions', []).size() <= 10;
+    }
+
+    function completedProfileCanCreateListing() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && myUserDoc().get('onboardingComplete', false) == true;
     }
 
     // A new listing MUST start with ownerVerified=false and status=pending_verification.
@@ -250,13 +359,19 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isAuthenticated()
         && isActiveUser()
+        && completedProfileCanCreateListing()
         && request.resource.data.ownerId == request.auth.uid
         && listingStatusValid()
+        && listingCreateDataValid()
         && newListingFieldsSafe();
       allow update: if (
-        // View count increments — anyone (authenticated or guest) may increment views without tampering with other fields
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views']) ||
-        (isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'updatedAt'])) ||
+        // View count increments — guests may only add exactly one view.
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views'])
+          && resource.data.get('views', 0) is number
+          && request.resource.data.get('views', 0) is number
+          && request.resource.data.views == resource.data.get('views', 0) + 1
+        ) ||
         // Admin can do anything
         isAdmin() ||
         // Owner update: must own listing, must not modify ownerVerified,
@@ -428,11 +543,29 @@ service cloud.firestore {
 
     // Listing views analytics: record views for analytics.
     // Field-restricted to prevent tampering.
+    function listingViewRecordValid(docId) {
+      return request.resource.data.keys().hasOnly(['listingId', 'ownerId', 'date', 'count'])
+        && request.resource.data.listingId is string
+        && request.resource.data.date is string
+        && docId == request.resource.data.listingId + '_' + request.resource.data.date
+        // `get()` is evaluated only when the listing exists, avoiding a rule
+        // evaluation error for deliberately invalid/nonexistent listing IDs.
+        && (
+          exists(/databases/$(database)/documents/listings/$(request.resource.data.listingId))
+            ? (!('ownerId' in request.resource.data)
+              || request.resource.data.ownerId == get(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.ownerId)
+            : false
+        )
+        && request.resource.data.count == 1;
+    }
+
     match /listingViews/{docId} {
       allow read: if isAuthenticated();
-      allow create: if request.resource.data.keys().hasOnly(['listingId', 'ownerId', 'date', 'count'])
-        && request.resource.data.count == 1;
-      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['count']);
+      allow create: if listingViewRecordValid(docId);
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['count'])
+        && resource.data.count is int
+        && request.resource.data.count is int
+        && request.resource.data.count == resource.data.count + 1;
     }
 
     // Ratings: authenticated users can read all; only create (no update/delete to prevent tampering)

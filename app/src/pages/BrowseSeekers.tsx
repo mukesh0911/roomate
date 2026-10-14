@@ -17,7 +17,7 @@ import { useStore } from '@/store/useStore';
 import { toast } from 'sonner';
 import { isPubliclyVisibleProfile } from '@/lib/marketplaceVisibility';
 import { areSameCityAlias } from '@/lib/cityNormalization';
-import { filterFlatmateProfiles } from '@/lib/roleFiltering';
+import { isRoommateDiscoverable } from '@/lib/profileEligibility';
 import FlatmateAvatar from '@/components/FlatmateAvatar';
 import ContactModal from '@/components/ContactModal';
 import { getUserIntent, getPreferredRoommateGender } from '@/lib/userIntent';
@@ -97,7 +97,8 @@ export default function BrowseSeekers({
 
 
 
-        // Pre-fetch active listings for owner flatmates
+        // Listing data can enrich an explicitly discoverable member card, but
+        // a listing never makes its owner discoverable by itself.
         const listingByOwnerId = new Map<string, any>();
         try {
           const lsnap = await getDocs(query(collection(db, 'listings'), where('status', '==', 'active')));
@@ -111,7 +112,7 @@ export default function BrowseSeekers({
           console.warn('Error fetching listings for flatmate discovery:', e);
         }
 
-        const fetched = filterFlatmateProfiles(Array.from(profileMap.values()), user?.uid, currentUser?.role);
+        const fetched = Array.from(profileMap.values()).filter(profile => isRoommateDiscoverable(profile));
 
         // Match against active city strictly (real users only in chosen city)
         const targetCity = activeCity.trim().toLowerCase();
@@ -138,7 +139,7 @@ export default function BrowseSeekers({
           : effectivePool;
 
         let ownerListing: any = null;
-        if (currentUser?.role === 'owner' && user?.uid) {
+        if (user?.uid) {
           try {
             const lq = query(collection(db, 'listings'), where('ownerId', '==', user.uid), limit(1));
             const lsnap = await getDocs(lq);

@@ -23,6 +23,7 @@ import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { resolveEntityCoordinates, isValidCoord } from '@/lib/locationResolver';
 import { isPubliclyVisibleListing, isPubliclyVisibleProfile } from '@/lib/marketplaceVisibility';
+import { isRoommateDiscoverable } from '@/lib/profileEligibility';
 L.Icon.Default.mergeOptions({ iconUrl, shadowUrl });
 
 export interface MapPerson {
@@ -212,12 +213,7 @@ export default function MapView() {
     setLoading(true);
     setItems([]);
     try {
-      let q;
-      if (profile?.role === 'owner') {
-        q = query(collection(db, 'users'), where('onboardingComplete', '==', true), where('role', '==', 'seeker'));
-      } else {
-        q = query(collection(db, 'users'), where('onboardingComplete', '==', true));
-      }
+      const q = query(collection(db, 'users'), where('onboardingComplete', '==', true));
       const snap = await getDocs(q);
       const people: MapPerson[] = [];
       snap.docs.forEach(d => {
@@ -227,6 +223,7 @@ export default function MapView() {
         // Sprint 2E hardening: shared visibility rule — demo, suspended/banned
         // and incomplete-onboarding profiles never appear on the map.
         if (!isPubliclyVisibleProfile({ ...data, uid: d.id })) return;
+        if (!isRoommateDiscoverable(data)) return;
 
         // Resolve coordinates from geoLocation, lat/lng, or city/locality fallback
         const coords = resolveEntityCoordinates({

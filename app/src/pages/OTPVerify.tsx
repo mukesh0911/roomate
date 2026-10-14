@@ -89,12 +89,10 @@ export default function OTPVerify() {
         // Storage can be unavailable in privacy-restricted browser contexts.
       }
       setLoading(false);
-      if (isNew || !role) {
-        navigate('/role-select');
-      } else if (!onboardingComplete) {
-        navigate(role === 'owner' ? '/onboarding/owner' : '/onboarding/seeker');
+      if (isNew || !role || !onboardingComplete) {
+        navigate('/onboarding/seeker');
       } else {
-        navigate(role === 'owner' ? '/owner-dashboard' : '/dashboard');
+        navigate('/explore?tab=rooms');
       }
     } catch (err: any) {
       setError(err.message || 'Verification failed. Please try again.');

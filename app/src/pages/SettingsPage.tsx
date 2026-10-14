@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useStorage } from '@/hooks/useStorage';
 import {
-  Bell, Lock, Eye, Moon, Camera, Loader2, AlertTriangle, Download, Trash2, ShieldCheck, X, ArrowRightLeft,
+  Bell, Lock, Eye, Moon, Camera, Loader2, AlertTriangle, Download, Trash2, ShieldCheck, X,
 } from 'lucide-react';
 import {
   collection, query, where, getDocs, doc, getDoc,
@@ -50,9 +50,6 @@ export default function SettingsPage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarImgError, setAvatarImgError] = useState(false);
 
-  // Switch role modal state
-  const [showSwitchRoleModal, setShowSwitchRoleModal] = useState(false);
-
   // Delete account state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -83,7 +80,7 @@ export default function SettingsPage() {
 
   // Modal accessibility: body scroll lock and escape listener
   useEffect(() => {
-    const hasOpenModal = showDeleteModal || showSwitchRoleModal;
+    const hasOpenModal = showDeleteModal;
     if (!hasOpenModal) return;
 
     const originalOverflow = document.body.style.overflow;
@@ -92,7 +89,6 @@ export default function SettingsPage() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (!deleting) setShowDeleteModal(false);
-        if (!saving) setShowSwitchRoleModal(false);
       }
     };
 
@@ -101,7 +97,7 @@ export default function SettingsPage() {
       document.body.style.overflow = originalOverflow;
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [showDeleteModal, showSwitchRoleModal, deleting, saving]);
+  }, [showDeleteModal, deleting]);
 
   const toggle = async (key: keyof SettingsState) => {
     const updated = { ...toggles, [key]: !toggles[key] };
@@ -150,24 +146,6 @@ export default function SettingsPage() {
   };
 
   // ─── SWITCH ROLE ──────────────────────────────────────────────
-  const handleConfirmSwitchRole = async () => {
-    if (!user?.uid || !profile) return;
-    setSaving(true);
-    const newRole = profile.role === 'seeker' ? 'owner' : 'seeker';
-    try {
-      await updateProfile(user.uid, { role: newRole } as any);
-      await refreshProfile(user.uid);
-      setShowSwitchRoleModal(false);
-      toast.success(`Switched to ${newRole === 'owner' ? 'Host' : 'Seeker'} mode`);
-      navigate(newRole === 'seeker' ? '/explore?tab=rooms' : '/owner-dashboard', { replace: true });
-    } catch (err) {
-      console.error('Failed to switch role:', err);
-      toast.error('Failed to switch role. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   // ─── DELETE ACCOUNT ──────────────────────────────────────────
   const handleDeleteAccount = async () => {
     if (!user?.uid || deleteConfirmText !== 'DELETE') return;
@@ -328,10 +306,8 @@ export default function SettingsPage() {
                 <p className="font-serif font-medium text-lg text-[#1E2229]">{profile?.name || user?.displayName || 'NestMate User'}</p>
                 {profile?.isVerified && <ShieldCheck className="w-4 h-4 text-emerald-600" />}
               </div>
-              <span className={`inline-block mt-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
-                profile?.role === 'owner' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-[#FFF2EB] text-[#FF5A36] border-[#FF5A36]/20'
-              }`}>
-                {profile?.role === 'owner' ? 'Property Host' : 'Flat Seeker'}
+              <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border bg-[#FFF2EB] text-[#FF5A36] border-[#FF5A36]/20">
+                NestMate member
               </span>
             </div>
 
@@ -352,20 +328,17 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Switch Role Card */}
+          {/* Activity access: one account supports every marketplace action. */}
           <div className="bg-white rounded-3xl p-6 sm:p-7 border border-gray-100 shadow-xs">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
-                <h3 className="font-serif font-medium text-base text-[#1E2229]">Switch Account Mode</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Current Mode: <span className="font-semibold text-[#1E2229] capitalize">{profile?.role === 'owner' ? 'Host / Owner' : 'Flat Seeker'}</span></p>
+                <h3 className="font-serif font-medium text-base text-[#1E2229]">Your NestMate activities</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Browse rooms, meet roommates, and post rooms with this same account.</p>
               </div>
-              <button
-                onClick={() => setShowSwitchRoleModal(true)}
-                className="px-5 py-2.5 border border-gray-200 text-[#1E2229] rounded-full text-xs font-semibold hover:border-[#FF5A36] hover:text-[#FF5A36] transition-all cursor-pointer shadow-2xs flex items-center gap-1.5"
-              >
-                <ArrowRightLeft className="w-3.5 h-3.5" />
-                Switch to {profile?.role === 'seeker' ? 'Owner Mode' : 'Seeker Mode'}
-              </button>
+              <div className="flex gap-2">
+                <button onClick={() => navigate('/explore?tab=roommates')} className="px-4 py-2.5 border border-gray-200 text-[#1E2229] rounded-full text-xs font-semibold hover:border-[#FF5A36] hover:text-[#FF5A36] transition-all cursor-pointer">Browse Roommates</button>
+                <button onClick={() => navigate('/edit-listing/new')} className="px-4 py-2.5 bg-[#FF5A36] text-white rounded-full text-xs font-semibold hover:bg-[#E54E2B] transition-all cursor-pointer">Post a Room</button>
+              </div>
             </div>
           </div>
 
@@ -386,13 +359,8 @@ export default function SettingsPage() {
               ) : (
                 <button
                   onClick={() => {
-                    if (profile?.role === 'owner') {
-                      navigate('/owner-dashboard');
-                      toast.info('Please submit your government ID to complete host verification.');
-                    } else {
-                      navigate('/edit-profile');
-                      toast.info('Please submit your ID document on the profile page.');
-                    }
+                    navigate('/edit-profile');
+                    toast.info('Please submit your ID document on the profile page.');
                   }}
                   className="px-5 py-2 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full text-xs font-semibold transition-all shadow-xs shadow-[#FF5A36]/20"
                 >
@@ -512,56 +480,6 @@ export default function SettingsPage() {
               >
                 <div className="w-10 h-10 bg-[#1E2229] rounded-full shadow-2xs" />
                 <p className="text-sm font-semibold text-[#1E2229]">Obsidian Dark</p>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Switch Role Confirmation Modal */}
-      {showSwitchRoleModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !saving) {
-              setShowSwitchRoleModal(false);
-            }
-          }}
-        >
-          <div className="bg-white rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-xl border border-gray-100 space-y-4 relative">
-            <button
-              onClick={() => !saving && setShowSwitchRoleModal(false)}
-              className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-              aria-label="Close modal"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <div className="w-14 h-14 bg-[#FFF2EB] rounded-2xl flex items-center justify-center mx-auto text-[#FF5A36]">
-              <ArrowRightLeft className="w-7 h-7" />
-            </div>
-            <h2 className="font-serif font-medium text-2xl text-center text-[#1E2229]">
-              Switch to {profile?.role === 'seeker' ? 'Host Mode' : 'Seeker Mode'}?
-            </h2>
-            <p className="text-xs text-gray-500 text-center leading-relaxed">
-              {profile?.role === 'seeker'
-                ? 'You will switch to Host Mode to list properties, manage incoming applicants, and configure living norms.'
-                : 'You will switch to Seeker Mode to search rooms, compare flatmates, and manage your roommate profile.'}
-            </p>
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => setShowSwitchRoleModal(false)}
-                className="flex-1 py-3 border border-gray-200 rounded-full text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-all cursor-pointer"
-                disabled={saving}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmSwitchRole}
-                disabled={saving}
-                className="flex-1 py-3 bg-[#FF5A36] hover:bg-[#E54E2B] text-white rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs shadow-[#FF5A36]/20"
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRightLeft className="w-4 h-4" />}
-                {saving ? 'Switching...' : 'Confirm Switch'}
               </button>
             </div>
           </div>

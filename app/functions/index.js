@@ -3,6 +3,7 @@ const { getAuth } = require('firebase-admin/auth');
 const { getFirestore } = require('firebase-admin/firestore');
 const { getStorage } = require('firebase-admin/storage');
 const { HttpsError, onCall } = require('firebase-functions/v2/https');
+const { deriveCompatibilitySummary } = require('./privacyCompatibility');
 
 const projectId = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT;
 initializeApp({
@@ -112,4 +113,34 @@ exports.requestAccountDeletion = onCall({ region: 'us-central1' }, async request
     console.error('Account deletion failed', { uid, error });
     throw new HttpsError('internal', 'Account deletion could not be completed. Please retry.');
   }
+});
+
+// Privacy Phase 5.2 prototype: the function reads private accounts with the
+// Admin SDK and releases only a reviewed score band plus fixed reason codes.
+// It has no public client access to either account's raw quiz answers.
+exports.getDiscoveryCompatibility = onCall({ region: 'us-central1' }, async request => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in to compare discovery profiles.');
+  const candidateId = typeof request.data?.candidateId === 'string' ? request.data.candidateId : '';
+  if (!candidateId || candidateId.length > 128 || candidateId === request.auth.uid) {
+    throw new HttpsError('invalid-argument', 'A different candidateId is required.');
+  }
+  const db = getFirestore();
+  const [viewerAccount, candidateAccount, viewerCard, candidateCard] = await Promise.all([
+    db.doc(`users/${request.auth.uid}`).get(),
+    db.doc(`users/${candidateId}`).get(),
+    db.doc(`publicProfiles/${request.auth.uid}`).get(),
+    db.doc(`publicProfiles/${candidateId}`).get(),
+  ]);
+  if (!viewerAccount.exists || !candidateAccount.exists || !viewerCard.exists || !candidateCard.exists) {
+    throw new HttpsError('failed-precondition', 'Both users must have active discovery profiles.');
+  }
+  const viewer = viewerAccount.data();
+  const candidate = candidateAccount.data();
+  if (viewer?.onboardingComplete !== true || candidate?.onboardingComplete !== true
+    || viewer?.roommateDiscoveryEnabled !== true || candidate?.roommateDiscoveryEnabled !== true
+    || viewer?.status === 'banned' || viewer?.status === 'suspended'
+    || candidate?.status === 'banned' || candidate?.status === 'suspended') {
+    throw new HttpsError('permission-denied', 'Discovery eligibility is required.');
+  }
+  return { candidateId, ...deriveCompatibilitySummary(viewer, candidate) };
 });

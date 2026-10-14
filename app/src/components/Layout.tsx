@@ -15,6 +15,7 @@ import AuthModal from '@/components/AuthModal';
 import { useAdmin } from '@/hooks/useAdmin';
 import { toast } from 'sonner';
 import { DEMO_MODE_ENABLED } from '@/lib/runtimeConfig';
+import { resolvePostRoomAction } from '@/lib/roleNavigation';
 
 export default function Layout() {
   const location = useLocation();
@@ -104,28 +105,18 @@ export default function Layout() {
   }, [profileDropdown]);
 
   const isAuthenticated = !!(user && profile);
-  const effectiveRole = profile?.role || currentRole || 'seeker';
+  // Role remains legacy profile metadata only; navigation and posting use the
+  // shared authenticated account.
+  const effectiveRole = currentRole;
   const isDetailPage = location.pathname.startsWith('/room/') || location.pathname.startsWith('/match/') || location.pathname.startsWith('/chat');
 
-  const standardLinks = [
+  const links = [
     { path: '/explore?tab=rooms', label: 'Rooms', icon: Building2 },
     { path: '/explore?tab=roommates', label: 'Roommates', icon: Users },
+    { path: '/my-listings', label: 'My Listings', icon: Home },
     { path: '/chat', label: t('messages') || 'Messages', icon: MessageCircle, badge: unreadCount > 0 ? unreadCount : undefined },
     { path: '/profile', label: t('profile') || 'Profile', icon: User },
   ];
-
-  const ownerLinks = [
-    { path: '/owner-dashboard', label: 'Overview', icon: Home },
-    { path: '/owner-dashboard?tab=listings', label: 'My Listings', icon: Building2 },
-    { path: '/owner-dashboard?tab=applicants', label: 'Applicants', icon: Users },
-    { path: '/owner-dashboard?tab=seekers', label: 'Find Seekers', icon: Compass },
-    { path: '/chat', label: t('messages') || 'Messages', icon: MessageCircle, badge: unreadCount > 0 ? unreadCount : undefined },
-    { path: '/profile', label: t('profile') || 'Profile', icon: User },
-  ];
-
-  const links = effectiveRole === 'owner'
-    ? ownerLinks
-    : standardLinks;
 
   const isLinkActive = (linkPath: string): boolean => {
     const currentFullPath = location.pathname + location.search;
@@ -170,20 +161,18 @@ export default function Layout() {
   };
 
   const handlePostRoomClick = () => {
-    if (!isAuthenticated) {
+    const action = resolvePostRoomAction(isAuthenticated, effectiveRole);
+    if (action.type === 'auth_prompt') {
       openAuthModal({
         title: 'Post Your Room Listing',
         subtitle: DEMO_MODE_ENABLED
-          ? 'Sign in or use the local demo to evaluate the owner workflow.'
+          ? 'Sign in or use the local demo to evaluate the listing workflow.'
           : 'Sign in to list your room and find compatible roommates.',
-        redirect: '/owner-dashboard',
+        redirect: action.path,
       });
-    } else if (effectiveRole === 'owner') {
-      navigate('/edit-listing/new');
-    } else {
-      toast.info('Posting a room is an Owner feature. Switch to Owner mode in Settings.');
-      navigate('/settings');
+      return;
     }
+    navigate(action.path);
   };
 
   if (location.pathname === '/') {
@@ -220,7 +209,7 @@ export default function Layout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-[60px]">
             {/* Logo */}
-            <Link to={effectiveRole === 'owner' ? '/owner-dashboard' : '/'} className="flex items-center gap-2.5 group">
+            <Link to="/" className="flex items-center gap-2.5 group">
               <div className="w-8 h-8 rounded-xl bg-[#FF5A36] flex items-center justify-center text-white shadow-xs transition-transform group-hover:scale-105">
                 <svg
                   viewBox="0 0 24 24"
@@ -347,7 +336,7 @@ export default function Layout() {
                           <p className="text-sm font-bold text-[#1E2229] truncate">{profile.name}</p>
                           <p className="text-xs text-gray-500 truncate">{profile.phone || user.email || ''}</p>
                           <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#FFF2EB] text-[#FF5A36]">
-                            {effectiveRole === 'owner' ? 'Property Owner' : 'Room Seeker'}
+                            NestMate Member
                           </div>
                         </div>
                         <div className="py-1.5 px-1 space-y-0.5">
@@ -366,10 +355,16 @@ export default function Layout() {
                             </button>
                           )}
                           <button
-                            onClick={() => { setProfileDropdown(false); navigate(effectiveRole === 'owner' ? '/owner-dashboard' : '/explore?tab=rooms'); }}
+                            onClick={() => { setProfileDropdown(false); navigate('/explore?tab=rooms'); }}
                             className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-semibold text-[#1E2229]/80 hover:text-[#1E2229] hover:bg-gray-50 rounded-xl transition-all cursor-pointer"
                           >
-                            <Building2 className="w-4 h-4 text-[#FF5A36]" /> {effectiveRole === 'owner' ? t('dashboard') : 'Explore Rooms'}
+                            <Building2 className="w-4 h-4 text-[#FF5A36]" /> Explore Rooms
+                          </button>
+                          <button
+                            onClick={() => { setProfileDropdown(false); navigate('/my-listings'); }}
+                            className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-semibold text-[#1E2229]/80 hover:text-[#1E2229] hover:bg-gray-50 rounded-xl transition-all cursor-pointer"
+                          >
+                            <Home className="w-4 h-4 text-[#FF5A36]" /> My Listings
                           </button>
                           <button
                             onClick={() => { setProfileDropdown(false); navigate('/profile'); }}
@@ -505,7 +500,7 @@ export default function Layout() {
                     <h3 className="text-sm font-bold text-[#1E2229] truncate">{profile?.name || user?.email?.split('@')[0] || 'User'}</h3>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-[#FF5A36] border border-orange-200/60 capitalize">
-                        {effectiveRole === 'owner' ? 'Property Owner' : 'Room Seeker'}
+                        NestMate Member
                       </span>
                       {profile?.city && (
                         <span className="text-[11px] text-gray-500 truncate">• {profile.city}</span>
@@ -567,39 +562,50 @@ export default function Layout() {
 
               {/* Secondary Navigation Section */}
               <div className="bg-white rounded-2xl border border-gray-200/70 divide-y divide-gray-100 overflow-hidden shadow-2xs">
-                {/* Explore / Dashboard primary link */}
+                {/* Explore Rooms */}
                 <Link
-                  to={isAuthenticated ? (effectiveRole === 'owner' ? '/owner-dashboard' : '/explore?tab=rooms') : '/explore?tab=rooms'}
+                  to="/explore?tab=rooms"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#FF5A36] flex items-center justify-center">
-                      {effectiveRole === 'owner' ? <Home className="w-4 h-4" /> : <Building2 className="w-4 h-4" />}
+                      <Building2 className="w-4 h-4" />
                     </div>
-                    <span className="text-xs font-semibold text-[#1E2229]">
-                      {effectiveRole === 'owner' ? 'Owner Dashboard' : 'Explore Rooms'}
-                    </span>
+                    <span className="text-xs font-semibold text-[#1E2229]">Explore Rooms</span>
                   </div>
                   <ChevronRight className="w-4 h-4 text-gray-400" />
                 </Link>
 
-                {/* Browse Seekers link for Owners */}
-                {effectiveRole === 'owner' && (
-                  <Link
-                    to="/owner-dashboard?tab=seekers"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                        <Compass className="w-4 h-4" />
-                      </div>
-                      <span className="text-xs font-semibold text-[#1E2229]">Browse Room Seekers</span>
+                {/* Find Roommates */}
+                <Link
+                  to="/explore?tab=roommates"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                      <Users className="w-4 h-4" />
                     </div>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </Link>
-                )}
+                    <span className="text-xs font-semibold text-[#1E2229]">Find Roommates</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </Link>
+
+                {/* My Listings link */}
+                <Link
+                  to="/my-listings"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#FF5A36] flex items-center justify-center">
+                      <Home className="w-4 h-4" />
+                    </div>
+                    <span className="text-xs font-semibold text-[#1E2229]">My Listings</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </Link>
 
                 {/* Saved */}
                 <Link
@@ -619,15 +625,9 @@ export default function Layout() {
                   <ChevronRight className="w-4 h-4 text-gray-400" />
                 </Link>
 
-                {/* My Applications / Interests / Applicants */}
+                {/* My Applications / Connections */}
                 <Link
-                  to={
-                    isAuthenticated
-                      ? effectiveRole === 'owner'
-                        ? '/owner-dashboard?tab=applicants'
-                        : '/explore?tab=connections'
-                      : '/login'
-                  }
+                  to={isAuthenticated ? '/explore?tab=connections' : '/login'}
                   onClick={() => {
                     setMobileMenuOpen(false);
                     if (!isAuthenticated) openAuthModal({ title: 'My Connections', redirect: '/explore?tab=connections' });
@@ -639,16 +639,16 @@ export default function Layout() {
                       <FileText className="w-4 h-4" />
                     </div>
                     <span className="text-xs font-semibold text-[#1E2229]">
-                      {effectiveRole === 'owner' ? 'Applicants & Inquiries' : 'My Applications / Interests'}
+                      My Applications / Connections
                     </span>
                   </div>
                   <ChevronRight className="w-4 h-4 text-gray-400" />
                 </Link>
 
-                {/* My Listings (for owner) */}
-                {(effectiveRole === 'owner' || (profile as any)?.ownerType === 'owner_flatmate') && (
+                {/* My Listings */}
+                {isAuthenticated && (
                   <Link
-                    to="/owner-dashboard?tab=listings"
+                    to="/my-listings"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
                   >
@@ -730,7 +730,7 @@ export default function Layout() {
         </div>
       )}
 
-      {/* FINAL MOBILE BOTTOM NAVIGATION: Exactly 4 items: Rooms | Messages | Profile | Menu */}
+      {/* Shared-account mobile navigation: Explore | My Listings | Post | Messages | Profile */}
       <nav
         aria-label="Mobile navigation"
         className={`md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FBFBFC]/95 backdrop-blur-md border-t border-gray-200/70 shadow-[0_-4px_20px_rgba(26,26,46,0.06)] pt-1 pb-[max(4px,env(safe-area-inset-bottom,0px))] transition-all duration-300 ease-in-out ${
@@ -739,25 +739,40 @@ export default function Layout() {
             : 'translate-y-[120%] opacity-0 pointer-events-none'
         }`}
       >
-        <div className="grid grid-cols-4 h-[54px] w-full px-1">
-          {/* 1. SEARCH */}
+        <div className="grid grid-cols-5 h-[54px] w-full px-1">
+          {/* 1. EXPLORE */}
           <Link
-            to={effectiveRole === 'owner' ? '/owner-dashboard' : '/explore?tab=rooms'}
+            to="/explore?tab=rooms"
             onClick={() => setMobileMenuOpen(false)}
             className={`relative flex flex-col items-center justify-center h-full transition-all cursor-pointer ${
-              (effectiveRole === 'owner' ? location.pathname.startsWith('/owner-dashboard') : (isLinkActive('/explore') || location.pathname.startsWith('/room/') || location.pathname.startsWith('/browse-')))
+              (isLinkActive('/explore') || location.pathname.startsWith('/room/') || location.pathname.startsWith('/browse-'))
                 ? 'text-[#FF5A36] font-bold'
                 : 'text-[#1E2229]/60 hover:text-[#1E2229]'
             }`}
           >
-            {(effectiveRole === 'owner' ? location.pathname.startsWith('/owner-dashboard') : (isLinkActive('/explore') || location.pathname.startsWith('/room/') || location.pathname.startsWith('/browse-'))) && (
+            {(isLinkActive('/explore') || location.pathname.startsWith('/room/') || location.pathname.startsWith('/browse-')) && (
               <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-[#FF5A36] rounded-b-full shadow-xs" />
             )}
             <Search className="w-5 h-5" aria-hidden />
-            <span className="text-[10px] font-semibold mt-1 tracking-tight">Search</span>
+            <span className="text-[10px] font-semibold mt-1 tracking-tight">Explore</span>
           </Link>
 
-          {/* 2. ADD LISTING */}
+          {/* 2. MY LISTINGS */}
+          <Link
+            to="/my-listings"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`relative flex flex-col items-center justify-center h-full transition-all cursor-pointer ${
+              location.pathname.startsWith('/my-listings') || location.pathname.startsWith('/edit-listing')
+                ? 'text-[#FF5A36] font-bold'
+                : 'text-[#1E2229]/60 hover:text-[#1E2229]'
+            }`}
+          >
+            {(location.pathname.startsWith('/my-listings') || location.pathname.startsWith('/edit-listing')) && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-[#FF5A36] rounded-b-full shadow-xs" />}
+            <Home className="w-5 h-5" aria-hidden />
+            <span className="text-[10px] font-semibold mt-1 tracking-tight">Listings</span>
+          </Link>
+
+          {/* 3. POST LISTING */}
           <button
             type="button"
             onClick={() => {
@@ -772,10 +787,10 @@ export default function Layout() {
                 FREE
               </span>
             </div>
-            <span className="text-[10px] font-semibold mt-1 tracking-tight">Add Listing</span>
+            <span className="text-[10px] font-semibold mt-1 tracking-tight">Post Room</span>
           </button>
 
-          {/* 3. CHAT */}
+          {/* 4. CHAT */}
           <button
             type="button"
             onClick={() => {
@@ -806,24 +821,12 @@ export default function Layout() {
             <span className="text-[10px] font-semibold mt-1 tracking-tight">Chat</span>
           </button>
 
-          {/* 4. MORE */}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className={`relative flex flex-col items-center justify-center h-full transition-all cursor-pointer ${
-              mobileMenuOpen
-                ? 'text-[#FF5A36] font-bold'
-                : 'text-[#1E2229]/60 hover:text-[#1E2229]'
-            }`}
-            aria-expanded={mobileMenuOpen}
-            aria-label="Toggle Navigation Menu"
-          >
-            {mobileMenuOpen && (
-              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-[#FF5A36] rounded-b-full shadow-xs" />
-            )}
-            <Menu className="w-5 h-5" aria-hidden />
-            <span className="text-[10px] font-semibold mt-1 tracking-tight">More</span>
-          </button>
+          {/* 5. PROFILE */}
+          <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className={`relative flex flex-col items-center justify-center h-full transition-all cursor-pointer ${location.pathname.startsWith('/profile') || location.pathname.startsWith('/settings') ? 'text-[#FF5A36] font-bold' : 'text-[#1E2229]/60 hover:text-[#1E2229]'}`}>
+            {(location.pathname.startsWith('/profile') || location.pathname.startsWith('/settings')) && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-[#FF5A36] rounded-b-full shadow-xs" />}
+            <User className="w-5 h-5" aria-hidden />
+            <span className="text-[10px] font-semibold mt-1 tracking-tight">Profile</span>
+          </Link>
         </div>
       </nav>
     </div>

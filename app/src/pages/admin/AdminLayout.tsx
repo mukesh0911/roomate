@@ -72,7 +72,7 @@ export default function AdminLayout() {
 
   // Gate: not admin -> redirect away from admin backoffice immediately
   if (isAdmin === false) {
-    return <Navigate to={profile?.role === 'owner' ? '/owner-dashboard' : '/dashboard'} replace />;
+    return <Navigate to="/explore?tab=rooms" replace />;
   }
 
   const handleLogout = async () => {
@@ -100,7 +100,7 @@ export default function AdminLayout() {
     return null;
   };
 
-  const backToAppRoute = profile?.role === 'owner' ? '/owner-dashboard' : '/dashboard';
+  const backToAppRoute = '/explore?tab=rooms';
 
   return (
     <div className="h-screen w-screen flex overflow-hidden bg-[#F8FAFC]">

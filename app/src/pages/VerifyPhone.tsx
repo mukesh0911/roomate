@@ -37,12 +37,10 @@ export default function VerifyPhone() {
   // If user already has a verified phone number, bounce to role-select or dashboard
   useEffect(() => {
     if (profile?.phone && profile.phone.trim().length > 0) {
-      if (!profile.role) {
-        navigate('/role-select', { replace: true });
-      } else if (!profile.onboardingComplete) {
-        navigate(profile.role === 'owner' ? '/onboarding/owner' : '/onboarding/seeker', { replace: true });
+      if (!profile.role || !profile.onboardingComplete) {
+        navigate('/onboarding/seeker', { replace: true });
       } else {
-        navigate(profile.role === 'owner' ? '/owner-dashboard' : '/explore?tab=rooms', { replace: true });
+        navigate('/explore?tab=rooms', { replace: true });
       }
     }
   }, [profile, navigate]);
@@ -157,12 +155,10 @@ export default function VerifyPhone() {
       await verifyAndLinkPhone(verificationId, code, e164);
       toast.success('Phone number verified successfully!');
 
-      if (!profile?.role) {
-        navigate('/role-select', { replace: true });
-      } else if (!profile.onboardingComplete) {
-        navigate(profile.role === 'owner' ? '/onboarding/owner' : '/onboarding/seeker', { replace: true });
+      if (!profile?.role || !profile.onboardingComplete) {
+        navigate('/onboarding/seeker', { replace: true });
       } else {
-        navigate(profile.role === 'owner' ? '/owner-dashboard' : '/explore?tab=rooms', { replace: true });
+        navigate('/explore?tab=rooms', { replace: true });
       }
     } catch (err: any) {
       setError(err.message || 'Verification failed. Please check the code.');

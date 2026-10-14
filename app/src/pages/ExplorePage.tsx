@@ -129,14 +129,6 @@ export default function ExplorePage() {
     }
   }, [rawTab, setSearchParams]);
 
-  // Route protection: If an authenticated Owner lands on the roommates/flatmates explore tab,
-  // transition them to the dedicated Owner Seeker Discovery tab in the Owner Dashboard.
-  useEffect(() => {
-    if (currentUser?.role === 'owner' && activeTab === 'roommates') {
-      navigate('/owner-dashboard?tab=seekers', { replace: true });
-    }
-  }, [currentUser?.role, activeTab, navigate]);
-
   // Subscribe to real-time connections
   useEffect(() => {
     if (!user?.uid) return;
@@ -354,6 +346,14 @@ export default function ExplorePage() {
       navigate(`/room/${room.id}`);
       return;
     }
+    const relationship = getRelationshipState(user.uid, room.ownerId, myConnections, chatRoomMap);
+    if (relationship !== 'connected') {
+      toast.info(relationship === 'pending_sent'
+        ? 'Your interest is pending. Messaging opens after the owner accepts it.'
+        : 'Send interest from the listing first. Messaging opens after acceptance.');
+      navigate(`/room/${room.id}`);
+      return;
+    }
     try {
       const chatRoomId = await getOrCreateChatRoom(user.uid, room.ownerId);
       navigate(`/chat/${chatRoomId}`);
@@ -370,6 +370,14 @@ export default function ExplorePage() {
         subtitle: 'Sign in to start conversations with verified roommates.',
         redirect: `/match/${targetUid}`,
       });
+      return;
+    }
+    const relationship = getRelationshipState(user.uid, targetUid, myConnections, chatRoomMap);
+    if (relationship !== 'connected') {
+      toast.info(relationship === 'pending_sent'
+        ? 'Your connection request is pending. Messaging opens after acceptance.'
+        : 'Connect first. Messaging opens after the other person accepts.');
+      navigate(`/match/${targetUid}`);
       return;
     }
     try {
@@ -473,27 +481,7 @@ export default function ExplorePage() {
     <div className="min-h-screen bg-[#FBFBFC] pb-24 sm:pb-16 overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6">
 
-        {/* Owner Mode Notice Banner */}
-        {currentUser?.role === 'owner' && (
-          <div className="bg-[#FFF2EB] border border-[#FF5A36]/20 rounded-2xl p-3.5 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-2xs">
-            <div className="flex items-center gap-2.5 text-[#1E2229]">
-              <div className="w-7 h-7 rounded-xl bg-[#FF5A36] text-white flex items-center justify-center shrink-0">
-                <Building2 className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="font-bold text-[#FF5A36] block">Owner Mode Active</span>
-                <span className="text-gray-600">You are browsing the public marketplace. Manage your rooms or view prospective tenants from your dashboard.</span>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate('/owner-dashboard')}
-              className="px-4 py-2 rounded-xl bg-[#FF5A36] hover:bg-[#E54E2B] text-white font-bold shrink-0 cursor-pointer transition-transform active:scale-95 text-center"
-            >
-              Return to Owner Dashboard →
-            </button>
-          </div>
-        )}
+
 
         {/* ======================================================== */}
         {/* MOBILE CONTROLS (< 768px): 100% PRESERVED                */}
