@@ -959,6 +959,97 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 }
             }
         }
+        function loadDevSampleRoommates() {
+            const samplePeople = [
+                {
+                    initials: "PS",
+                    name: "Priya Sharma",
+                    profession: "Software Engineer",
+                    locality: "Koramangala",
+                    budgetStr: "₹18,000",
+                    moveInStr: "Within 15 days",
+                    isVerified: 1,
+                    matchPct: 88,
+                    tags: ["Non-smoker", "Vegetarian", "Software Engineer"],
+                    uid: "demo_priya_sharma",
+                    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
+                    raw: { gender: "Female", bio: "Tech professional looking for flatmates in Koramangala or HSR Layout to team up for a 2BHK flat. Keep things clean and quiet on weekdays." },
+                    resolvedIntent: {
+                        activeIntents: ["team_up"],
+                        isTeamUpSeeker: true,
+                        isLookingForRoom: true,
+                        isLiveInHost: false,
+                        isDiscoveryEligible: true,
+                        displayBadge: { text: "Teaming Up for a Room", variant: "team_up" }
+                    },
+                    diet: "Vegetarian",
+                    smoking: "Non-smoker",
+                    sleep: "Flexible",
+                    guests: "Sometimes",
+                    cleanliness: "Very tidy"
+                },
+                {
+                    initials: "RV",
+                    name: "Rahul Verma",
+                    profession: "Product Designer",
+                    locality: "Indiranagar",
+                    budgetStr: "₹22,000",
+                    moveInStr: "Immediate",
+                    isVerified: 1,
+                    matchPct: 82,
+                    tags: ["Non-smoker", "Product Designer", "Early riser"],
+                    uid: "demo_rahul_verma",
+                    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+                    raw: { gender: "Male", bio: "Designer at a startup. Looking for easygoing flatmates to share an apartment near Indiranagar or Domlur." },
+                    resolvedIntent: {
+                        activeIntents: ["team_up"],
+                        isTeamUpSeeker: true,
+                        isLookingForRoom: false,
+                        isLiveInHost: false,
+                        isDiscoveryEligible: true,
+                        displayBadge: { text: "Teaming Up for a Room", variant: "team_up" }
+                    },
+                    diet: "Non-vegetarian",
+                    smoking: "Non-smoker",
+                    sleep: "Early riser",
+                    guests: "Sometimes",
+                    cleanliness: "Tidy"
+                },
+                {
+                    initials: "SP",
+                    name: "Sneha Patel",
+                    profession: "Data Analyst",
+                    locality: "HSR Layout",
+                    budgetStr: "₹15,000",
+                    moveInStr: "Within 30 days",
+                    isVerified: 0,
+                    matchPct: 75,
+                    tags: ["Vegetarian", "Data Analyst"],
+                    uid: "demo_sneha_patel",
+                    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+                    raw: { gender: "Female", bio: "Moving to Bengaluru next month for work. Looking for a private room or roommate to find a flat together in HSR." },
+                    resolvedIntent: {
+                        activeIntents: ["team_up", "find_room"],
+                        isTeamUpSeeker: true,
+                        isLookingForRoom: true,
+                        isLiveInHost: false,
+                        isDiscoveryEligible: true,
+                        displayBadge: { text: "Seeking Room & Team-Up", variant: "team_up" }
+                    },
+                    diet: "Vegetarian",
+                    smoking: "Non-smoker",
+                    sleep: "Night owl",
+                    guests: "Rarely",
+                    cleanliness: "Very tidy"
+                }
+            ];
+            RM = samplePeople.map(mapRoommateToTuple);
+            RX = samplePeople.map(function (p) {
+                return [p.diet, p.smoking, p.sleep, p.guests, p.cleanliness, p.raw.bio];
+            });
+            toast("Loaded sample Bengaluru roommate seekers!");
+            render();
+        }
         let render = function () {
             if (disposed)
                 return;
@@ -1251,6 +1342,10 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             if (!b)
                 return;
             const d = b.dataset, sg = b.closest(".sg");
+            if (d.loadSamples) {
+                loadDevSampleRoommates();
+                return;
+            }
             if (d.i !== undefined) {
                 if (S.nav != "room" && S.nav != "roommate" && S.nav != "pg")
                     S.back = S.nav;
@@ -2844,8 +2939,18 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 if (RM.length === 0) {
                     const isSelfDiscoverable = Boolean(authUser && ME && (ME.discover || (currentProfile && currentProfile.roommateDiscoveryEnabled === true)));
                     const hasActiveListing = MY && MY.some(function (l) { return l && (l.st === "Active" || l.st === "Pending verification"); });
-                    if (isSelfDiscoverable) {
-                        const cityName = (ME && (ME.city || ME.area)) || "Bengaluru";
+                    const activeListing = MY && MY.find(function (l) { return l && (l.st === "Active" || l.st === "Pending verification"); });
+                    const cityName = (ME && (ME.city || ME.area)) || (activeListing && activeListing.loc) || "Bengaluru";
+                    const sampleBtn = '<button class="pill" data-load-samples="1" style="background:#0ca678;color:#fff;border-color:#0ca678;cursor:pointer;padding:0 20px;font-weight:600">✨ View sample roommates (' + esc(cityName) + ')</button>';
+
+                    if (isSelfDiscoverable || hasActiveListing) {
+                        const statusTitle = hasActiveListing
+                            ? '● Your Room Listing is Published in ' + esc(cityName)
+                            : '● Your Roommate Profile is Live in ' + esc(cityName);
+                        const descText = hasActiveListing
+                            ? 'Your listing <b>' + esc(activeListing.t || 'Room') + '</b> is published under <b>Rooms & flats</b>. Because you are the host, your own card is hidden from your candidate search. Other members searching in ' + esc(cityName) + ' can find your host profile and listing.'
+                            : 'Your profile is active and visible to seekers in ' + esc(cityName) + '. As other members join and search for roommates, their profiles will appear here for you to connect.';
+
                         return '<div class="empty">' +
                             '<svg viewBox="0 0 160 120" width="160" height="120" aria-hidden="true">' +
                             '<circle cx="80" cy="60" r="44" fill="var(--bs)"/>' +
@@ -2856,15 +2961,16 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                             '<circle cx="98" cy="72" r="11" fill="#0ca678"/>' +
                             '<path d="M94 72l3 3 6-6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
                             '</svg>' +
-                            '<div style="margin-bottom:12px"><span style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;background:#e6fcf5;color:#0ca678;font-size:13px;font-weight:700">● Your Roommate Profile is Live in ' + esc(cityName) + '</span></div>' +
-                            '<b style="font-size:19px;display:block;margin-bottom:8px">Waiting for new roommate candidates in your area</b>' +
-                            '<p style="max-width:520px;margin:0 auto 20px;color:var(--ink2);line-height:1.55;font-size:14px">Your profile' + (hasActiveListing ? ' and room listing are' : ' is') + ' active and visible to seekers in ' + esc(cityName) + '. As other members join and search for roommates, their profiles will appear here for you to connect.</p>' +
+                            '<div style="margin-bottom:12px"><span style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;background:#e6fcf5;color:#0ca678;font-size:13px;font-weight:700">' + statusTitle + '</span></div>' +
+                            '<b style="font-size:19px;display:block;margin-bottom:8px">No other roommate candidates in your area yet</b>' +
+                            '<p style="max-width:540px;margin:0 auto 20px;color:var(--ink2);line-height:1.55;font-size:14px">' + descText + '</p>' +
                             '<div class="r" style="display:flex;align-items:center;justify-content:center;gap:12px;margin:20px auto 0;flex-wrap:wrap">' +
                             '<button class="pill" data-pvw="1" style="background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:0 6px 16px -4px rgba(240,84,30,0.45);cursor:pointer;padding:0 20px">👁️ Preview how seekers see you</button>' +
                             (hasActiveListing ? '<button class="pill" data-n="listings" style="cursor:pointer;padding:0 20px">View my listings</button>' : '<button class="pill" data-n="post" style="cursor:pointer;padding:0 20px">Post a room</button>') +
+                            sampleBtn +
                             '</div></div>';
                     }
-                    return em("No roommate candidates available right now", "Roommate discovery features verified Team-Up seekers and Live-in Hosts offering spare rooms.", (authUser ? '<div class="r" style="display:flex;align-items:center;justify-content:center;gap:12px;margin:20px auto 0;flex-wrap:wrap"><button class="pill" data-n="profile" data-as="prefs">Set your roommate preferences</button><button class="pill" data-n="post">Post a room</button></div>' : '<br><button class="pill" data-n="signin" style="margin:16px auto 0">Sign in to connect</button>'));
+                    return em("No roommate candidates available right now", "Roommate discovery features verified Team-Up seekers and Live-in Hosts offering spare rooms.", (authUser ? '<div class="r" style="display:flex;align-items:center;justify-content:center;gap:12px;margin:20px auto 0;flex-wrap:wrap"><button class="pill" data-n="profile" data-as="prefs">Set your roommate preferences</button><button class="pill" data-n="post">Post a room</button>' + sampleBtn + '</div>' : '<br><button class="pill" data-n="signin" style="margin:16px auto 0">Sign in to connect</button>'));
                 }
                 return em("No roommates match these filters", "Try a higher budget or a wider move-in window.", '<br><button class="pill" data-rs="1" style="margin:16px auto 0">Reset filters</button>');
             }
@@ -3620,7 +3726,13 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 return;
             }
             if (d.withdraw !== undefined) {
-                (connId = d.withdraw);
+                connId = d.withdraw;
+                if (connId && String(connId).startsWith("demo_conn_")) {
+                    LIVE_CONNS.sent = LIVE_CONNS.sent.filter(function (c) { return c.id !== connId; });
+                    toast("Connection request withdrawn");
+                    render();
+                    return;
+                }
                 const rIdx = d.rIdx !== undefined ? +d.rIdx : -1;
                 withdrawConnectionRequestBackend(connId).then(function () {
                     if (rIdx > -1)
@@ -3663,6 +3775,12 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 }
                 const i = +(d.conn !== undefined ? d.conn : d.cn);
                 const targetUid = RM[i] && RM[i][9];
+                if (targetUid && targetUid.startsWith("demo_")) {
+                    toast("Connection request sent to " + RM[i][1].split(" ")[0] + "! (Test simulation)");
+                    LIVE_CONNS.sent.push({ id: "demo_conn_" + Date.now(), fromUserId: authUser.uid, toUserId: targetUid, status: "pending" });
+                    render();
+                    return;
+                }
                 const relationship = relationshipState(authUser.uid, targetUid, LIVE_CONNS, currentProfile && currentProfile.blockedUserIds || [], CH.map(function (c) { return { id: c.id, participants: c.raw && c.raw.participants || [authUser && authUser.uid, c.p], authorized: c.authorized === true }; }));
                 if (!['none', 'declined'].includes(relationship.state) || CONNECTION_BUSY[targetUid])
                     return;
