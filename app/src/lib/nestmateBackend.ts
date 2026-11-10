@@ -35,7 +35,7 @@ import {
   type ResolvedHousingIntent,
   type UserHousingPreferences,
 } from './userIntent';
-import { compressImage } from './imageCompressor';
+import { compressImage, dataURLtoBlob } from './imageCompressor';
 
 const escapeDisplayText = (value: unknown): string => String(value ?? '').replace(/[&<>"']/g,
   character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!);
@@ -824,24 +824,54 @@ async function uploadListingPhotos(listingId: string, photos: unknown[]): Promis
   if (photos.length > 10) throw new Error('Choose up to 10 listing photos.');
   const urls: string[] = [];
   for (const [index, photo] of photos.entries()) {
-    if (typeof photo === 'string' && /^https?:\/\//i.test(photo)) {
-      urls.push(photo);
+    if (typeof photo === 'string' && /^https?:\/\//i.test(photo.trim())) {
+      urls.push(photo.trim());
       continue;
     }
+
+    let rawPhoto: unknown = photo;
+    if (rawPhoto && typeof rawPhoto === 'object' && !(rawPhoto instanceof Blob)) {
+      rawPhoto = (rawPhoto as any).url || (rawPhoto as any).src || (rawPhoto as any).data || rawPhoto;
+      if (typeof rawPhoto === 'string' && /^https?:\/\//i.test(rawPhoto.trim())) {
+        urls.push(rawPhoto.trim());
+        continue;
+      }
+    }
+
     let image: Blob;
-    if (photo instanceof Blob) {
-      image = photo;
-    } else if (typeof photo === 'string' && /^data:image\/(jpeg|jpg|png|webp);base64,/i.test(photo)) {
-      image = await (await fetch(photo)).blob();
+    if (rawPhoto instanceof Blob) {
+      image = rawPhoto;
+    } else if (typeof rawPhoto === 'string' && rawPhoto.trim().startsWith('blob:')) {
+      image = await (await fetch(rawPhoto.trim())).blob();
+    } else if (typeof rawPhoto === 'string' && rawPhoto.trim().startsWith('data:')) {
+      image = dataURLtoBlob(rawPhoto.trim());
+    } else if (typeof rawPhoto === 'string' && rawPhoto.trim().length > 100) {
+      image = dataURLtoBlob(`data:image/jpeg;base64,${rawPhoto.trim()}`);
     } else {
-      throw new Error('Choose a JPG, PNG or WebP photo.');
+      throw new Error('Please choose a valid photo (JPG, PNG, WebP or AVIF).');
     }
-    if (!/^image\/(jpeg|jpg|png|webp)$/i.test(image.type) || image.size >= 10 * 1024 * 1024) {
-      throw new Error('Each photo must be JPG, PNG or WebP and smaller than 10 MB.');
+
+    if (image.size >= 25 * 1024 * 1024) {
+      throw new Error('Each photo must be smaller than 25 MB.');
     }
-    const upload = photo instanceof File ? await compressImage(photo, 1200, 1200, 0.82) : image;
-    const storageRef = ref(storage, `listings/${listingId}/${Date.now()}_${index}_${crypto.randomUUID()}.jpg`);
-    const snapshot = await uploadBytesResumable(storageRef, upload);
+
+    let upload: Blob = image;
+    try {
+      upload = await compressImage(rawPhoto instanceof Blob ? rawPhoto : image, 1200, 1200, 0.82);
+    } catch {
+      upload = image;
+    }
+
+    let contentType = upload.type || image.type || 'image/jpeg';
+    if (!/^image\/(jpeg|jpg|png|webp)$/i.test(contentType)) {
+      contentType = 'image/jpeg';
+    }
+
+    const uniqueId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const storageRef = ref(storage, `listings/${listingId}/${Date.now()}_${index}_${uniqueId}.jpg`);
+    const snapshot = await uploadBytesResumable(storageRef, upload, { contentType });
     urls.push(await getDownloadURL(snapshot.ref));
   }
   return urls;
@@ -1230,7 +1260,10 @@ export async function submitManualKycBackend(
   if (!consentGiven) throw new Error('Explicit consent required for identity verification review');
 
   if (!declaredName.trim()) throw new Error('Enter the name shown on your document.');
-  if (!['masked_aadhaar', 'passport', 'voter_id', 'driving_license'].includes(documentType)) throw new Error('Choose a supported identity document type.');
+  const normalizedDocType = String(documentType || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (!['masked_aadhaar', 'passport', 'voter_id', 'driving_license'].includes(normalizedDocType)) {
+    throw new Error('Choose a supported identity document type.');
+  }
   if (file.size === 0) throw new Error('The selected document is empty.');
   // Validate file type (JPEG, PNG, WebP, PDF)
   const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
@@ -1265,7 +1298,7 @@ export async function submitManualKycBackend(
     userEmail: user.email || '',
     userName: user.displayName || declaredName || 'NestMate Member',
     declaredName: declaredName.trim(),
-    documentType, // 'masked_aadhaar' | 'passport' | 'voter_id' | 'driving_license'
+    documentType: normalizedDocType, // 'masked_aadhaar' | 'passport' | 'voter_id' | 'driving_license'
     documentPath,
     documentUrl: deleteField(),
     consentGiven: true,
@@ -1364,7 +1397,9 @@ async function reviewVerificationBackend(userId: string, adminEmail: string, app
     tx.set(verificationRef, { ...review, auditTrail: arrayUnion({ status, timestamp: new Date().toISOString(), actorId: actor.uid, note, documentPath: expectedDocumentPath }) }, { merge: true });
     tx.set(doc(db, 'ownerVerifications', userId), review, { merge: true });
     tx.update(doc(db, 'users', userId), { isVerified: approved, verificationLevel: approved ? 2 : 0, isAadhaarVerified: false, verifiedAt: approved ? serverTimestamp() : deleteField(), updatedAt: serverTimestamp() });
-    for (const listing of listings.docs) tx.update(listing.ref, { ownerVerified: approved, isOwnerVerified: approved, updatedAt: serverTimestamp() });
+    for (const listing of listings.docs) {
+      tx.update(listing.ref, { ownerVerified: approved, isOwnerVerified: approved, updatedAt: serverTimestamp() });
+    }
     tx.set(doc(db, 'notifications', userId + '_identity_' + expectedDocumentPath.split('/').pop() + '_' + status), { userId, actorId: actor.uid, type: 'verification', title: approved ? 'Identity review approved' : 'Identity review rejected', description: note, read: false, createdAt: serverTimestamp() });
   });
 }

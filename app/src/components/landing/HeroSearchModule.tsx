@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -17,6 +17,7 @@ import { useStore } from '@/store/useStore';
 
 export default function HeroSearchModule() {
   const navigate = useNavigate();
+  const searchInputId = useId();
   const { updateFilters } = useStore();
 
   const [activeTab, setActiveTab] = useState<'rooms' | 'flatmates'>('rooms');
@@ -128,7 +129,7 @@ export default function HeroSearchModule() {
           <div className="flex-1 flex items-center gap-2.5 px-3.5 py-2.5 sm:py-1 bg-gray-50/80 sm:bg-transparent rounded-xl sm:rounded-none min-h-[40px]">
             <Search className="w-4 h-4 text-gray-400 shrink-0" />
             <input
-              id="search-location-input-1"
+              id={searchInputId}
               type="text"
               value={cityAreaQuery}
               onChange={(e) => setCityAreaQuery(e.target.value)}

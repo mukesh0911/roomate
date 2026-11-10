@@ -45,6 +45,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
     // --- Embedded Realtime Engine ---
     (function initEngine() {
         let RM, RX, LIVE_CONNS, MY, CH, G, AF, AS, APS, ADM;
+        let USER_KYC = { status: 'not_submitted', doc: null, loading: false };
         const CHAT_DRAFTS = new Map(), CHAT_SENDS = new Set(), CHAT_READS = new Set();
         let chatLoading = Boolean(authUser), chatError = false;
         let D = [];
@@ -1396,6 +1397,9 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             else if (b.dataset.n) {
                 pop("");
                 S.nav = b.dataset.n;
+                if (b.dataset.as) {
+                    S.as = b.dataset.as;
+                }
                 if (S.nav === "saved") {
                     const roomCnt = getSavedRoomCount();
                     const profCnt = getSavedProfileCount();
@@ -1544,8 +1548,43 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             p.lf = p.lf || [];
             p.qs = p.qs || [];
             $("pseg").innerHTML = sanitizeRenderedHtml(PS.map(function (t, i) { return '<button type="button" data-p="go" data-q="' + i + '" title="' + esc(t) + '" style="all:unset;cursor:pointer;flex:1;height:12px;padding:4px 0;display:flex;align-items:center"><i style="width:100%;height:5px;border-radius:3px;background:' + (i <= s ? "var(--g)" : "var(--sunk)") + ';display:block"></i></button>'; }).join(""));
-            if (p.pub)
-                h = '<div class="dn"><svg viewBox="0 0 110 110"><circle cx="55" cy="55" r="48" fill="var(--bs)"/><path d="M30 76V52l25-20 25 20v24z" fill="#f0541e"/><rect x="48" y="58" width="14" height="18" rx="4" fill="#fff"/><path d="M84 22l2.500 7 7 2.500-7 2.500-2.500 7-2.500-7-7-2.500 7-2.500z" fill="#f0541e"/></svg><h2>' + (p.edit != null ? "Changes saved" : "Listing submitted for review") + '</h2><p class="sub" style="margin:0 auto">' + (p.edit != null ? "Your listing is updated." : "Your listing will appear in discovery after approval. You can track it in My listings.") + '</p><div class="row2"><button class="pfbar go2" style="position:static;padding:0 26px;border:0" data-p="view">View my listings</button><button class="pvb" style="display:block" data-p="again">Post another</button></div></div>';
+            if (p.pub) {
+                const isUserVerified = (ME && (ME.ver || (USER_KYC && USER_KYC.status === 'approved')));
+                const isKycPending = (USER_KYC && USER_KYC.status === 'pending');
+                if (p.edit != null) {
+                    h = '<div class="dn"><svg viewBox="0 0 110 110"><circle cx="55" cy="55" r="48" fill="var(--bs)"/><path d="M30 76V52l25-20 25 20v24z" fill="#f0541e"/><rect x="48" y="58" width="14" height="18" rx="4" fill="#fff"/><path d="M84 22l2.500 7 7 2.500-7 2.500-2.500 7-2.500-7-7-2.500 7-2.500z" fill="#f0541e"/></svg><h2>Changes saved</h2><p class="sub" style="margin:0 auto">Your listing is updated.</p><div class="row2"><button class="pfbar go2" style="position:static;padding:0 26px;border:0" data-p="view">View my listings</button><button class="pvb" style="display:block" data-p="again">Post another</button></div></div>';
+                } else if (!isUserVerified && !isKycPending) {
+                    h = '<div class="dn"><svg viewBox="0 0 110 110"><circle cx="55" cy="55" r="48" fill="var(--bs)"/><path d="M30 76V52l25-20 25 20v24z" fill="#f0541e"/><rect x="48" y="58" width="14" height="18" rx="4" fill="#fff"/><path d="M84 22l2.500 7 7 2.500-7 2.500-2.500 7-2.500-7-7-2.500 7-2.500z" fill="#f0541e"/></svg>' +
+                        '<h2>Listing submitted</h2>' +
+                        '<div class="v-alert" style="background:#fff4e5;border:1px solid #ffd8a8;border-radius:14px;padding:16px 20px;margin:16px auto;max-width:460px;text-align:left;box-shadow:0 2px 8px rgba(0,0,0,0.03)">' +
+                        '<div style="display:flex;gap:12px;align-items:flex-start">' +
+                        '<svg style="width:24px;height:24px;flex-shrink:0;fill:#f0541e;margin-top:1px" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>' +
+                        '<div><b style="color:#d9480f;display:block;margin-bottom:4px;font-size:14.5px">Complete verification to publish your listing</b>' +
+                        '<p style="margin:0;font-size:13px;color:#495057;line-height:1.45">Your room listing has been created as <b>Pending verification</b>. To protect our community, listings cannot be published or displayed in discovery until your identity is verified.</p>' +
+                        '</div></div></div>' +
+                        '<div class="row2" style="margin-top:20px;gap:10px;justify-content:center;display:flex;flex-wrap:wrap">' +
+                        '<button class="go2" style="position:static;padding:0 28px;border:0;background:var(--brand);color:#fff;font-weight:600" data-p="verify">Verify now</button>' +
+                        '<button class="pvb" style="display:block" data-p="view">View my listings</button>' +
+                        '<button class="pvb" style="display:block" data-p="again">Post another</button>' +
+                        '</div></div>';
+                } else if (isKycPending) {
+                    h = '<div class="dn"><svg viewBox="0 0 110 110"><circle cx="55" cy="55" r="48" fill="var(--bs)"/><path d="M30 76V52l25-20 25 20v24z" fill="#f0541e"/><rect x="48" y="58" width="14" height="18" rx="4" fill="#fff"/><path d="M84 22l2.500 7 7 2.500-7 2.500-2.500 7-2.500-7-7-2.500 7-2.500z" fill="#f0541e"/></svg>' +
+                        '<h2>Listing submitted · Verification in review</h2>' +
+                        '<p class="sub" style="margin:0 auto;max-width:440px">Your identity document is currently under review by our moderation team. Your listing will automatically activate once approved.</p>' +
+                        '<div class="row2" style="margin-top:20px;gap:10px;justify-content:center;display:flex">' +
+                        '<button class="pfbar go2" style="position:static;padding:0 26px;border:0" data-p="view">View my listings</button>' +
+                        '<button class="pvb" style="display:block" data-p="again">Post another</button>' +
+                        '</div></div>';
+                } else {
+                    h = '<div class="dn"><svg viewBox="0 0 110 110"><circle cx="55" cy="55" r="48" fill="var(--bs)"/><path d="M30 76V52l25-20 25 20v24z" fill="#f0541e"/><rect x="48" y="58" width="14" height="18" rx="4" fill="#fff"/><path d="M84 22l2.500 7 7 2.500-7 2.500-2.500 7-2.500-7-7-2.500 7-2.500z" fill="#f0541e"/></svg>' +
+                        '<h2>Listing submitted for review</h2>' +
+                        '<p class="sub" style="margin:0 auto;max-width:440px">Your listing is queued for moderator review. You can track its status in My listings.</p>' +
+                        '<div class="row2" style="margin-top:20px;gap:10px;justify-content:center;display:flex">' +
+                        '<button class="pfbar go2" style="position:static;padding:0 26px;border:0" data-p="view">View my listings</button>' +
+                        '<button class="pvb" style="display:block" data-p="again">Post another</button>' +
+                        '</div></div>';
+                }
+            }
             else if (s == 0)
                 h = '<h2>Show your place</h2><p class="sub">Good light and a tidy room make the first impression. Your first photo is the cover.</p>' + fl("ph", "", '<label class="drop" id="drop"><input type="file" id="pfile" accept="image/*" multiple hidden><svg viewBox="0 0 84 84"><rect x="8" y="18" width="68" height="52" rx="12" fill="var(--bs)"/><rect x="8" y="18" width="68" height="52" rx="12" fill="none" stroke="#f0541e" stroke-width="2"/><circle cx="42" cy="44" r="13" fill="#f0541e"/><circle cx="42" cy="44" r="6" fill="#fff"/><rect x="28" y="12" width="20" height="9" rx="4" fill="#f0541e"/></svg><b>Drag photos here, or browse</b><span>JPG or PNG · up to 10 photos</span></label>' + (p.ph.length ? '<div class="thumbs">' + p.ph.map(function (u, i) { return '<div class="th"><img src="' + u + '" alt=""><button class="rmv" data-p="rm" data-q="' + i + '" aria-label="Remove photo">×</button>' + (i ? '<button class="mk" data-p="cv" data-q="' + i + '">Make cover</button>' : '<span class="cv">Cover</span>') + '</div>'; }).join("") + '</div>' : ''), p.ph.length ? p.ph.length + " of 10 added" + (p.ph.length < 4 ? " · four or more works best" : "") : "");
             else if (s == 1)
@@ -1657,8 +1696,19 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             else if (a == "pv")
                 $("pfp").classList.toggle("show");
             else if (a == "pub") {
-                if (!pis().length)
+                const issues = pis();
+                if (!issues.length) {
                     fin();
+                } else {
+                    PF.s = issues[0][0];
+                    pf();
+                    toast("Please complete: " + issues[0][1]);
+                }
+            }
+            else if (a == "verify") {
+                $("pf").classList.remove("o");
+                S.nav = "profile";
+                go("verify");
             }
             else if (a == "view") {
                 $("pf").classList.remove("o");
@@ -1748,6 +1798,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 pf();
             }
             catch (error) {
+                console.error("[NestMate Save Listing Error]", error);
                 if (error && error.draftListingId)
                     p.draftListingId = error.draftListingId;
                 toast(error && error.message || "Could not save listing. Your changes are still here. Try again.");
@@ -2206,42 +2257,48 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 '<div class="cd"><h3>Housing intent</h3><p class="s2">Choose any that apply. Leave these blank if you only list property.</p>' + [["find_room", "Find a room"], ["team_up", "Team up to rent together"], ["have_room", "I live in a property and have a spare room"]].map(function (choice) { return '<label class="rw" style="display:flex;flex-wrap:nowrap;align-items:flex-start;justify-content:flex-start;gap:10px"><input style="width:16px;flex:0 0 16px;margin-top:3px" type="checkbox" data-housing-intent="' + choice[0] + '" ' + (d.activeIntents.indexOf(choice[0]) > -1 ? 'checked' : '') + '><span>' + choice[1] + '</span></label>'; }).join('') + '<label class="rw" style="display:flex;flex-wrap:nowrap;align-items:flex-start;justify-content:flex-start;gap:10px"><input style="width:16px;flex:0 0 16px;margin-top:3px" type="checkbox" id="ed-discover" ' + (d.discover ? 'checked' : '') + '><span>Show my profile in roommate discovery</span></label><p class="hp">Discovery includes Team-Up seekers and resident hosts with an eligible active listing. Finding a room alone does not make you a Team-Up candidate.</p></div>' +
                 '<div class="cd"><h3>Lifestyle</h3><div class="s2">Used to calculate your match with rooms and roommates.</div>' + [["diet", "Diet", ["Vegetarian", "Eggetarian", "Non-vegetarian"]], ["smoke", "Smoking", ["Non-smoker", "Smoker"]], ["sleep", "Sleep", ["Early riser", "Night owl", "Flexible"]], ["guests", "Guests", ["Rarely", "Sometimes", "Often"]], ["clean", "Cleanliness", ["Very tidy", "Tidy", "Relaxed"]]].map(function (q) { return ff(q[0], q[1], chp(q[0], q[2])); }).join("") + '</div>' + sv();
         }
-        const USER_KYC = { status: 'not_submitted', doc: null, loading: false };
         function acV() {
-            const isApproved = (USER_KYC.status === 'approved' || ME.ver);
+            const isApproved = (USER_KYC.status === 'approved' || (ME && ME.ver));
             const isPending = (USER_KYC.status === 'pending');
-            const isRejected = (USER_KYC.status === 'rejected');
-            const rejReason = (USER_KYC.doc && USER_KYC.doc.rejectionReason) || '';
+            const isRejected = (USER_KYC.status === 'rejected' || USER_KYC.status === 'resubmission_required');
+            const rejReason = (USER_KYC.doc && (USER_KYC.doc.reviewNote || USER_KYC.doc.rejectionReason)) || '';
             let statusBanner = '';
             if (isApproved) {
                 statusBanner = '<div class="cd" style="background:#e4f5ee;border-color:transparent">' +
                     '<div class="rw" style="border:0;padding:0"><i class="ni g" style="background:#fff">' + IS.ver + '</i>' +
-                    '<div><b>Identity document reviewed</b><small style="color:var(--ink)">Your submitted identity document passed manual review. This does not establish property ownership or guarantee safety.</small></div></div>' +
+                    '<div><b>Identity document reviewed</b><small style="color:var(--ink)">Your submitted identity document passed manual review. Your room listings are now active and published to discovery.</small></div></div>' +
+                    '<div style="margin-top:14px"><button class="ghb" data-n="listings" style="height:38px;padding:0 20px;font-size:13px">View my listings</button></div>' +
                     '</div>';
             }
             else if (isPending) {
                 statusBanner = '<div class="cd" style="background:#fff4e5;border-color:transparent">' +
                     '<div class="rw" style="border:0;padding:0"><i class="ni" style="background:#fff">' + IC.sh + '</i>' +
-                    '<div><b>Verification Under Review</b><small style="color:var(--ink)">Your document has been submitted and is currently being reviewed by our moderation team. You will be notified once verified.</small></div></div>' +
+                    '<div><b>Verification Under Review</b><small style="color:var(--ink)">Your document has been submitted and is currently being reviewed by our moderation team. Your listings will automatically be activated once verified.</small></div></div>' +
+                    '<div style="margin-top:14px"><button class="ghb" data-n="listings" style="height:38px;padding:0 20px;font-size:13px">View my listings</button></div>' +
                     '</div>';
             }
             else if (isRejected) {
                 statusBanner = '<div class="cd" style="background:#fde8e8;border-color:transparent">' +
                     '<div class="rw" style="border:0;padding:0"><i class="ni" style="background:#fff;color:var(--err)">✕</i>' +
-                    '<div><b style="color:var(--err)">Verification Rejected</b><small style="color:var(--ink)">' + (rejReason ? 'Reason: ' + esc(rejReason) : 'The submitted document could not be verified.') + ' You may re-submit a clear document below.</small></div></div>' +
+                    '<div><b style="color:var(--err)">Verification Rejected</b><small style="color:var(--ink)">' + (rejReason ? 'Reason: ' + esc(rejReason) : 'The submitted document could not be verified.') + ' You may re-submit a clear document below to publish your room listing.</small></div></div>' +
                     '</div>';
             }
             let formHtml = '';
             if (!isApproved && !isPending) {
-                formHtml = '<div class="cd"><h3>Submit Government ID for Verification</h3>' +
+                formHtml = '<div class="cd">' +
+                    '<div style="background:#fff4e5;border:1px solid #ffd8a8;border-radius:12px;padding:14px 16px;margin-bottom:18px;display:flex;gap:12px;align-items:center">' +
+                    '<svg style="width:22px;height:22px;fill:#f0541e;flex-shrink:0" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>' +
+                    '<div style="font-size:13.5px;color:#495057;line-height:1.45"><b style="color:#d9480f">Required to publish room listings:</b> Complete verification below so your room listing can be reviewed and published to discovery.</div>' +
+                    '</div>' +
+                    '<h3>Submit Government ID for Verification</h3>' +
                     '<p class="sub2" style="margin-bottom:16px">Upload a government-issued identification document to verify your account. Documents are kept strictly private and reviewed only by authorized NestMate admins.</p>' +
                     ff("kyc-type", "Document Type", '<select id="kyc-type" class="pill" style="width:100%;height:46px;padding:0 14px;border:1px solid var(--line);border-radius:12px;font-size:14px;background:var(--sf)">' +
-                        '<option value="Masked Aadhaar">Masked Aadhaar (Last 4 digits visible)</option>' +
-                        '<option value="Passport">Passport</option>' +
-                        '<option value="Voter ID">Voter ID</option>' +
-                        '<option value="Driving License">Driving License</option>' +
+                        '<option value="masked_aadhaar">Masked Aadhaar (Last 4 digits visible)</option>' +
+                        '<option value="passport">Passport</option>' +
+                        '<option value="voter_id">Voter ID</option>' +
+                        '<option value="driving_license">Driving License</option>' +
                         '</select>') +
-                    ff("kyc-name", "Full Legal Name", '<div class="pin"><input id="kyc-name" value="' + esc(ME.n) + '" placeholder="Full name as printed on document"></div>') +
+                    ff("kyc-name", "Full Legal Name", '<div class="pin"><input id="kyc-name" value="' + esc((ME && ME.n) || '') + '" placeholder="Full name as printed on document"></div>') +
                     '<div class="pff"><label>Document File (JPG, PNG, WebP or PDF · max 5MB)</label>' +
                     '<div class="pin" style="padding:10px 14px"><input type="file" id="kyc-file" accept=".jpg,.jpeg,.png,.webp,.pdf" style="font-size:13.5px"></div>' +
                     '<div class="hp">Ensure your photo, name, and document details are clearly legible.</div>' +
@@ -2922,11 +2979,62 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             let h = '<div class="lw">';
             if (!MY.length)
                 return h + em("You have not posted a room", "Post a room and matching people can message you.") + '</div>';
+            const hasPendingListings = MY.some(function (x) { return x && (x.st === "Pending verification" || x.st === "pending_verification"); });
+            const isUserVerified = (ME && (ME.ver || (USER_KYC && USER_KYC.status === 'approved')));
+            const isKycPending = (USER_KYC && USER_KYC.status === 'pending');
+            const isKycRejected = (USER_KYC && (USER_KYC.status === 'rejected' || USER_KYC.status === 'resubmission_required'));
+            const rejReason = (USER_KYC && USER_KYC.doc && (USER_KYC.doc.reviewNote || USER_KYC.doc.rejectionReason)) || '';
+            if (hasPendingListings) {
+                if (!isUserVerified && !isKycPending && !isKycRejected) {
+                    h += '<div class="ver-banner" style="background:#fff4e5;border:1px solid #ffd8a8;border-radius:14px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,0.03)">' +
+                        '<div style="display:flex;gap:14px;align-items:center">' +
+                        '<span style="display:flex;width:40px;height:40px;border-radius:50%;background:#ffe8cc;align-items:center;justify-content:center;color:#e8590c;flex-shrink:0">' +
+                        '<svg style="width:22px;height:22px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>' +
+                        '</span><div>' +
+                        '<b style="font-size:14.5px;color:#d9480f;display:block">Verification required to publish your rooms</b>' +
+                        '<span style="font-size:13px;color:#495057">Your room listing cannot appear in discovery until your identity is verified.</span>' +
+                        '</div></div>' +
+                        '<button class="msgb" data-n="profile" data-as="verify" style="height:38px;padding:0 20px;font-size:13px;width:auto"><em>Verify now</em></button>' +
+                        '</div>';
+                } else if (isKycPending) {
+                    h += '<div class="ver-banner" style="background:#e7f5ff;border:1px solid #a5d8ff;border-radius:14px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(0,0,0,0.03)">' +
+                        '<span style="display:flex;width:40px;height:40px;border-radius:50%;background:#d0ebff;align-items:center;justify-content:center;color:#1971c2;flex-shrink:0">' +
+                        '<svg style="width:22px;height:22px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>' +
+                        '</span><div>' +
+                        '<b style="font-size:14.5px;color:#1864ab;display:block">Verification under review</b>' +
+                        '<span style="font-size:13px;color:#495057">Your identity documents are being reviewed. Your listing will be activated once verified.</span>' +
+                        '</div></div>';
+                } else if (isKycRejected) {
+                    h += '<div class="ver-banner" style="background:#fde8e8;border:1px solid #f8b4b4;border-radius:14px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,0.03)">' +
+                        '<div style="display:flex;gap:14px;align-items:center">' +
+                        '<span style="display:flex;width:40px;height:40px;border-radius:50%;background:#fbd5d5;align-items:center;justify-content:center;color:#e02424;flex-shrink:0">✕</span>' +
+                        '<div>' +
+                        '<b style="font-size:14.5px;color:#c81e1e;display:block">Verification needs attention</b>' +
+                        '<span style="font-size:13px;color:#495057">' + (rejReason ? 'Reason: ' + esc(rejReason) : 'Your previous document could not be verified.') + ' Re-submit to publish your room listing.</span>' +
+                        '</div></div>' +
+                        '<button class="msgb" data-n="profile" data-as="verify" style="height:38px;padding:0 20px;font-size:13px;width:auto;background:#e02424"><em>Re-verify now</em></button>' +
+                        '</div>';
+                }
+            }
             h += '<div class="lsum"><div><b>' + cn("Active") + '</b><span>Active listings</span></div><div><b>' + totNew + '</b><span>New applicants</span></div><div><b>' + totSl + '</b><span>Shortlisted</span></div></div><div class="lsr">' + P('<circle cx="11" cy="11" r="6.500"/><path d="m16 16 4.500 4.500"/>') + '<input id="lq" placeholder="Search your listings" value="' + esc(S.lq || "") + '" aria-label="Search listings"></div><div class="lcs">' + C.map(function (c, i) { return '<button class="chip" data-lt="' + i + '" aria-pressed="' + (S.lt == i) + '">' + c + '<i>' + cn(c) + '</i></button>'; }).join("") + '</div>';
             if (!L.length)
                 h += em("Nothing here", "No listings match your search or filter.");
             L.forEach(function (a) {
-                const x = a[0], k = a[1], n = x.ap.length, nw = ncount(k), pri = x.st == "Draft" ? '<button class="msgb" data-la="edit" data-q="' + k + '"><em>Continue editing</em></button>' : x.st == "Filled" || !n ? '' : '<button class="msgb" data-la="apl" data-q="' + k + '"><em>View applicants (' + n + ')</em></button>';
+                const x = a[0], k = a[1], n = x.ap.length, nw = ncount(k);
+                let pri = '';
+                if (x.st == "Draft") {
+                    pri = '<button class="msgb" data-la="edit" data-q="' + k + '"><em>Continue editing</em></button>';
+                } else if (x.st == "Pending verification") {
+                    if (!isUserVerified && !isKycPending) {
+                        pri = '<button class="msgb" data-n="profile" data-as="verify" style="height:38px;padding:0 16px;font-size:13px;width:auto"><em>Verify now</em></button>';
+                    } else if (isKycPending) {
+                        pri = '<span style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:8px;background:#e7f5ff;color:#1864ab;font-size:12.5px;font-weight:600">Verification in review</span>';
+                    } else if (isKycRejected) {
+                        pri = '<button class="msgb" data-n="profile" data-as="verify" style="height:38px;padding:0 16px;font-size:13px;width:auto;background:#e02424"><em>Re-verify now</em></button>';
+                    }
+                } else if (x.st != "Filled" && n > 0) {
+                    pri = '<button class="msgb" data-la="apl" data-q="' + k + '"><em>View applicants (' + n + ')</em></button>';
+                }
                 h += '<article class="lc"><div class="ph">' + ((x.photo || (x.f && x.f.images && x.f.images[0])) ? '<img src="' + esc(x.photo || x.f.images[0]) + '" alt="" style="width:100%;height:100%;object-fit:cover">' : '') + '<span class="stp st-' + esc(x.st) + '">' + esc(x.st) + '</span></div><div class="lb"><div class="lt"><b>' + esc(x.t) + '</b></div><div class="loc">' + IC.pin + esc(x.loc) + ' · ' + (x.rent ? fmt(x.rent) + " / mo" : "Rent not set") + '</div><div class="lap">' + (x.st == "Draft" ? 'Listing strength ' + esc(x.pct) + '%' : x.st == "Filled" ? 'Roommate: <b style="color:var(--ink)">' + (RM[x.sel] ? esc(RM[x.sel][1]) : "Occupancy not recorded") + '</b>' : n ? '<span class="stk">' + x.ap.slice(0, 3).map(function (i) { return '<i>' + esc(RM[i][0]) + '</i>'; }).join("") + '</span>' + n + ' applicant' + (n > 1 ? "s" : "") + (nw ? '<span class="nw2">' + nw + ' new</span>' : '') : 'No applicants yet') + '</div><div class="lac">' + pri + '<button class="ghb" data-la="edit" data-q="' + k + '">Edit</button>' + (x.st == "Active" || x.st == "Paused" ? '<button class="ghb" data-la="pz" data-q="' + k + '">' + (x.st == "Active" ? "Pause" : "Resume") + '</button>' : '') + '<button class="dl" data-la="del" data-q="' + k + '" aria-label="Delete listing"><svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div></div></article>';
             });
             return h + '</div>';
@@ -3601,8 +3709,9 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         if (authUser && authUser.uid) {
             const unsubKyc = subscribeUserKycStatus(authUser.uid, function (record) {
                 USER_KYC.doc = record;
-                USER_KYC.status = record ? (record.status || 'pending') : (authUser.isVerified ? 'approved' : 'not_submitted');
-                if (S.nav === 'profile' && S.as === 'verify')
+                const rawSt = record && record.status ? String(record.status).toLowerCase() : '';
+                USER_KYC.status = rawSt ? rawSt : (currentProfile?.isVerified || (ME && ME.ver) ? 'approved' : 'not_submitted');
+                if ((S.nav === 'profile' && S.as === 'verify') || S.nav === 'listings')
                     render();
             });
             cleanupFns.push(unsubKyc);
