@@ -508,7 +508,9 @@ export async function fetchBoundedExploreRoommates(options: {
       totalDocsRead,
     };
   } catch (err: any) {
-    console.error('fetchBoundedExploreRoommates error:', err?.message);
+    if (err?.message !== 'Complete an active profile first.') {
+      console.warn('fetchBoundedExploreRoommates note:', err?.message);
+    }
     throw err;
   }
 }
@@ -720,7 +722,12 @@ export function subscribeOwnerListings(ownerId: string, onUpdate: (items: any[])
     }));
     if (!disposed && version === generation) onUpdate(items);
   };
-  const fail = (error: unknown) => { console.error('Owner records could not refresh', error); };
+  const fail = (error: unknown) => {
+    const msg = (error as any)?.message || String(error);
+    if (!msg.includes('permission-denied') && !msg.includes('Missing or insufficient permissions')) {
+      console.warn('Owner records note:', msg);
+    }
+  };
   const stops = [
     onSnapshot(query(collection(db, 'listings'), where('ownerId', '==', ownerId)), snap => { places = snap.docs; void publish().catch(fail); }, fail),
     onSnapshot(query(collection(db, 'applications'), where('ownerId', '==', ownerId)), snap => { applications = snap.docs.map(d => ({ id: d.id, ...d.data() })); void publish().catch(fail); }, fail),

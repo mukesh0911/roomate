@@ -44,7 +44,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
     const passwordSignIn = !!authUser?.providerData?.some(provider => provider.providerId === 'password');
     // --- Embedded Realtime Engine ---
     (function initEngine() {
-        let RM, RX, LIVE_CONNS, MY, CH, G, AF, AS, APS, ADM, SEEKER_APPS;
+        let RM = [], RX = [], LIVE_CONNS = { accepted: [], received: [], sent: [], restricted: [] }, MY = [], CH = [], G = [], AF = [], AS = [], APS = [], ADM = {}, SEEKER_APPS = [];
         let USER_KYC = { status: 'not_submitted', doc: null, loading: false };
         const CHAT_DRAFTS = new Map(), CHAT_SENDS = new Set(), CHAT_READS = new Set();
         let chatLoading = Boolean(authUser), chatError = false;
@@ -478,11 +478,14 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             const uid = row && row[kind === 'r' ? 20 : 17];
             const relation = relationshipState(authUser && authUser.uid, uid, LIVE_CONNS, currentProfile && currentProfile.blockedUserIds || [], CH.map(function (c) { return { id: c.id, participants: c.raw && c.raw.participants || [authUser && authUser.uid, c.p], authorized: c.authorized === true }; }));
             const cls = big ? 'msgb big' : 'msgb';
+            if (relation.state === 'self') return '<button class="' + cls + '" disabled>Your listing</button>';
+            if (relation.state === 'blocked') return '<button class="' + cls + '" disabled>Connection blocked</button>';
+            if (relation.state === 'restricted') return '<button class="' + cls + '" disabled>Unavailable</button>';
             if (relation.state === 'sent') return '<span class="tag">Pending</span><button class="gh" data-withdraw="' + esc(relation.connectionId) + '">Withdraw</button>';
             if (relation.state === 'received') return '<button class="gh" data-conn-act="decline" data-conn-id="' + esc(relation.connectionId) + '">Decline</button><button class="' + cls + '" data-conn-act="accept" data-conn-id="' + esc(relation.connectionId) + '">Accept</button>';
-            const disabled = { self: 'Your listing', unavailable: 'Sign in to connect', blocked: 'Connection blocked', restricted: 'Connection unavailable' }[relation.state];
-            if (disabled && authUser) return '<button class="' + cls + '" disabled>' + disabled + '</button>';
-            return '<button class="' + cls + '" data-msg="' + kind + ':' + i + '" aria-label="' + (relation.state === 'accepted' ? 'Message the poster' : 'Connect with the poster') + '">' + IC.chat + '<em>' + (relation.state === 'accepted' ? 'Message' : 'Connect') + '</em></button>';
+            if (relation.state === 'accepted') return '<button class="' + cls + '" data-msg="' + kind + ':' + i + '" aria-label="Message the poster">' + IC.chat + '<em>Message</em></button>';
+            if (!authUser) return '<button class="' + cls + '" data-msg="' + kind + ':' + i + '" aria-label="Sign in to contact">' + IC.chat + '<em>Sign in</em></button>';
+            return '<button class="' + cls + '" data-msg="' + kind + ':' + i + '" aria-label="Contact host">' + IC.chat + '<em>Contact Host</em></button>';
         }
         let CONN_ID_MAP = {};
         function bn(t) {
@@ -1126,6 +1129,13 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             PAGINATION_STATE.roommatesLoading = true;
             if (!isInitial)
                 render();
+            if (authUser && currentProfile && currentProfile.onboardingComplete !== true) {
+                PAGINATION_STATE.roommatesLoading = false;
+                PAGINATION_STATE.roommatesError = false;
+                PAGINATION_STATE.roommatesHasMore = false;
+                if (!isInitial) render();
+                return;
+            }
             try {
                 const cursor = isInitial ? null : PAGINATION_STATE.roommatesCursor;
                 const res = await fetchBoundedExploreRoommates({
@@ -1187,7 +1197,9 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 if (disposed || requestVersion !== roommatesRequestVersion)
                     return;
                 PAGINATION_STATE.roommatesError = true;
-                console.error('loadRoommatesPage error:', err);
+                if (err && err.message !== 'Complete an active profile first.') {
+                    console.warn('loadRoommatesPage note:', err);
+                }
                 PAGINATION_STATE.roommatesHasMore = false;
             }
             finally {
@@ -4202,6 +4214,14 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             const targetUid = kind == "m" ? RM[i] && RM[i][9] : kind == "r" ? D[i] && D[i][20] : G[i] && G[i][17];
             const listingId = kind == "r" ? D[i] && D[i][12] : kind == "p" ? G[i] && G[i][11] : undefined;
             if (!targetUid) {
+                if (kind === "r") {
+                    S.room = i;
+                    S.back = S.nav;
+                    S.nav = "room";
+                    render();
+                    scrollTo(0, 0);
+                    return;
+                }
                 toast("This listing has no contact available.");
                 return;
             }
