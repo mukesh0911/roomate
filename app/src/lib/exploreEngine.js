@@ -168,9 +168,22 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         }
         function calcRoomMatch(r) {
             if (!currentProfile || !r[21])
-                return { total: 0, budgetPct: null, locationPct: null, lifestylePct: null };
+                return { total: 0, budgetPct: null, locationPct: null, lifestylePct: null, hasProfilePreferences: false };
             const listing = { ...r[21], monthlyRent: r[3], partnerShare: r[3] }, fit = getRoomMatchReasons(currentProfile, listing);
-            return { total: fit.score, budgetPct: currentProfile.budget > 0 ? Math.round(fit.budgetScore / 25 * 100) : null, locationPct: currentProfile.city && listing.city ? Math.round(fit.locationScore / 20 * 100) : null, lifestylePct: Object.keys(currentProfile.quizAnswers || {}).length && (listing.houseRules || []).length ? Math.round(fit.rulesScore / 20 * 100) : null };
+            const hasProfilePreferences = Boolean(
+                (currentProfile.budget && currentProfile.budget > 0) ||
+                (currentProfile.city && currentProfile.city.trim().length > 0) ||
+                (currentProfile.quizAnswers && Object.keys(currentProfile.quizAnswers).length > 0) ||
+                (currentProfile.lifestyle && Object.keys(currentProfile.lifestyle).length > 0) ||
+                (currentProfile.housingPreferences && (currentProfile.housingPreferences.budgetMax || currentProfile.housingPreferences.budgetMin))
+            );
+            return {
+                total: fit.score,
+                budgetPct: (currentProfile.budget > 0 || (currentProfile.housingPreferences && currentProfile.housingPreferences.budgetMax > 0)) ? Math.round(fit.budgetScore / 25 * 100) : null,
+                locationPct: currentProfile.city && listing.city ? Math.round(fit.locationScore / 20 * 100) : null,
+                lifestylePct: Object.keys(currentProfile.quizAnswers || {}).length && (listing.houseRules || []).length ? Math.round(fit.rulesScore / 20 * 100) : null,
+                hasProfilePreferences: hasProfilePreferences
+            };
         }
         function parseBudget(t) {
             if (!t)
@@ -339,12 +352,19 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             const x = D[i];
             if (!x)
                 return em("Listing not found", "This room may have been taken or unlisted.");
-            const posterName = x[16] || 'Host';
-            const posterAv = x[17] || '';
+            const ownerUid = x[20] || (x[21] && (x[21].ownerId || x[21].userId));
+            const hostFromRm = ownerUid ? RM.find(function (m) { return m && m[9] === ownerUid; }) : null;
+            const posterName = x[16] || (hostFromRm && hostFromRm[1]) || (x[21] && (x[21].ownerName || x[21].postedBy || x[21].createdByName)) || 'Host';
+            const posterAv = x[17] || (hostFromRm && hostFromRm[10]) || (x[21] && (x[21].ownerAvatar || x[21].avatar)) || '';
             const f = posterName.split(" ")[0];
             const rmMatch = calcRoomMatch(x);
             const mt = rmMatch.total;
             x[11] = mt;
+            if (ownerUid && !hostFromRm && posterName === 'Host' && currentProfile && currentProfile.onboardingComplete === true) {
+                ensurePerson(ownerUid).then(function (idx) {
+                    if (idx >= 0 && !disposed && S.nav === 'room') render();
+                }).catch(function () {});
+            }
             const inc = (x[14] && x[14].length > 0) ? x[14] : (x[8] ? ["Furnished"] : []);
             const rules = (x[15] && x[15].length > 0) ? x[15] : [];
             const desc = x[18] || (x[1] + " located in " + x[2] + ".");
@@ -414,29 +434,51 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
             const posterAvContent = posterAv
                 ? '<img src="' + esc(posterAv) + '" alt="' + esc(posterName) + '" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">'
-                : (posterName.split(' ').map(function (w) { return w[0]; }).slice(0, 2).join('') || 'H');
+                : (posterName.split(' ').map(function (w) { return w[0]; }).slice(0, 2).join('').toUpperCase() || 'H');
             const isOwn = Boolean(authUser && (x[20] === authUser.uid || (x[12] && MY.some(function (m) { return m && m.id === x[12]; }))));
             const existingApp = (SEEKER_APPS || []).find(function (a) { return a && (a.listingId === x[12] || String(a.listingId) === String(i)); });
             let applyBtn = '';
             if (existingApp && existingApp.status !== 'withdrawn' && existingApp.status !== 'declined_by_applicant') {
                 const statusLabels = { pending: '🟡 Application Pending · View', shortlisted: '🔵 Shortlisted · View', selected: '🟢 Selected! Review Offer', accepted_by_user: '✅ Offer Accepted' };
-                applyBtn = '<button class="ghb" data-apply-place="' + esc(x[12] || i) + '" style="font-weight:600">' + (statusLabels[existingApp.status] || 'Application Status') + '</button>';
+                applyBtn = '<button class="ghb" data-apply-place="' + esc(x[12] || i) + '" style="width:100%;height:48px;border-radius:14px;font-weight:700;font-size:14.5px;justify-content:center;background:#fff8f5;border-color:var(--brand);color:var(--brand)">' + (statusLabels[existingApp.status] || 'Application Status') + '</button>';
             } else {
-                applyBtn = '<button class="msgb" data-apply-place="' + esc(x[12] || i) + '" style="background:var(--brand);color:#fff"><em>📝 Apply for this room</em></button>';
+                applyBtn = '<button class="msgb big" data-apply-place="' + esc(x[12] || i) + '" style="width:100%;height:48px;border-radius:14px;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--g);color:#fff;box-shadow:0 6px 18px rgba(240,84,30,0.3)"><em>📝 Apply for this room</em></button>';
             }
             const sideCtas = isOwn
                 ? '<span class="tag" style="background:#e8f5e9;color:#2e7d32;font-weight:700;padding:6px 14px;border-radius:20px;font-size:13px;display:inline-block;margin-bottom:12px">Your Listing</span><button class="msgb big" data-la="edit" data-q="' + (x[12] || i) + '"><em>Edit Listing</em></button><button class="ghb" data-n="listings">Manage in My listings</button>'
-                : applyBtn + listingCommunicationButtons('r', i, true) + '<button class="ghb" data-save="' + i + '">' + (isRoomSaved(x, i) ? "Saved ✓" : "Save for later") + '</button>';
+                : '<div class="room-side-actions" style="display:flex;flex-direction:column;gap:10px;width:100%;margin-bottom:16px">' +
+                    applyBtn +
+                    listingCommunicationButtons('r', i, 'secondary') +
+                    '<button class="ghb" data-save="' + i + '" style="width:100%;height:44px;border-radius:14px;justify-content:center;margin-top:0">' + (isRoomSaved(x, i) ? "Saved ✓" : "♡ Save for later") + '</button>' +
+                  '</div>';
             const bottomCta = isOwn
                 ? '<button class="msgb" data-la="edit" data-q="' + (x[12] || i) + '"><em>Edit Listing</em></button>'
-                : applyBtn + listingCommunicationButtons('r', i);
+                : '<div style="display:flex;align-items:center;gap:8px;margin-left:auto">' +
+                    (existingApp && existingApp.status !== 'withdrawn' && existingApp.status !== 'declined_by_applicant'
+                        ? '<button class="ghb" data-apply-place="' + esc(x[12] || i) + '" style="height:42px;padding:0 14px;border-radius:12px;font-weight:600;font-size:13px">' + (existingApp.status === 'pending' ? '🟡 Pending' : existingApp.status === 'shortlisted' ? '🔵 Shortlisted' : existingApp.status === 'selected' ? '🟢 Selected' : '✅ Applied') + '</button>'
+                        : '<button class="msgb" data-apply-place="' + esc(x[12] || i) + '" style="height:42px;padding:0 16px;border-radius:12px;font-weight:700;font-size:13.5px;white-space:nowrap;background:var(--brand);color:#fff"><em>📝 Apply</em></button>'
+                    ) +
+                    '<button class="ghb" data-msg="r:' + i + '" aria-label="Contact host" style="height:42px;padding:0 14px;border-radius:12px;display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--sf);color:var(--ink);font-weight:600;font-size:13px">' + IC.chat + '<em>Chat</em></button>' +
+                  '</div>';
             return '<div class="rd"><button class="ghb back" data-n="' + (S.back || "explore") + '">← Back</button>' + galHtml +
                 '<div class="rl"><div class="mn"><section><div class="tgs"><span>' + esc(x[0]) + '</span>' + (x[9] ? '<span class="ok">✓ Verified listing</span>' : '') + (x[8] ? '<span>Furnished</span>' : '') + '<span>' + esc(x[7]) + '</span></div><h2>' + esc(x[1]) + '</h2><div class="tl"><div class="loc">' + IC.pin + esc(addr) + '</div><span class="sp2"></span><button class="ghb" data-shr2="1">Share</button>' + st + '<button class="ghb" data-rpt="l">Report</button></div></section>' +
                 '<section><div class="kf"><div><small>Rent</small><b>' + fmt(x[3]) + '</b><span>per month</span></div><div><small>Deposit</small><b>' + (x[21] && x[21].deposit != null ? fmt(x[4]) : 'Not provided') + '</b><span>' + (x[21] && x[21].deposit != null ? (x[4] === 0 ? 'No deposit' : 'As listed') : '') + '</span></div><div><small>Available</small><b>' + (x[6] == "Now" ? "Now" : esc(x[6])) + '</b><span>move-in</span></div><div><small>Looking for</small><b>' + esc(x[21] && Number.isInteger(x[21].partnersNeeded) ? x[21].partnersNeeded + ' roommate(s)' : 'Not provided') + '</b><span>' + (x[10] == "Any" ? "Any gender" : esc(x[10])) + '</span></div></div></section>' +
                 '<section><h3>About this place</h3><p style="color:var(--ink2);line-height:1.65;font-size:15px;margin:0 0 16px">' + esc(desc) + '</p></section>' +
                 (inc.length ? '<section><h3>Included in rent</h3><div class="inc">' + inc.map(function (t) { return '<div><i>' + IC.chk + '</i>' + esc(t) + '</div>'; }).join("") + '</div></section>' : '') +
                 (rules.length ? '<section><h3>House rules</h3><div class="inc">' + rules.map(function (t) { return '<div><i>' + IC.chk + '</i>' + esc(t) + '</div>'; }).join("") + '</div></section>' : '') +
-                '<section><div class="mh"><div class="ring" style="--m:' + rmMatch.total + '"><b>' + rmMatch.total + '%</b></div><div><h3 style="margin:0">Why this matches you</h3><span style="color:var(--ink2);font-size:14px">Based on your matching preferences</span></div></div><div class="bars">' + [['Budget', rmMatch.budgetPct], ['Location', rmMatch.locationPct], ['Lifestyle', rmMatch.lifestylePct]].map(function (factor) { return '<div>' + factor[0] + '<u style="--w:' + (factor[1] == null ? 0 : factor[1]) + '%"></u><b>' + (factor[1] == null ? 'Unknown' : factor[1] + '%') + '</b></div>'; }).join('') + '</div></section>' +
+                ((!rmMatch.hasProfilePreferences || (rmMatch.budgetPct === null && rmMatch.locationPct === null && rmMatch.lifestylePct === null))
+                    ? '<section class="match-pref-prompt" style="background:var(--sunk);border:1px dashed var(--line);border-radius:18px;padding:22px 20px">' +
+                        '<div style="display:flex;align-items:flex-start;gap:14px">' +
+                        '<div style="width:44px;height:44px;border-radius:12px;background:var(--bs);color:var(--brand);display:grid;place-items:center;font-size:22px;flex:none">🎯</div>' +
+                        '<div style="flex:1">' +
+                        '<h3 style="margin:0 0 4px;font-size:17px;font-weight:700">Calculate your compatibility match</h3>' +
+                        '<p style="margin:0 0 14px;color:var(--ink2);font-size:14px;line-height:1.5">You have not set your living preferences yet. Add your budget, preferred localities, and lifestyle habits to see your personalized compatibility score for this room.</p>' +
+                        '<button class="ghb" data-n="profile" data-as="prefs" style="border-color:var(--brand);color:var(--brand);font-weight:600;display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 16px">' +
+                        '<span>Set your preferences</span>' +
+                        '<svg style="width:14px;height:14px;stroke-width:2.5" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" d="M5 12h14M12 5l7 7-7 7"/></svg>' +
+                        '</button>' +
+                        '</div></div></section>'
+                    : '<section><div class="mh"><div class="ring" style="--m:' + rmMatch.total + '"><b>' + rmMatch.total + '%</b></div><div><h3 style="margin:0">Why this matches you</h3><span style="color:var(--ink2);font-size:14px">Based on your matching preferences</span></div></div><div class="bars">' + [['Budget', rmMatch.budgetPct], ['Location', rmMatch.locationPct], ['Lifestyle', rmMatch.lifestylePct]].map(function (factor) { return '<div>' + factor[0] + '<u style="--w:' + (factor[1] == null ? 0 : factor[1]) + '%"></u><b>' + (factor[1] == null ? 'Not specified' : factor[1] + '%') + '</b></div>'; }).join('') + '</div></section>') +
                 '<section><div class="safe">' + IC.sh + '<div><b>Stay safe</b><br>Never pay before you visit and verify the place. <a href="#">Read the Trust center</a></div></div></section>' +
                 (ot.length ? '<section><h3>Similar rooms</h3><div class="sim">' + ot.map(function (k) {
                     const y = D[k];
@@ -473,19 +515,22 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 return '<button class="' + cls + '" disabled>' + label + '</button>';
             return '<button class="' + cls + '" data-conn="' + i + '">' + IC.usr + '<em>Connect</em></button>';
         }
-        function listingCommunicationButtons(kind, i, big = false) {
+        function listingCommunicationButtons(kind, i, mode = false) {
+            const isOutline = mode === 'outline' || mode === 'secondary';
+            const isBig = mode === true || mode === 'big';
             const row = kind === 'r' ? D[i] : G[i];
             const uid = row && row[kind === 'r' ? 20 : 17];
             const relation = relationshipState(authUser && authUser.uid, uid, LIVE_CONNS, currentProfile && currentProfile.blockedUserIds || [], CH.map(function (c) { return { id: c.id, participants: c.raw && c.raw.participants || [authUser && authUser.uid, c.p], authorized: c.authorized === true }; }));
-            const cls = big ? 'msgb big' : 'msgb';
-            if (relation.state === 'self') return '<button class="' + cls + '" disabled>Your listing</button>';
-            if (relation.state === 'blocked') return '<button class="' + cls + '" disabled>Connection blocked</button>';
-            if (relation.state === 'restricted') return '<button class="' + cls + '" disabled>Unavailable</button>';
-            if (relation.state === 'sent') return '<span class="tag">Pending</span><button class="gh" data-withdraw="' + esc(relation.connectionId) + '">Withdraw</button>';
-            if (relation.state === 'received') return '<button class="gh" data-conn-act="decline" data-conn-id="' + esc(relation.connectionId) + '">Decline</button><button class="' + cls + '" data-conn-act="accept" data-conn-id="' + esc(relation.connectionId) + '">Accept</button>';
-            if (relation.state === 'accepted') return '<button class="' + cls + '" data-msg="' + kind + ':' + i + '" aria-label="Message the poster">' + IC.chat + '<em>Message</em></button>';
-            if (!authUser) return '<button class="' + cls + '" data-msg="' + kind + ':' + i + '" aria-label="Sign in to contact">' + IC.chat + '<em>Sign in</em></button>';
-            return '<button class="' + cls + '" data-msg="' + kind + ':' + i + '" aria-label="Contact host">' + IC.chat + '<em>Contact Host</em></button>';
+            const baseCls = isOutline ? 'ghb' : (isBig ? 'msgb big' : 'msgb');
+            const outlineStyle = isOutline ? 'width:100%;height:46px;border-radius:14px;font-size:14.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px solid var(--line);background:var(--sf);color:var(--ink);transition:all .15s ease;' : '';
+            if (relation.state === 'self') return '<button class="' + baseCls + '" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + ' disabled>Your listing</button>';
+            if (relation.state === 'blocked') return '<button class="' + baseCls + '" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + ' disabled>Connection blocked</button>';
+            if (relation.state === 'restricted') return '<button class="' + baseCls + '" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + ' disabled>Unavailable</button>';
+            if (relation.state === 'sent') return '<div style="display:flex;align-items:center;gap:8px;width:100%"><span class="tag" style="flex:1;text-align:center">Inquiry Sent</span><button class="ghb" data-withdraw="' + esc(relation.connectionId) + '" style="height:44px">Withdraw</button></div>';
+            if (relation.state === 'received') return '<div style="display:flex;align-items:center;gap:8px;width:100%"><button class="ghb" data-conn-act="decline" data-conn-id="' + esc(relation.connectionId) + '" style="flex:1;height:44px;justify-content:center">Decline</button><button class="msgb" data-conn-act="accept" data-conn-id="' + esc(relation.connectionId) + '" style="flex:1;height:44px;justify-content:center">Accept</button></div>';
+            if (relation.state === 'accepted') return '<button class="' + baseCls + '" data-msg="' + kind + ':' + i + '" aria-label="Message the poster" ' + (isOutline ? 'style="' + outlineStyle + 'border-color:var(--brand);color:var(--brand);"' : '') + '>' + IC.chat + '<em>Message Host</em></button>';
+            if (!authUser) return '<button class="' + baseCls + '" data-msg="' + kind + ':' + i + '" aria-label="Sign in to contact" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>Sign in to contact</em></button>';
+            return '<button class="' + baseCls + '" data-msg="' + kind + ':' + i + '" aria-label="Contact host" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>Contact Host</em></button>';
         }
         let CONN_ID_MAP = {};
         function bn(t) {
