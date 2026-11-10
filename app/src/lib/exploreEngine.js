@@ -2716,16 +2716,24 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     if (isSelfDiscoverable) {
                         const cityName = (ME && (ME.city || ME.area)) || "Bengaluru";
                         return '<div class="empty">' +
-                            '<svg viewBox="0 0 160 120" width="160" height="120" aria-hidden="true"><circle cx="80" cy="64" r="46" fill="var(--bs)"/><circle cx="80" cy="50" r="16" fill="#0ca678"/><path d="M56 86c0-12 11-19 24-19s24 7 24 19z" fill="#0ca678"/><circle cx="106" cy="38" r="6" fill="#ffd0b5"/></svg>' +
-                            '<div style="margin-bottom:12px"><span style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;background:#e6fcf5;color:#0ca678;font-size:13px;font-weight:700">● Your Roommate Profile is Live in ' + esc(cityName) + '</span></div>' +
-                            '<b style="font-size:18px;display:block">Waiting for new roommate candidates in your area</b>' +
-                            '<p style="max-width:520px;margin:8px auto 0;color:var(--ink2);line-height:1.55;font-size:14px">Your profile' + (hasActiveListing ? ' and room listing are' : ' is') + ' active and visible to seekers in ' + esc(cityName) + '. As other members join and search for roommates, their profiles will appear here for you to connect.</p>' +
-                            '<div class="r" style="margin-top:20px;gap:10px;justify-content:center;flex-wrap:wrap">' +
-                            '<button class="pill" data-pvw="1" style="background:var(--brand);color:#fff;border-color:var(--brand)">👁️ Preview how seekers see you</button>' +
-                            (hasActiveListing ? '<button class="pill" data-n="listings">View my listings</button>' : '<button class="pill" data-n="post">Post a room</button>') +
+                            '<svg viewBox="0 0 160 120" width="160" height="120" aria-hidden="true">' +
+                            '<circle cx="80" cy="60" r="44" fill="var(--bs)"/>' +
+                            '<circle cx="76" cy="46" r="14" fill="#f0541e"/>' +
+                            '<path d="M54 80c0-11 10-18 22-18s22 7 22 18z" fill="#f0541e"/>' +
+                            '<circle cx="36" cy="38" r="4" fill="#ff8a3d"/>' +
+                            '<path d="M124 24l2 5.5 5.5 2-5.5 2-2 5.5-2-5.5-5.5-2 5.5-2z" fill="#f0541e"/>' +
+                            '<circle cx="98" cy="72" r="11" fill="#0ca678"/>' +
+                            '<path d="M94 72l3 3 6-6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                            '</svg>' +
+                            '<div style="margin-bottom:12px"><span style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;background:#e6fcf5;color:#0ca678;font-size:13px;font-weight:700">● Your Roommate Profile is Live in ' + esc(cityName) + '</span></div>' +
+                            '<b style="font-size:19px;display:block;margin-bottom:8px">Waiting for new roommate candidates in your area</b>' +
+                            '<p style="max-width:520px;margin:0 auto 20px;color:var(--ink2);line-height:1.55;font-size:14px">Your profile' + (hasActiveListing ? ' and room listing are' : ' is') + ' active and visible to seekers in ' + esc(cityName) + '. As other members join and search for roommates, their profiles will appear here for you to connect.</p>' +
+                            '<div class="r" style="display:flex;align-items:center;justify-content:center;gap:12px;margin:20px auto 0;flex-wrap:wrap">' +
+                            '<button class="pill" data-pvw="1" style="background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:0 6px 16px -4px rgba(240,84,30,0.45);cursor:pointer;padding:0 20px">👁️ Preview how seekers see you</button>' +
+                            (hasActiveListing ? '<button class="pill" data-n="listings" style="cursor:pointer;padding:0 20px">View my listings</button>' : '<button class="pill" data-n="post" style="cursor:pointer;padding:0 20px">Post a room</button>') +
                             '</div></div>';
                     }
-                    return em("No roommate candidates available right now", "Roommate discovery features verified Team-Up seekers and Live-in Hosts offering spare rooms.", (authUser ? '<div class="r" style="margin-top:16px;gap:8px;justify-content:center"><button class="pill" data-n="profile" data-as="prefs">Set your roommate preferences</button><button class="pill" data-n="post">Post a room</button></div>' : '<br><button class="pill" data-n="signin" style="margin:16px auto 0">Sign in to connect</button>'));
+                    return em("No roommate candidates available right now", "Roommate discovery features verified Team-Up seekers and Live-in Hosts offering spare rooms.", (authUser ? '<div class="r" style="display:flex;align-items:center;justify-content:center;gap:12px;margin:20px auto 0;flex-wrap:wrap"><button class="pill" data-n="profile" data-as="prefs">Set your roommate preferences</button><button class="pill" data-n="post">Post a room</button></div>' : '<br><button class="pill" data-n="signin" style="margin:16px auto 0">Sign in to connect</button>'));
                 }
                 return em("No roommates match these filters", "Try a higher budget or a wider move-in window.", '<br><button class="pill" data-rs="1" style="margin:16px auto 0">Reset filters</button>');
             }
