@@ -9,7 +9,7 @@ export class RouteErrorBoundary extends Component<{ children: ReactNode }, { fai
   }
 
   componentDidCatch(_error: Error, _info: ErrorInfo) {
-    console.error('NestMate could not render this page. Reload to retry.');
+    console.error('NestMate could not render this page:', _error);
   }
 
   render() {

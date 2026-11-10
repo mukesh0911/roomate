@@ -1399,6 +1399,8 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 S.nav = b.dataset.n;
                 if (b.dataset.as) {
                     S.as = b.dataset.as;
+                    if (S.as === "edit") DR = cl2(ME);
+                    else if (S.as === "prefs") DR = cl2(PR);
                 }
                 if (S.nav === "saved") {
                     const roomCnt = getSavedRoomCount();
@@ -2245,9 +2247,9 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         const ACS = [["profile", "Profile", IC.me], ["edit", "Edit profile", P('<path d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4"/>')], ["verify", "Verification", IS.ver], ["prefs", "Matching preferences", P('<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>')], ["settings", "Settings", P('<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.600 5.600l2.100 2.100M16.300 16.300l2.100 2.100M5.600 18.400l2.100-2.100M16.300 7.700l2.100-2.100"/>')]];
         const TR = [["smoke", "Smoking"], ["diet", "Diet"], ["sleep", "Sleep schedule"], ["guests", "Guests"], ["clean", "Cleanliness"], ["pets", "Pets"]];
         function syn() { YOU.smoke = ME.smoke; YOU.diet = ME.diet; YOU.sleep = ME.sleep; YOU.b = [PR.b[0] / 1000, PR.b[1] / 1000]; YOU.areas = PR.areas.slice(); }
-        function ps() { let m = ME, n = 0; n += m.ph ? 15 : 0; n += m.bio.trim().length >= 40 ? 15 : 0; n += m.job ? 10 : 0; n += (m.diet && m.smoke && m.sleep && m.guests && m.clean) ? 15 : 0; n += m.ver ? 25 : 0; n += m.phone ? 5 : 0; n += m.email ? 5 : 0; n += m.n.trim().length >= 2 ? 10 : 0; return n; }
-        function ini(n) { return n.trim().split(/\s+/).map(function (w) { return w[0]; }).slice(0, 2).join("").toUpperCase() || "?"; }
-        function avm(m, x) { return '<div class="avb">' + (m.ph ? '<img src="' + esc(m.ph) + '" alt="">' : ini(m.n)) + (m.ver ? '<span class="vb" title="ID verified">' + IC.chk + '</span>' : '') + '</div>'; }
+        function ps() { let m = ME, n = 0; n += m.ph ? 15 : 0; n += (m.bio || "").trim().length >= 40 ? 15 : 0; n += m.job ? 10 : 0; n += (m.diet && m.smoke && m.sleep && m.guests && m.clean) ? 15 : 0; n += m.ver ? 25 : 0; n += m.phone ? 5 : 0; n += m.email ? 5 : 0; n += (m.n || "").trim().length >= 2 ? 10 : 0; return n; }
+        function ini(n) { return (n || "").trim().split(/\s+/).map(function (w) { return w[0]; }).slice(0, 2).join("").toUpperCase() || "?"; }
+        function avm(m, x) { const obj = m || {}; return '<div class="avb">' + (obj.ph ? '<img src="' + esc(obj.ph) + '" alt="">' : ini(obj.n)) + (obj.ver ? '<span class="vb" title="ID verified">' + IC.chk + '</span>' : '') + '</div>'; }
         function dty() { return DR && JSON.stringify(DR) != JSON.stringify(S.as == "edit" ? ME : PR); }
         function sbu() {
             const e = $("svb"); if (e)
@@ -2268,10 +2270,12 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 '<p class="hp" style="margin-top:8px">Design state: <button data-rs="1" style="text-decoration:underline">' + (S.rs ? "Show normal account" : "Preview a restricted account") + '</button></p>';
         }
         function acE() {
-            const d = DR;
+            if (!DR) DR = cl2(ME);
+            const d = DR || {};
+            const intents = d.activeIntents || [];
             return '<h1>Edit profile</h1><div class="sub3">This is what people see when they open your profile.</div><div class="cd"><div class="phd">' + avm(d) + '<div><label class="ghb" style="cursor:pointer"><input type="file" id="efile" accept="image/*" hidden>Change photo</label>' + (d.ph ? ' <button class="ghb" data-rph="1">Remove</button>' : '') + '<div class="hp" style="margin-top:8px">A clear face photo builds trust.</div></div></div></div>' +
-                '<div class="cd">' + ff("n", "Full name", '<div class="pin"><input id="ed-n" aria-label="Full name" value="' + esc(d.n) + '" placeholder="Your name"></div>') + ff("job", "What do you do?", '<div class="pin"><input id="ed-job" value="' + esc(d.job) + '" placeholder="e.g. Product manager"></div>') + ff("city", "City", '<div class="pin"><input id="ed-city" aria-label="City" value="' + esc(d.city) + '" placeholder="Your city" maxlength="64"></div>') + ff("area", "Locality", '<div class="pin"><input id="ed-area" aria-label="Locality" value="' + esc(d.area) + '" placeholder="Your locality" maxlength="128"></div>') + ff("bio", "About you", '<textarea class="tx" id="ed-bio" placeholder="A few lines about how you live">' + esc(d.bio) + '</textarea><div class="hp"><span id="bc">' + esc(d.bio.length) + '</span>/280</div>') + '</div>' +
-                '<div class="cd"><h3>Housing intent</h3><p class="s2">Choose any that apply. Leave these blank if you only list property.</p>' + [["find_room", "Find a room"], ["team_up", "Team up to rent together"], ["have_room", "I live in a property and have a spare room"]].map(function (choice) { return '<label class="rw" style="display:flex;flex-wrap:nowrap;align-items:flex-start;justify-content:flex-start;gap:10px"><input style="width:16px;flex:0 0 16px;margin-top:3px" type="checkbox" data-housing-intent="' + choice[0] + '" ' + (d.activeIntents.indexOf(choice[0]) > -1 ? 'checked' : '') + '><span>' + choice[1] + '</span></label>'; }).join('') + '<label class="rw" style="display:flex;flex-wrap:nowrap;align-items:flex-start;justify-content:flex-start;gap:10px"><input style="width:16px;flex:0 0 16px;margin-top:3px" type="checkbox" id="ed-discover" ' + (d.discover ? 'checked' : '') + '><span>Show my profile in roommate discovery</span></label><p class="hp">Discovery includes Team-Up seekers and resident hosts with an eligible active listing. Finding a room alone does not make you a Team-Up candidate.</p></div>' +
+                '<div class="cd">' + ff("n", "Full name", '<div class="pin"><input id="ed-n" aria-label="Full name" value="' + esc(d.n || '') + '" placeholder="Your name"></div>') + ff("job", "What do you do?", '<div class="pin"><input id="ed-job" value="' + esc(d.job || '') + '" placeholder="e.g. Product manager"></div>') + ff("city", "City", '<div class="pin"><input id="ed-city" aria-label="City" value="' + esc(d.city || '') + '" placeholder="Your city" maxlength="64"></div>') + ff("area", "Locality", '<div class="pin"><input id="ed-area" aria-label="Locality" value="' + esc(d.area || '') + '" placeholder="Your locality" maxlength="128"></div>') + ff("bio", "About you", '<textarea class="tx" id="ed-bio" placeholder="A few lines about how you live">' + esc(d.bio || '') + '</textarea><div class="hp"><span id="bc">' + esc((d.bio || '').length) + '</span>/280</div>') + '</div>' +
+                '<div class="cd"><h3>Housing intent</h3><p class="s2">Choose any that apply. Leave these blank if you only list property.</p>' + [["find_room", "Find a room"], ["team_up", "Team up to rent together"], ["have_room", "I live in a property and have a spare room"]].map(function (choice) { return '<label class="rw" style="display:flex;flex-wrap:nowrap;align-items:flex-start;justify-content:flex-start;gap:10px"><input style="width:16px;flex:0 0 16px;margin-top:3px" type="checkbox" data-housing-intent="' + choice[0] + '" ' + (intents.indexOf(choice[0]) > -1 ? 'checked' : '') + '><span>' + choice[1] + '</span></label>'; }).join('') + '<label class="rw" style="display:flex;flex-wrap:nowrap;align-items:flex-start;justify-content:flex-start;gap:10px"><input style="width:16px;flex:0 0 16px;margin-top:3px" type="checkbox" id="ed-discover" ' + (d.discover ? 'checked' : '') + '><span>Show my profile in roommate discovery</span></label><p class="hp">Discovery includes Team-Up seekers and resident hosts with an eligible active listing. Finding a room alone does not make you a Team-Up candidate.</p></div>' +
                 '<div class="cd"><h3>Lifestyle</h3><div class="s2">Used to calculate your match with rooms and roommates.</div>' + [["diet", "Diet", ["Vegetarian", "Eggetarian", "Non-vegetarian"]], ["smoke", "Smoking", ["Non-smoker", "Smoker"]], ["sleep", "Sleep", ["Early riser", "Night owl", "Flexible"]], ["guests", "Guests", ["Rarely", "Sometimes", "Often"]], ["clean", "Cleanliness", ["Very tidy", "Tidy", "Relaxed"]]].map(function (q) { return ff(q[0], q[1], chp(q[0], q[2])); }).join("") + '</div>' + sv();
         }
         function acV() {
@@ -2338,10 +2342,14 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 '<div class="safe">' + IC.sh + '<div>Your document is stored in a private restricted bucket accessible only to administrators. NestMate never shares or displays it publicly.</div></div>';
         }
         function acR() {
-            const d = DR;
-            return '<h1>Matching preferences</h1><div class="sub3">Tell us what you are looking for. Your match scores update to fit.</div><div class="cd"><h3>Budget</h3><div class="s2">Monthly rent you are comfortable with.</div><div class="rg2"><div><label>Minimum · <b id="pl0">₹' + d.b[0].toLocaleString("en-IN") + '</b></label><input type="range" id="pb0" min="5000" max="60000" step="1000" value="' + esc(d.b[0]) + '"></div><div><label>Maximum · <b id="pl1">₹' + d.b[1].toLocaleString("en-IN") + '</b></label><input type="range" id="pb1" min="5000" max="60000" step="1000" value="' + esc(d.b[1]) + '"></div></div>' + (ER.b ? '<div class="er" style="display:block;color:#d92d20;font-size:13.5px;margin-top:6px">' + ER.b + '</div>' : '') + '</div>' +
+            if (!DR) DR = cl2(PR);
+            const d = DR || {};
+            const budgetMin = (d.b && d.b[0] != null) ? d.b[0] : 0;
+            const budgetMax = (d.b && d.b[1] != null) ? d.b[1] : 0;
+            const dw = d.w || {};
+            return '<h1>Matching preferences</h1><div class="sub3">Tell us what you are looking for. Your match scores update to fit.</div><div class="cd"><h3>Budget</h3><div class="s2">Monthly rent you are comfortable with.</div><div class="rg2"><div><label>Minimum · <b id="pl0">₹' + budgetMin.toLocaleString("en-IN") + '</b></label><input type="range" id="pb0" min="5000" max="60000" step="1000" value="' + esc(budgetMin) + '"></div><div><label>Maximum · <b id="pl1">₹' + budgetMax.toLocaleString("en-IN") + '</b></label><input type="range" id="pb1" min="5000" max="60000" step="1000" value="' + esc(budgetMax) + '"></div></div>' + (ER.b ? '<div class="er" style="display:block;color:#d92d20;font-size:13.5px;margin-top:6px">' + ER.b + '</div>' : '') + '</div>' +
                 '<div class="cd">' + ff("areas", "Areas", chp("areas", LOC, 1), "Pick every area you would consider.") + ff("types", "Place type", chp("types", ["Private room", "Full flat", "PG / Coliving"], 1)) + ff("mv", "Move-in", chp("mv", ["Any time", "Within 15 days", "Within 30 days", "Within 60 days"])) + ff("gd", "Roommate gender", chp("gd", ["Any", "Female", "Male"])) + '</div>' +
-                '<div class="cd"><h3>What matters to you</h3><div class="s2">Set how much each habit should count towards a match.</div>' + TR.map(function (t) { const w = d.w[t[0]]; return '<div class="rw"><div><b>' + t[1] + '</b></div><div class="sg3">' + ["Do not mind", "Prefer", "Must have"].map(function (l, i) { return '<button data-w="' + t[0] + '" data-v2="' + i + '" aria-pressed="' + (w == i) + '">' + l + '</button>'; }).join("") + '</div></div>'; }).join("") + '</div>' +
+                '<div class="cd"><h3>What matters to you</h3><div class="s2">Set how much each habit should count towards a match.</div>' + TR.map(function (t) { const w = dw[t[0]] != null ? dw[t[0]] : 0; return '<div class="rw"><div><b>' + t[1] + '</b></div><div class="sg3">' + ["Do not mind", "Prefer", "Must have"].map(function (l, i) { return '<button data-w="' + t[0] + '" data-v2="' + i + '" aria-pressed="' + (w == i) + '">' + l + '</button>'; }).join("") + '</div></div>'; }).join("") + '</div>' +
                 '<div class="hint" style="background:var(--bs)">' + IS.spk + '<div><b id="pmc">' + pm() + ' of ' + esc(D.length) + '</b> sample rooms fit these preferences right now.</div></div>' + sv();
         }
         let acS = function () {
@@ -2355,6 +2363,8 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             return h;
         };
         function ac() {
+            if (S.as === "edit" && !DR) DR = cl2(ME);
+            if (S.as === "prefs" && !DR) DR = cl2(PR);
             const h = '<div class="ac"><nav class="acn">' + ACS.map(function (a) { return '<button class="al" data-as="' + a[0] + '" aria-current="' + (S.as == a[0]) + '">' + a[2] + a[1] + (a[0] == "verify" ? '<span class="st3' + (ME.ver ? " ok" : "") + '"></span>' : "") + '</button>'; }).join("") + '<hr><button class="al" data-so="1">' + P('<path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9"/>') + 'Sign out</button></nav><div class="acc">' + ACS.map(function (a) { return '<button class="chip" data-as="' + a[0] + '" aria-pressed="' + (S.as == a[0]) + '">' + a[1] + '</button>'; }).join("") + '</div><div class="acm">' + (S.rs ? '<div class="rb">' + IC.sh + '<div><b>Your account is restricted</b><br>Messaging and posting are paused while we review a report. You can still browse.</div><button data-sup="1">Contact support</button></div>' : '') +
                 (S.as == "profile" ? acP() : S.as == "edit" ? acE() : S.as == "verify" ? acV() : S.as == "prefs" ? acR() : acS()) + '</div></div>';
             return h;
@@ -3629,7 +3639,11 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         if (S.nav === 'saved' && !searchParams.has('sub') && getSavedRoomCount() === 0 && getSavedProfileCount() > 0) {
             S.sub = 1;
         }
-        if (route.section) S.as = route.section;
+        if (route.section) {
+            S.as = route.section;
+            if (S.as === "edit") DR = cl2(ME);
+            else if (S.as === "prefs") DR = cl2(PR);
+        }
         S.st = route.settingsTab;
         $('q').value = S.q;
         $('bud').value = S.max;
