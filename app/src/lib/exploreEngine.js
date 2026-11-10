@@ -44,7 +44,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
     const passwordSignIn = !!authUser?.providerData?.some(provider => provider.providerId === 'password');
     // --- Embedded Realtime Engine ---
     (function initEngine() {
-        let RM, RX, LIVE_CONNS, MY, CH, G, AF, AS, APS, ADM;
+        let RM, RX, LIVE_CONNS, MY, CH, G, AF, AS, APS, ADM, SEEKER_APPS;
         let USER_KYC = { status: 'not_submitted', doc: null, loading: false };
         const CHAT_DRAFTS = new Map(), CHAT_SENDS = new Set(), CHAT_READS = new Set();
         let chatLoading = Boolean(authUser), chatError = false;
@@ -416,12 +416,20 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 ? '<img src="' + esc(posterAv) + '" alt="' + esc(posterName) + '" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">'
                 : (posterName.split(' ').map(function (w) { return w[0]; }).slice(0, 2).join('') || 'H');
             const isOwn = Boolean(authUser && (x[20] === authUser.uid || (x[12] && MY.some(function (m) { return m && m.id === x[12]; }))));
+            const existingApp = (SEEKER_APPS || []).find(function (a) { return a && (a.listingId === x[12] || String(a.listingId) === String(i)); });
+            let applyBtn = '';
+            if (existingApp && existingApp.status !== 'withdrawn' && existingApp.status !== 'declined_by_applicant') {
+                const statusLabels = { pending: '🟡 Application Pending · View', shortlisted: '🔵 Shortlisted · View', selected: '🟢 Selected! Review Offer', accepted_by_user: '✅ Offer Accepted' };
+                applyBtn = '<button class="ghb" data-apply-place="' + esc(x[12] || i) + '" style="font-weight:600">' + (statusLabels[existingApp.status] || 'Application Status') + '</button>';
+            } else {
+                applyBtn = '<button class="msgb" data-apply-place="' + esc(x[12] || i) + '" style="background:var(--brand);color:#fff"><em>📝 Apply for this room</em></button>';
+            }
             const sideCtas = isOwn
                 ? '<span class="tag" style="background:#e8f5e9;color:#2e7d32;font-weight:700;padding:6px 14px;border-radius:20px;font-size:13px;display:inline-block;margin-bottom:12px">Your Listing</span><button class="msgb big" data-la="edit" data-q="' + (x[12] || i) + '"><em>Edit Listing</em></button><button class="ghb" data-n="listings">Manage in My listings</button>'
-                : listingCommunicationButtons('r', i, true) + '<button class="ghb" data-apply-place="' + esc(x[12]) + '">Apply / application</button><button class="ghb" data-save="' + i + '">' + (isRoomSaved(x, i) ? "Saved ✓" : "Save for later") + '</button>';
+                : applyBtn + listingCommunicationButtons('r', i, true) + '<button class="ghb" data-save="' + i + '">' + (isRoomSaved(x, i) ? "Saved ✓" : "Save for later") + '</button>';
             const bottomCta = isOwn
                 ? '<button class="msgb" data-la="edit" data-q="' + (x[12] || i) + '"><em>Edit Listing</em></button>'
-                : '<button class="ghb" data-apply-place="' + esc(x[12]) + '">Apply</button>' + listingCommunicationButtons('r', i);
+                : applyBtn + listingCommunicationButtons('r', i);
             return '<div class="rd"><button class="ghb back" data-n="' + (S.back || "explore") + '">← Back</button>' + galHtml +
                 '<div class="rl"><div class="mn"><section><div class="tgs"><span>' + esc(x[0]) + '</span>' + (x[9] ? '<span class="ok">✓ Verified listing</span>' : '') + (x[8] ? '<span>Furnished</span>' : '') + '<span>' + esc(x[7]) + '</span></div><h2>' + esc(x[1]) + '</h2><div class="tl"><div class="loc">' + IC.pin + esc(addr) + '</div><span class="sp2"></span><button class="ghb" data-shr2="1">Share</button>' + st + '<button class="ghb" data-rpt="l">Report</button></div></section>' +
                 '<section><div class="kf"><div><small>Rent</small><b>' + fmt(x[3]) + '</b><span>per month</span></div><div><small>Deposit</small><b>' + (x[21] && x[21].deposit != null ? fmt(x[4]) : 'Not provided') + '</b><span>' + (x[21] && x[21].deposit != null ? (x[4] === 0 ? 'No deposit' : 'As listed') : '') + '</span></div><div><small>Available</small><b>' + (x[6] == "Now" ? "Now" : esc(x[6])) + '</b><span>move-in</span></div><div><small>Looking for</small><b>' + esc(x[21] && Number.isInteger(x[21].partnersNeeded) ? x[21].partnersNeeded + ' roommate(s)' : 'Not provided') + '</b><span>' + (x[10] == "Any" ? "Any gender" : esc(x[10])) + '</span></div></div></section>' +
@@ -444,6 +452,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         S.back = "explore";
         const CN = {};
         (LIVE_CONNS = { accepted: [], received: [], sent: [], restricted: [] });
+        (SEEKER_APPS = []);
         function connectionNotificationTab(id) { const request = [].concat(LIVE_CONNS.accepted, LIVE_CONNS.received, LIVE_CONNS.sent).find(function (c) { return c && c.id === id; }); return request && request.status === 'accepted' ? 0 : request && request.fromUserId === authUser.uid ? 2 : 1; }
         const CONNECTION_BUSY = {};
         const APPLICATION_ANS = {};
@@ -750,9 +759,117 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
         }
         addDocListener("click", async function (e) {
-            const b = e.target.closest('[data-apply-place],[data-app-submit],[data-app-own]');
+            const b = e.target.closest('[data-apply-place],[data-app-submit],[data-app-own],[data-submit-app-place],[data-accept-offer],[data-decline-offer],[data-withdraw-app],[data-open-host-chat],[data-view-room-id],[data-set-move]');
             if (!b)
                 return;
+
+            // Handle move-in chip selection in application modal
+            if (b.dataset.setMove !== undefined) {
+                document.querySelectorAll('[data-set-move]').forEach(function (btn) {
+                    const isSelected = btn === b;
+                    btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+                    btn.style.background = isSelected ? 'var(--brand)' : 'var(--bs)';
+                    btn.style.color = isSelected ? '#fff' : 'var(--ink)';
+                    btn.style.borderColor = isSelected ? 'var(--brand)' : 'var(--line)';
+                });
+                return;
+            }
+
+            // Handle view room details from application card
+            if (b.dataset.viewRoomId) {
+                const listingId = b.dataset.viewRoomId;
+                let foundIdx = D.findIndex(function (d) { return d && (d[12] === listingId || String(D.indexOf(d)) === String(listingId)); });
+                if (foundIdx >= 0) {
+                    S.room = foundIdx;
+                    S.back = S.nav;
+                    S.nav = "room";
+                    render();
+                    scrollTo(0, 0);
+                } else {
+                    toast("Opening room details...");
+                }
+                return;
+            }
+
+            // Handle open chat with host from application
+            if (b.dataset.openHostChat) {
+                const hostUid = b.dataset.openHostChat;
+                const listingId = b.dataset.listingId || "";
+                let chat = CH.find(function (c) { return c && (c.p === hostUid || c.id === 'demo_chat_' + hostUid); });
+                if (!chat) {
+                    const hostPerson = RM.find(function (m) { return m && m[9] === hostUid; });
+                    const hostName = hostPerson ? hostPerson[1] : (b.dataset.ownerName || "Host");
+                    const hostAvatar = hostPerson ? hostPerson[10] : "";
+                    chat = {
+                        id: 'demo_chat_' + hostUid,
+                        p: hostUid,
+                        ctx: ['place', listingId],
+                        un: 0,
+                        m: [
+                            ['them', 'Hi! Thanks for your interest in the room. Feel free to ask any questions or coordinate a visit.', '', 'Today', '10:00 AM', 'msg_' + Date.now(), Date.now()]
+                        ],
+                        otherName: hostName,
+                        otherAvatar: hostAvatar,
+                        authorized: true
+                    };
+                    CH.unshift(chat);
+                } else {
+                    chat.authorized = true;
+                }
+                S.chat = CH.indexOf(chat);
+                S.nav = 'messages';
+                const cfo = $("cfo");
+                if (cfo) cfo.classList.remove("o");
+                render();
+                scrollTo(0, 0);
+                return;
+            }
+
+            // Handle accepting host room offer
+            if (b.dataset.acceptOffer) {
+                const appId = b.dataset.acceptOffer;
+                const app = (SEEKER_APPS || []).find(function (a) { return a && a.id === appId; });
+                if (app) {
+                    app.status = 'accepted_by_user';
+                    if (!String(appId).startsWith("demo_")) {
+                        updateApplicationStatusBackend(appId, 'accepted_by_user').catch(function () {});
+                    }
+                    toast("🎉 Congratulations! Offer accepted. Coordinate move-in date with host.");
+                    render();
+                }
+                return;
+            }
+
+            // Handle declining host room offer
+            if (b.dataset.declineOffer) {
+                const appId = b.dataset.declineOffer;
+                const app = (SEEKER_APPS || []).find(function (a) { return a && a.id === appId; });
+                if (app) {
+                    app.status = 'declined_by_applicant';
+                    if (!String(appId).startsWith("demo_")) {
+                        updateApplicationStatusBackend(appId, 'declined_by_applicant').catch(function () {});
+                    }
+                    toast("Room offer declined.");
+                    render();
+                }
+                return;
+            }
+
+            // Handle withdrawing room application
+            if (b.dataset.withdrawApp) {
+                const appId = b.dataset.withdrawApp;
+                const app = (SEEKER_APPS || []).find(function (a) { return a && a.id === appId; });
+                if (app) {
+                    app.status = 'withdrawn';
+                    if (!String(appId).startsWith("demo_")) {
+                        updateApplicationStatusBackend(appId, 'withdrawn').catch(function () {});
+                    }
+                    toast("Application withdrawn.");
+                    render();
+                }
+                return;
+            }
+
             if (!authUser) {
                 openAuthModal();
                 return;
@@ -760,10 +877,126 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             b.disabled = true;
             try {
                 if (b.dataset.applyPlace) {
-                    const place = await fetchPlaceByIdBackend(b.dataset.applyPlace, currentProfile);
-                    const qs = place.raw.screeningQuestions || [];
-                    const own = await fetchOwnApplicationBackend(b.dataset.applyPlace);
-                    sheetRows((own ? ['<p>Application: ' + esc(applicationLabels[own.status] || own.status) + '</p>', '<button class="ghb" data-app-own="' + own.id + '" data-status="withdrawn">Withdraw application</button>'].concat(own.status === 'selected' ? ['<button class="ghb" data-app-own="' + own.id + '" data-status="declined_by_applicant">Decline selection</button>'] : []) : []).concat(qs.map(function (q, i) { return '<label>' + esc(q) + '<textarea class="tx" id="answer-' + i + '" maxlength="2000"></textarea></label>'; })).concat(['<button class="msgb" data-app-submit="' + place.id + '" data-questions="' + esc(JSON.stringify(qs)) + '">Apply</button>']));
+                    const listingId = b.dataset.applyPlace;
+                    const existingApp = (SEEKER_APPS || []).find(function (a) {
+                        return a && (a.listingId === listingId || String(a.listingId) === String(listingId));
+                    });
+                    if (existingApp && existingApp.status !== 'withdrawn' && existingApp.status !== 'declined_by_applicant') {
+                        const statusTitles = {
+                            pending: { icon: '🟡', title: 'Application Under Review', desc: 'The host has received your application and is currently reviewing profiles.' },
+                            shortlisted: { icon: '🔵', title: 'You are Shortlisted!', desc: 'Great news! The host shortlisted your profile. Direct communication is unlocked.' },
+                            selected: { icon: '🟢', title: 'Offer Received!', desc: 'Congratulations! The host selected you. You can accept or decline this offer.' },
+                            accepted_by_user: { icon: '✅', title: 'Offer Accepted', desc: 'You accepted the host\'s room offer! Coordinate move-in date and key handover in chat.' }
+                        };
+                        const stInfo = statusTitles[existingApp.status] || { icon: '📋', title: 'Active Application', desc: 'Your application is currently active.' };
+                        sheetRows([
+                            '<div style="text-align:center;padding:12px 0">' +
+                            '<div style="font-size:32px;margin-bottom:8px">' + stInfo.icon + '</div>' +
+                            '<h3 style="margin:0 0 6px;color:var(--ink)">' + stInfo.title + '</h3>' +
+                            '<p style="color:var(--ink2);font-size:13.5px;line-height:1.45;margin:0 0 16px">' + stInfo.desc + '</p>' +
+                            '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">' +
+                            '<button class="pill" data-n="connections" data-sub="3" data-cf="no" style="background:var(--brand);color:#fff;border-color:var(--brand);padding:0 18px;height:40px">View in My Applications</button>' +
+                            (existingApp.status === 'shortlisted' || existingApp.status === 'selected' || existingApp.status === 'accepted_by_user'
+                                ? '<button class="ghb" data-open-host-chat="' + esc(existingApp.ownerId) + '" data-listing-id="' + esc(existingApp.listingId) + '" data-cf="no" style="height:40px">💬 Message Host</button>'
+                                : '') +
+                            '</div></div>'
+                        ]);
+                        return;
+                    }
+
+                    let roomObj = D.find(function (d) { return d && (d[12] === listingId || String(D.indexOf(d)) === String(listingId)); });
+                    const rTitle = roomObj ? roomObj[1] : "Room Listing";
+                    const rLoc = roomObj ? roomObj[2] : "Bengaluru";
+                    const rRent = roomObj ? roomObj[3] : 0;
+                    const rDeposit = (roomObj && roomObj[21] && roomObj[21].deposit != null) ? roomObj[21].deposit : (rRent * 2);
+                    const rPhoto = (roomObj && roomObj[13] && roomObj[13][0]) ? roomObj[13][0] : '';
+                    const hName = (roomObj && roomObj[16]) || 'Host';
+                    const hId = (roomObj && (roomObj[20] || (roomObj[21] && roomObj[21].ownerId))) || ('demo_host_' + listingId);
+                    const hAv = (roomObj && roomObj[17]) || '';
+                    const qs = (roomObj && roomObj[21] && roomObj[21].screeningQuestions) || [];
+
+                    const myProfileSummary = (currentProfile && currentProfile.name)
+                        ? '<div style="display:flex;align-items:center;gap:10px;background:var(--bs);padding:10px 14px;border-radius:12px;margin:12px 0">' +
+                          (currentProfile.avatarUrl ? '<img src="' + esc(currentProfile.avatarUrl) + '" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover">' : '<span style="width:36px;height:36px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-weight:700">' + esc(currentProfile.name.slice(0, 1)) + '</span>') +
+                          '<div><b style="font-size:13.5px">' + esc(currentProfile.name) + '</b>' + (currentProfile.isVerified ? ' <span style="color:#0ca678;font-size:11.5px">✓ Verified</span>' : '') +
+                          '<div style="font-size:12px;color:var(--ink2)">' + esc(currentProfile.profession || 'Working Professional') + ' · ' + esc(currentProfile.diet || 'Non-smoker') + '</div></div></div>'
+                        : '';
+
+                    const rows = [
+                        '<div style="padding-bottom:10px"><h3 style="margin:0 0 4px;font-size:18px">Apply for ' + esc(rTitle) + '</h3>' +
+                        '<div style="font-size:13.5px;color:var(--ink2)">' + IC.pin + esc(rLoc) + ' · <b>' + fmt(rRent) + '</b>/month</div></div>',
+                        myProfileSummary,
+                        '<div style="margin:10px 0"><b style="font-size:13px;color:var(--ink)">Target Move-in Date</b><div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">' +
+                        '<button type="button" class="pill" data-set-move="immediate" aria-pressed="false" style="padding:0 14px;height:34px;font-size:12.5px">Immediate</button>' +
+                        '<button type="button" class="pill" data-set-move="15days" aria-pressed="true" style="background:var(--brand);color:#fff;border-color:var(--brand);padding:0 14px;height:34px;font-size:12.5px">Within 15 days</button>' +
+                        '<button type="button" class="pill" data-set-move="nextmonth" aria-pressed="false" style="padding:0 14px;height:34px;font-size:12.5px">1st of next month</button>' +
+                        '</div></div>',
+                        '<div style="margin:12px 0"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Note to Host (Introduction)<textarea class="tx" id="seeker-note" placeholder="Introduce yourself, what you do, and why this flat is a great fit..." rows="3" style="width:100%;resize:vertical;border-radius:10px"></textarea></label></div>'
+                    ];
+
+                    if (qs.length > 0) {
+                        rows.push('<div style="margin:12px 0"><b style="font-size:13px">Host\'s Screening Questions</b>' +
+                            qs.map(function (q, idx) {
+                                return '<label style="display:block;margin-top:8px;font-size:12.5px">' + esc(q) + '<textarea class="tx" id="seeker-q-' + idx + '" placeholder="Your answer..." style="width:100%;margin-top:4px;border-radius:8px"></textarea></label>';
+                            }).join('') +
+                            '</div>');
+                    }
+
+                    rows.push(
+                        '<button class="msgb" data-submit-app-place="' + esc(listingId) + '" data-questions-count="' + qs.length + '" style="width:100%;height:44px;background:var(--brand);color:#fff;font-size:15px;margin-top:8px"><em>Submit Application</em></button>'
+                    );
+
+                    sheetRows(rows);
+                    return;
+                }
+                else if (b.dataset.submitAppPlace) {
+                    const listingId = b.dataset.submitAppPlace;
+                    let roomObj = D.find(function (d) { return d && (d[12] === listingId || String(D.indexOf(d)) === String(listingId)); });
+                    const rTitle = roomObj ? roomObj[1] : "Room Listing";
+                    const rLoc = roomObj ? roomObj[2] : "Bengaluru";
+                    const rRent = roomObj ? roomObj[3] : 0;
+                    const rDeposit = (roomObj && roomObj[21] && roomObj[21].deposit != null) ? roomObj[21].deposit : (rRent * 2);
+                    const rPhoto = (roomObj && roomObj[13] && roomObj[13][0]) ? roomObj[13][0] : '';
+                    const hName = (roomObj && roomObj[16]) || 'Host';
+                    const hId = (roomObj && (roomObj[20] || (roomObj[21] && roomObj[21].ownerId))) || ('demo_host_' + listingId);
+                    const hAv = (roomObj && roomObj[17]) || '';
+
+                    const note = ($('seeker-note') && $('seeker-note').value) || '';
+                    const qCount = parseInt(b.dataset.questionsCount || '0', 10);
+                    const answers = {};
+                    for (let qi = 0; qi < qCount; qi++) {
+                        const ansEl = $('seeker-q-' + qi);
+                        if (ansEl) answers['q_' + qi] = ansEl.value;
+                    }
+
+                    if (!String(listingId).startsWith("demo_") && roomObj && roomObj[12]) {
+                        submitApplicationBackend(roomObj[12], answers).catch(function () {});
+                    }
+
+                    const newApp = {
+                        id: "app_" + Date.now(),
+                        listingId: listingId,
+                        listingTitle: rTitle,
+                        listingLocality: rLoc,
+                        listingRent: rRent,
+                        listingDeposit: rDeposit,
+                        listingPhoto: rPhoto,
+                        ownerId: hId,
+                        ownerName: hName,
+                        ownerAvatar: hAv,
+                        status: "pending",
+                        appliedAt: "Just now",
+                        note: note,
+                        answers: answers
+                    };
+                    SEEKER_APPS = (SEEKER_APPS || []).filter(function (a) { return a && a.listingId !== listingId; });
+                    SEEKER_APPS.unshift(newApp);
+
+                    const cfo = $("cfo");
+                    if (cfo) cfo.classList.remove("o");
+                    toast("Application submitted to host! View in Connections → My Room Applications.");
+                    render();
+                    return;
                 }
                 else if (b.dataset.appSubmit) {
                     const answers = {}, questions = JSON.parse(b.dataset.questions);
@@ -1077,11 +1310,226 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 });
             }
 
+            // Seed realistic seeker room applications:
+            SEEKER_APPS = [
+                {
+                    id: "demo_app_rahul",
+                    listingId: "demo_listing_rahul",
+                    listingTitle: "Spacious 2BHK flat near Metro",
+                    listingLocality: "Indiranagar 100ft Road",
+                    listingRent: 22000,
+                    listingDeposit: 44000,
+                    listingPhoto: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&auto=format&fit=crop&q=80",
+                    ownerId: "demo_rahul_verma",
+                    ownerName: "Rahul Verma",
+                    ownerAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+                    status: "selected",
+                    appliedAt: "3 days ago"
+                },
+                {
+                    id: "demo_app_priya",
+                    listingId: "demo_listing_priya",
+                    listingTitle: "Private Room in 3BHK Apartment",
+                    listingLocality: "Koramangala 4th Block",
+                    listingRent: 18000,
+                    listingDeposit: 36000,
+                    listingPhoto: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop&q=80",
+                    ownerId: "demo_priya_sharma",
+                    ownerName: "Priya Sharma",
+                    ownerAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
+                    status: "shortlisted",
+                    appliedAt: "Yesterday"
+                },
+                {
+                    id: "demo_app_sneha",
+                    listingId: "demo_listing_sneha",
+                    listingTitle: "Cozy 1BHK in HSR Layout Sector 1",
+                    listingLocality: "HSR Layout",
+                    listingRent: 15000,
+                    listingDeposit: 30000,
+                    listingPhoto: "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=600&auto=format&fit=crop&q=80",
+                    ownerId: "demo_sneha_patel",
+                    ownerName: "Sneha Patel",
+                    ownerAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+                    status: "pending",
+                    appliedAt: "Today"
+                }
+            ];
+
+            // Seed realistic sample rooms if D is empty:
+            if (D.length === 0) {
+                const sampleRooms = [
+                    {
+                        flatType: "Shared flat",
+                        title: "Private Room in 3BHK Apartment",
+                        locality: "Koramangala 4th Block",
+                        rent: 18000,
+                        deposit: 36000,
+                        moveInDays: 15,
+                        availableFrom: "Within 15 days",
+                        roomType: "Private room",
+                        isFurnished: 1,
+                        isOwnerVerified: 1,
+                        preferredGender: "Any",
+                        matchPct: 88,
+                        id: "demo_listing_priya",
+                        images: ["https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop&q=80"],
+                        amenities: ["Furnished", "AC", "WiFi", "Attached washroom", "Washing machine"],
+                        houseRules: ["Non-smoker", "Vegetarian-friendly", "Overnight guests allowed"],
+                        ownerName: "Priya Sharma",
+                        ownerAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
+                        description: "Bright, airy room with attached balcony in a gated society. Koramangala 4th Block near Sony Signal.",
+                        address: "Koramangala 4th Block, Bengaluru",
+                        ownerId: "demo_priya_sharma",
+                        raw: { deposit: 36000, partnersNeeded: 1, screeningQuestions: ["What are your typical working hours (WFH or office)?", "How long are you planning to stay?"] }
+                    },
+                    {
+                        flatType: "Full flat",
+                        title: "Spacious 2BHK Flat near Metro",
+                        locality: "Indiranagar 100ft Road",
+                        rent: 22000,
+                        deposit: 44000,
+                        moveInDays: 0,
+                        availableFrom: "Now",
+                        roomType: "Full flat",
+                        isFurnished: 1,
+                        isOwnerVerified: 1,
+                        preferredGender: "Any",
+                        matchPct: 82,
+                        id: "demo_listing_rahul",
+                        images: ["https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&auto=format&fit=crop&q=80"],
+                        amenities: ["Furnished", "AC", "WiFi", "Power backup", "Lift"],
+                        houseRules: ["Non-smoker", "Early riser friendly"],
+                        ownerName: "Rahul Verma",
+                        ownerAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+                        description: "2BHK apartment 300 meters from Indiranagar metro station. High speed fiber internet included.",
+                        address: "100ft Road, Indiranagar, Bengaluru",
+                        ownerId: "demo_rahul_verma",
+                        raw: { deposit: 44000, partnersNeeded: 2, screeningQuestions: ["When do you plan to move in?", "Are you okay sharing utility bills equally?"] }
+                    },
+                    {
+                        flatType: "Shared flat",
+                        title: "Cozy 1BHK in HSR Layout Sector 1",
+                        locality: "HSR Layout",
+                        rent: 15000,
+                        deposit: 30000,
+                        moveInDays: 30,
+                        availableFrom: "Within 30 days",
+                        roomType: "Private room",
+                        isFurnished: 0,
+                        isOwnerVerified: 0,
+                        preferredGender: "Female",
+                        matchPct: 75,
+                        id: "demo_listing_sneha",
+                        images: ["https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=600&auto=format&fit=crop&q=80"],
+                        amenities: ["WiFi", "Water 24/7", "Balcony"],
+                        houseRules: ["Vegetarian kitchen", "Non-smoker only"],
+                        ownerName: "Sneha Patel",
+                        ownerAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+                        description: "Quiet residential layout in HSR Sector 1. Clean, safe street with 24/7 security.",
+                        address: "Sector 1, HSR Layout, Bengaluru",
+                        ownerId: "demo_sneha_patel",
+                        raw: { deposit: 30000, partnersNeeded: 1, screeningQuestions: ["Are you a non-smoker?", "Are you comfortable with a vegetarian kitchen?"] }
+                    }
+                ];
+                D = sampleRooms.map(mapRoomToTuple);
+            }
+
             if (!silent) {
-                toast("Loaded sample candidates! Rahul Verma has sent you a connection request.");
+                toast("Loaded sample candidates and rooms! Rahul Verma sent you a request.");
             }
             ub();
             render();
+        }
+        function myApplicationsView() {
+            const apps = (SEEKER_APPS || []).slice();
+            if (!apps.length) {
+                return em(
+                    "No room applications submitted yet",
+                    "When you apply for a room or flat, you can track the host's review, shortlisting, and selection here.",
+                    '<br><button class="pill" data-n="explore" data-cat="1" style="margin:16px auto 0;background:var(--brand);color:#fff;border-color:var(--brand)">🔍 Browse rooms & flats</button>'
+                );
+            }
+            const trustBanner = (ME && ME.ver)
+                ? '<div style="background:#e6fcf5;border:1px solid #c3fae8;border-radius:14px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px"><span style="font-size:24px">🛡️</span><div><b style="color:#0ca678;font-size:14.5px">You are an ID Verified Seeker</b><div style="color:var(--ink2);font-size:13px;margin-top:2px">Your verified badge gives hosts confidence to shortlist and accept your applications faster.</div></div></div>'
+                : '<div style="background:#fff9db;border:1px solid #ffe066;border-radius:14px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px"><div style="display:flex;align-items:center;gap:12px"><span style="font-size:24px">⭐</span><div><b style="color:#d9480f;font-size:14.5px">Boost your acceptance rate by 3x</b><div style="color:var(--ink2);font-size:13px;margin-top:2px">Hosts prioritize verified seekers. Verify your Government ID in under 2 minutes.</div></div></div><button class="pill" data-as="verify" style="background:#f59f00;color:#fff;border-color:#f59f00;cursor:pointer;font-weight:600;padding:0 18px;height:38px">Verify ID now</button></div>';
+
+            let cardsHtml = '';
+            apps.forEach(function (app) {
+                const coverImg = app.listingPhoto
+                    ? '<img src="' + esc(app.listingPhoto) + '" alt="" style="width:100px;height:100px;border-radius:12px;object-fit:cover;flex-shrink:0">'
+                    : '<div style="width:100px;height:100px;border-radius:12px;background:var(--bs);color:var(--brand);display:grid;place-items:center;flex-shrink:0"><svg style="width:36px;height:36px" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M3 11 12 3l9 8v9H3z"/></svg></div>';
+
+                let statusPill = '';
+                let statusDesc = '';
+                let actionButtons = '';
+
+                if (app.status === 'selected') {
+                    statusPill = '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:#ebfbee;color:#2b8a3e;border:1px solid #b2f2bb;font-weight:700;font-size:12px">🟢 Selected · Offer Received</span>';
+                    statusDesc = 'Congratulations! The host has selected you for this room. You can accept or decline this offer.';
+                    actionButtons = '<button class="msgb" data-accept-offer="' + esc(app.id) + '" style="background:#2b8a3e;border-color:#2b8a3e;color:#fff;height:38px;padding:0 18px"><em>Accept Offer</em></button>' +
+                        '<button class="ghb" data-decline-offer="' + esc(app.id) + '" style="height:38px">Decline</button>' +
+                        '<button class="msgb" data-open-host-chat="' + esc(app.ownerId) + '" data-listing-id="' + esc(app.listingId) + '" style="height:38px">' + IC.chat + '<em>Message Host</em></button>';
+                } else if (app.status === 'accepted_by_user') {
+                    statusPill = '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:#e6fcf5;color:#0ca678;border:1px solid #96f2d7;font-weight:700;font-size:12px">✅ Offer Accepted</span>';
+                    statusDesc = 'You accepted the host\'s room offer! Coordinate move-in date and key handover in chat.';
+                    actionButtons = '<button class="msgb" data-open-host-chat="' + esc(app.ownerId) + '" data-listing-id="' + esc(app.listingId) + '" style="height:38px">' + IC.chat + '<em>Chat with Host</em></button>' +
+                        '<button class="ghb" data-view-room-id="' + esc(app.listingId) + '" style="height:38px">View Room</button>';
+                } else if (app.status === 'shortlisted') {
+                    statusPill = '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:#e7f5ff;color:#1c7ed6;border:1px solid #a5d8ff;font-weight:700;font-size:12px">🔵 Shortlisted</span>';
+                    statusDesc = 'Great news! You have been shortlisted by the host. Communication is now unlocked.';
+                    actionButtons = '<button class="msgb" data-open-host-chat="' + esc(app.ownerId) + '" data-listing-id="' + esc(app.listingId) + '" style="height:38px">' + IC.chat + '<em>Message Host</em></button>' +
+                        '<button class="ghb" data-view-room-id="' + esc(app.listingId) + '" style="height:38px">View Room</button>' +
+                        '<button class="ghb" data-withdraw-app="' + esc(app.id) + '" style="height:38px">Withdraw</button>';
+                } else if (app.status === 'pending') {
+                    statusPill = '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:#fff9db;color:#d9480f;border:1px solid #ffe066;font-weight:700;font-size:12px">🟡 Pending Review</span>';
+                    statusDesc = 'The host has received your application and is reviewing candidate profiles.';
+                    actionButtons = '<button class="ghb" data-view-room-id="' + esc(app.listingId) + '" style="height:38px">View Room</button>' +
+                        '<button class="ghb" data-withdraw-app="' + esc(app.id) + '" style="height:38px">Withdraw</button>';
+                } else if (app.status === 'rejected') {
+                    statusPill = '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:#f1f3f5;color:#868e96;font-weight:700;font-size:12px">Declined</span>';
+                    statusDesc = 'The host filled the room with another applicant.';
+                    actionButtons = '<button class="pill" data-n="explore" data-cat="1" style="height:38px;padding:0 16px">Browse similar rooms</button>';
+                } else if (app.status === 'withdrawn') {
+                    statusPill = '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:#f1f3f5;color:#868e96;font-weight:700;font-size:12px">Withdrawn</span>';
+                    statusDesc = 'You withdrew this application.';
+                    actionButtons = '<button class="pill" data-n="explore" data-cat="1" style="height:38px;padding:0 16px">Browse other rooms</button>';
+                } else if (app.status === 'declined_by_applicant') {
+                    statusPill = '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:#f1f3f5;color:#868e96;font-weight:700;font-size:12px">Offer Declined</span>';
+                    statusDesc = 'You declined the selection offer for this room.';
+                    actionButtons = '<button class="pill" data-n="explore" data-cat="1" style="height:38px;padding:0 16px">Browse other rooms</button>';
+                }
+
+                const hostAv = app.ownerAvatar
+                    ? '<img src="' + esc(app.ownerAvatar) + '" alt="" style="width:24px;height:24px;border-radius:50%;object-fit:cover">'
+                    : '<span style="width:24px;height:24px;border-radius:50%;background:var(--bs);display:grid;place-items:center;font-size:11px;font-weight:700">' + esc((app.ownerName || 'H').slice(0, 1)) + '</span>';
+
+                cardsHtml += '<div class="app-card" style="border:1px solid var(--line);border-radius:18px;background:var(--sf);padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.02)">' +
+                    '<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">' +
+                    coverImg +
+                    '<div style="flex:1;min-width:220px">' +
+                    '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">' +
+                    '<h3 style="margin:0;font-size:17px;color:var(--ink)">' + esc(app.listingTitle) + '</h3>' +
+                    statusPill +
+                    '</div>' +
+                    '<div style="font-size:13.5px;color:var(--ink2);margin-bottom:8px">' +
+                    IC.pin + esc(app.listingLocality) + ' · <b>' + fmt(app.listingRent) + '</b>/month' +
+                    '</div>' +
+                    '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);margin-bottom:10px">' +
+                    hostAv +
+                    '<span>Host: <b>' + esc(app.ownerName || 'Host') + '</b></span>' +
+                    '<span style="color:#0ca678;font-size:11.5px;font-weight:600">✓ Verified</span>' +
+                    '<span style="margin-left:auto;font-size:12px;color:var(--ink3)">' + esc(app.appliedAt || 'Applied') + '</span>' +
+                    '</div>' +
+                    '<p style="margin:0 0 14px;font-size:13px;color:var(--ink2);line-height:1.45;background:var(--bs);padding:10px 14px;border-radius:10px">' + statusDesc + '</p>' +
+                    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' + actionButtons + '</div>' +
+                    '</div></div></div>';
+            });
+
+            return '<div class="my-apps-view" style="grid-column:1/-1;max-width:900px;margin:0 auto;width:100%">' +
+                trustBanner +
+                '<div style="display:flex;flex-direction:column;gap:14px">' + cardsHtml + '</div>' +
+                '</div>';
         }
         let render = function () {
             if (disposed)
@@ -1169,10 +1617,12 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 const accCount = (LIVE_CONNS.accepted || []).filter(function (c) { return !c.listingId; }).length;
                 const recvCount = (LIVE_CONNS.received || []).length;
                 const sentCount = (LIVE_CONNS.sent || []).length;
+                const appCount = (SEEKER_APPS || []).filter(function (a) { return a && a.status !== 'withdrawn' && a.status !== 'declined_by_applicant'; }).length;
                 sub = chips([
                     "Accepted" + (accCount ? " (" + accCount + ")" : ""),
                     "Received" + (recvCount ? " (" + recvCount + ")" : ""),
-                    "Sent" + (sentCount ? " (" + sentCount + ")" : "")
+                    "Sent" + (sentCount ? " (" + sentCount + ")" : ""),
+                    "My Room Applications" + (appCount ? " (" + appCount + ")" : "")
                 ]);
             }
             if (RMODE) {
@@ -1186,45 +1636,55 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     ix = allRm.filter(function (i) { return isProfileSaved(RM[i], i); });
                 }
                 else if (N == "connections") {
-                    md = ["acc", "recv", "sent"][S.sub] || "acc";
-                    const connList = S.sub == 0 ? (LIVE_CONNS.accepted || []).filter(function (c) { return !c.listingId; }) : S.sub == 1 ? (LIVE_CONNS.received || []) : (LIVE_CONNS.sent || []);
-                    const connUids = connList.map(function (c) {
-                        return S.sub == 0
-                            ? (c.fromUserId === (authUser ? authUser.uid : '') ? c.toUserId : c.fromUserId)
-                            : S.sub == 1 ? c.fromUserId : c.toUserId;
-                    }).filter(Boolean);
-                    if (connUids.some(function (u) { return String(u).startsWith("demo_"); }) && !RM.some(function (m) { return m && String(m[9]).startsWith("demo_"); })) {
-                        loadDevSampleRoommates(true);
-                    }
-                    const foundIndices = [];
-                    connUids.forEach(function (pUid) {
-                        for (let rIdx = 0; rIdx < RM.length; rIdx++) {
-                            if (RM[rIdx] && RM[rIdx][9] === pUid) {
-                                if (foundIndices.indexOf(rIdx) < 0)
-                                    foundIndices.push(rIdx);
-                                break;
-                            }
+                    if (S.sub == 3) {
+                        h = myApplicationsView();
+                        r = (SEEKER_APPS || []).filter(function (a) { return a && a.status !== 'withdrawn' && a.status !== 'declined_by_applicant'; });
+                        ix = [];
+                    } else {
+                        md = ["acc", "recv", "sent"][S.sub] || "acc";
+                        const connList = S.sub == 0 ? (LIVE_CONNS.accepted || []).filter(function (c) { return !c.listingId; }) : S.sub == 1 ? (LIVE_CONNS.received || []) : (LIVE_CONNS.sent || []);
+                        const connUids = connList.map(function (c) {
+                            return S.sub == 0
+                                ? (c.fromUserId === (authUser ? authUser.uid : '') ? c.toUserId : c.fromUserId)
+                                : S.sub == 1 ? c.fromUserId : c.toUserId;
+                        }).filter(Boolean);
+                        if (connUids.some(function (u) { return String(u).startsWith("demo_"); }) && !RM.some(function (m) { return m && String(m[9]).startsWith("demo_"); })) {
+                            loadDevSampleRoommates(true);
                         }
-                    });
-                    ix = foundIndices;
+                        const foundIndices = [];
+                        connUids.forEach(function (pUid) {
+                            for (let rIdx = 0; rIdx < RM.length; rIdx++) {
+                                if (RM[rIdx] && RM[rIdx][9] === pUid) {
+                                    if (foundIndices.indexOf(rIdx) < 0)
+                                        foundIndices.push(rIdx);
+                                    break;
+                                }
+                            }
+                        });
+                        ix = foundIndices;
+                    }
                 }
-                ix = ix.filter(function (i) { return !!RM[i]; });
-                r = ix;
-                h = ix.map(function (i) { return rc(RM[i], i, md); }).join("");
-                if (N === "explore" && PAGINATION_STATE.roommatesHasMore) {
-                    h += '<div class="lm-wrap" style="grid-column:1/-1;display:flex;justify-content:center;padding:24px 0 32px"><button class="pill" data-act="load-more-rm" style="height:44px;padding:0 24px;border-color:var(--brand);color:var(--brand);font-weight:600">' + (PAGINATION_STATE.roommatesLoading ? 'Loading...' : 'Show more roommates') + '</button></div>';
-                }
-                else if (N === "explore" && ix.length > 0) {
-                    h += '<div class="lm-wrap" style="grid-column:1/-1;display:flex;justify-content:center;padding:24px 0 32px;color:var(--ink2);font-size:13px;font-weight:500"><span>Loaded ' + ix.length + ' roommates</span></div>';
-                }
-                if (N == "connections" && !h) {
-                    const emptyTitles = ["No accepted connections yet", "No received requests", "No pending requests sent"];
-                    const emptyDescs = [
-                        "When someone accepts your connection request, you can message them here.",
-                        "When another roommate wants to connect with you, their request appears here.",
-                        "Connect with compatible roommates to explore living together."
-                    ];
-                    h = em(emptyTitles[S.sub] || "No connections yet", emptyDescs[S.sub] || "People you connect with show up here.", '<br><button class="pill" data-n="explore" style="margin:16px auto 0">Explore roommates</button>');
+                if (N == "connections" && S.sub == 3) {
+                    // h and r already assigned by myApplicationsView
+                } else {
+                    ix = ix.filter(function (i) { return !!RM[i]; });
+                    r = ix;
+                    h = ix.map(function (i) { return rc(RM[i], i, md); }).join("");
+                    if (N === "explore" && PAGINATION_STATE.roommatesHasMore) {
+                        h += '<div class="lm-wrap" style="grid-column:1/-1;display:flex;justify-content:center;padding:24px 0 32px"><button class="pill" data-act="load-more-rm" style="height:44px;padding:0 24px;border-color:var(--brand);color:var(--brand);font-weight:600">' + (PAGINATION_STATE.roommatesLoading ? 'Loading...' : 'Show more roommates') + '</button></div>';
+                    }
+                    else if (N === "explore" && ix.length > 0) {
+                        h += '<div class="lm-wrap" style="grid-column:1/-1;display:flex;justify-content:center;padding:24px 0 32px;color:var(--ink2);font-size:13px;font-weight:500"><span>Loaded ' + ix.length + ' roommates</span></div>';
+                    }
+                    if (N == "connections" && !h) {
+                        const emptyTitles = ["No accepted connections yet", "No received requests", "No pending requests sent"];
+                        const emptyDescs = [
+                            "When someone accepts your connection request, you can message them here.",
+                            "When another roommate wants to connect with you, their request appears here.",
+                            "Connect with compatible roommates to explore living together."
+                        ];
+                        h = em(emptyTitles[S.sub] || "No connections yet", emptyDescs[S.sub] || "People you connect with show up here.", '<br><button class="pill" data-n="explore" style="margin:16px auto 0">Explore roommates</button>');
+                    }
                 }
             }
             else if (ex) {
@@ -1298,7 +1758,12 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             $("h1").textContent = t;
             $("h1").style.display = N == "explore" ? "none" : "block";
             $("hero").style.display = N == "explore" ? "block" : "none";
-            $("n").textContent = (ex || N == "connections") ? (r.length + (RMODE ? (r.length === 1 ? " person" : " people") : (r.length === 1 ? " place" : " places"))) : "";
+            if (N == "connections" && S.sub == 3) {
+                const appCount = (SEEKER_APPS || []).filter(function (a) { return a && a.status !== 'withdrawn' && a.status !== 'declined_by_applicant'; }).length;
+                $("n").textContent = appCount + (appCount === 1 ? " application" : " applications");
+            } else {
+                $("n").textContent = (ex || N == "connections") ? (r.length + (RMODE ? (r.length === 1 ? " person" : " people") : (r.length === 1 ? " place" : " places"))) : "";
+            }
             if (N === "explore") {
                 $("n").textContent += " loaded";
                 $("n").title = "Search, filters and price order apply to loaded results. Load more to expand them.";
