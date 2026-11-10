@@ -8,6 +8,7 @@ on:
   push:
     branches: [main, master]
   pull_request:
+  workflow_call:
 
 jobs:
   rules:
@@ -22,8 +23,29 @@ jobs:
         with:
           node-version: '22'
       - name: Install dependencies
-        run: npm install --prefix app --no-audit --no-fund
+        run: npm ci --prefix app --no-audit --no-fund
+      - name: Type check current application
+        run: npm --prefix app run check
+      - name: Run source regression tests
+        run: npm --prefix app test -- src --maxWorkers=1
+      - name: Install Functions dependencies
+        run: npm ci --prefix app/functions --no-audit --no-fund
+      - name: Validate Functions syntax and regressions
+        run: |
+          npm --prefix app/functions run check
+          node --test app/functions/productionReadiness.functions.node-test.cjs app/functions/privacyCompatibility.node-test.cjs app/functions/accountDeletion.node-test.cjs app/functions/discoveryGateway.node-test.cjs app/functions/accountJobs.node-test.cjs
       - name: Run Firestore rules emulator tests
         run: npm run test:rules
       - name: Run Storage rules emulator tests
         run: npm run test:storage-rules
+      - name: Build current application
+        run: npm --prefix app run build
+      - name: Install isolated workflow test tools
+        run: |
+          npm ci --no-audit --no-fund
+          npm install --global firebase-tools@15.15.0 --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Run independent-user workflow and browser acceptance
+        run: node scripts/run-workflow-emulators.cjs
+      - name: Lint current application
+        run: npm --prefix app run lint

@@ -14,18 +14,31 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    function selfAccountMutable() {
+      return isAuthenticated()
+        && (!exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          || !(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('status', 'active') in ['deleting', 'deleted']));
+    }
+
     // Admin = a document exists at admins/{verified auth email}.
     // The email comes from the Firebase Auth token (server-verified),
     // never from client-supplied data. Bootstrap: create admins/<email>
     // manually in the Firebase console (see docs/security/ADMIN_BOOTSTRAP.md).
-    function isAdmin() {
+    function isStaff() {
       // The conditional keeps anonymous and phone-authenticated requests from
       // evaluating an absent auth/email claim in unrelated allow clauses.
-      return request.auth == null
+      return request.auth == null || request.auth.token.get('email_verified', false) != true
         ? false
-        : exists(/databases/$(database)/documents/admins/$(request.auth.token.get('email', '').lower()));
+        : (exists(/databases/$(database)/documents/admins/$(request.auth.token.get('email', '').lower()))
+          && get(/databases/$(database)/documents/admins/$(request.auth.token.get('email', '').lower())).data.get('active', true) == true
+          && get(/databases/$(database)/documents/admins/$(request.auth.token.get('email', '').lower())).data.get('enabled', true) == true
+          && get(/databases/$(database)/documents/admins/$(request.auth.token.get('email', '').lower())).data.get('role', 'admin').lower() in ['admin', 'moderator']);
     }
 
+    function isAdmin() {
+      return isStaff() && get(/databases/$(database)/documents/admins/$(request.auth.token.get('email', '').lower())).data.get('role', 'admin').lower() == 'admin';
+    }
+    function isModerator() { return isStaff(); }
     function myUserDoc() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
@@ -56,14 +69,19 @@ service cloud.firestore {
         && (!('connectsUsed' in request.resource.data) || request.resource.data.connectsUsed == 0);
     }
 
-    // Public user documents are readable without authentication. Contact PII
-    // must therefore be absent or explicitly blank; real values belong only in
-    // privateUserData/userContacts, whose reads are relationship-gated.
+    // Private source records retain legacy contacts read-only until reviewed
+    // migration. New contact writes belong in privateUserData/userContacts.
     function publicPiiSafe() {
       return (!('phone' in request.resource.data) || request.resource.data.phone == '')
         && (!('email' in request.resource.data) || request.resource.data.email == '')
         && (!('workEmail' in request.resource.data) || request.resource.data.workEmail == '')
         && (!('whatsappNumber' in request.resource.data) || request.resource.data.whatsappNumber == '');
+    }
+
+    function sourceContactUpdateSafe() {
+      let changes = request.resource.data.diff(resource.data);
+      return publicPiiSafe() || (!changes.addedKeys().hasAny(['phone','email','workEmail','whatsappNumber'])
+        && !changes.changedKeys().hasAny(['phone','email','workEmail','whatsappNumber']));
     }
 
     function isPremiumUser() {
@@ -75,19 +93,56 @@ service cloud.firestore {
     // Free tier connection limit (FREE_CONNECT_LIMIT = 5):
     // Non-premium users may send up to 5 connection requests.
     // Server-enforced via the user's connectsUsed counter (strictly immutable downward by the user).
-    function connectionQuotaAvailable() {
-      return !exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        || myUserDoc().get('connectsUsed', 0) < 5;
+    function connectionQuotaAvailable(connectionId) {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && myUserDoc().get('connectsUsed', 0) < 5
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('connectsUsed', 0)
+          == myUserDoc().get('connectsUsed', 0) + 1
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('lastConnectionId', '') == connectionId;
     }
 
     // Users may never decrement their own connectsUsed counter to bypass quota
     function connectsUsedUpdateSafe() {
-      return !('connectsUsed' in request.resource.data)
-        || !('connectsUsed' in resource.data)
-        || request.resource.data.connectsUsed >= resource.data.connectsUsed;
+      return request.resource.data.get('connectsUsed', 0) is int
+        && request.resource.data.get('connectsUsed', 0) >= resource.data.get('connectsUsed', 0);
     }
 
     // Moderation status is immutable except by admins (prevents self-reinstatement).
+    function blockPolicySafe() {
+      let target = request.resource.data.get('lastBlockTarget', '');
+      let previous = resource.data.get('blockedUserIds', []).toSet();
+      let next = request.resource.data.get('blockedUserIds', []).toSet();
+      let oldEpochs = resource.data.get('communicationRevokedAt', {});
+      let epochs = request.resource.data.get('communicationRevokedAt', {});
+      return (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['blockedUserIds', 'communicationRevokedAt']))
+        || (target is string && target.size() > 0
+          && previous.difference(next).hasOnly([target]) && next.difference(previous).hasOnly([target])
+          && epochs.diff(oldEpochs).affectedKeys().hasOnly([target])
+          && ((target in next && epochs[target] == request.time)
+            || (!(target in next) && epochs == oldEpochs)));
+    }
+
+    function personRevocationSafe() {
+      let target = request.resource.data.get('lastDisconnectTarget', '');
+      let previous = resource.data.get('personCommunicationRevokedAt', {});
+      let next = request.resource.data.get('personCommunicationRevokedAt', {});
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['personCommunicationRevokedAt'])
+        || (target is string && target.size() > 0 && target != request.auth.uid
+          && next.diff(previous).affectedKeys().hasOnly([target])
+          && next[target] == request.time);
+    }
+
+    function consentFresh(connection) {
+      let sender = get(/databases/$(database)/documents/users/$(connection.fromUserId)).data;
+      let recipient = get(/databases/$(database)/documents/users/$(connection.toUserId)).data;
+      let created = connection.get('createdAt', timestamp.value(0));
+      return created >= sender.get('communicationRevokedAt', {}).get(connection.toUserId, timestamp.value(0))
+        && created >= recipient.get('communicationRevokedAt', {}).get(connection.fromUserId, timestamp.value(0))
+        && (connection.get('listingId', '') != '' || (
+          created >= sender.get('personCommunicationRevokedAt', {}).get(connection.toUserId, timestamp.value(0))
+          && created >= recipient.get('personCommunicationRevokedAt', {}).get(connection.fromUserId, timestamp.value(0))));
+    }
+
     function statusUnchanged() {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status']);
     }
@@ -117,8 +172,19 @@ service cloud.firestore {
     // Admin override for maintenance and system tasks.
     // Secure because isAdmin() now requires an admins/{email} doc.
     // ─────────────────────────────────────────────────────────────
-    match /{document=**} {
-      allow read, write, delete: if isAdmin();
+    match /{collection}/{document=**} {
+      allow read: if isAdmin();
+      allow write: if isAdmin() && !(collection in ['accountDeletionJobs', 'discoverySignals', 'accountExports', 'broadcasts']);
+    }
+
+    // Only the recent-login service and trusted worker may mutate deletion
+    // jobs/manifests. Even a staff browser cannot forge or complete a job.
+    match /accountExports/{userId} {
+      allow get: if isOwner(userId);
+    }
+
+    match /accountDeletionJobs/{userId} {
+      allow get: if isOwner(userId);
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -140,25 +206,36 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Users: public browse profile — contact PII lives in privateUserData
+    match /discoverySignals/{id} {
+      allow read: if id == 'global';
+    }
+
+    // Users: private source profile — contact PII lives in privateUserData
     match /users/{userId} {
-      allow read: if true;
+      allow read: if isOwner(userId) || isAdmin();
+      allow update: if isModerator() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']) && request.resource.data.status in ['active', 'suspended', 'banned'];
       allow create: if publicPiiSafe() && ((isOwner(userId) && trustFieldsSafeOnCreate()) || isAdmin());
-      allow update: if publicPiiSafe() && (
+      allow update: if sourceContactUpdateSafe() && (
         isAdmin() || (
           isOwner(userId)
+          && selfAccountMutable()
           && trustFieldsUnchanged()
           && statusUnchanged()
+          && blockPolicySafe()
+          && personRevocationSafe()
           && onboardingFlipValid()
           && connectsUsedUpdateSafe()
         )
       );
-      allow delete: if isOwner(userId) || isAdmin();
+      // Account deletion must use the recent-login callable; removing only this
+      // document lets banned users recreate it and reset moderation/quota state.
+      allow delete: if isAdmin();
     }
 
     // Private contact fields (phone, email, workEmail, whatsappNumber) — owner or admin only
     match /privateUserData/{userId} {
-      allow read, write: if isOwner(userId) || isAdmin();
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if (isOwner(userId) && selfAccountMutable()) || isAdmin();
     }
 
     // Authenticated, explicitly opted-in roommate discovery cards. This is a
@@ -219,7 +296,11 @@ service cloud.firestore {
 
     match /publicProfiles/{userId} {
       allow read: if isAuthenticated()
+        && resource.data.keys().hasOnly(['uid', 'displayName', 'city', 'localities', 'roommateDiscoveryEnabled', 'discoverySetupVersion', 'schemaVersion', 'updatedAt', 'avatar', 'ageRange', 'budgetRange'])
         && resource.data.roommateDiscoveryEnabled == true
+        && isActiveUser()
+        && !(userId in myUserDoc().get('blockedUserIds', []))
+        && !(request.auth.uid in get(/databases/$(database)/documents/users/$(userId)).data.get('blockedUserIds', []))
         && discoverySourceActive(userId);
       allow create, update: if isAdmin() || (
         isOwner(userId)
@@ -232,8 +313,10 @@ service cloud.firestore {
     // Server/admin-maintained anonymous listing projection. The source listing
     // remains a private workflow record during the staged migration.
     match /publicListings/{listingId} {
-      allow read: if resource.data.status == 'active'
-        && resource.data.ownerVerified == true;
+      allow read: if resource.data.keys().hasOnly(['id', 'title', 'city', 'locality', 'flatType', 'roomType', 'monthlyRent', 'partnerShare', 'totalRent', 'deposit', 'furnishing', 'images', 'amenities', 'availableFrom', 'status', 'ownerVerified', 'createdAt', 'updatedAt', 'schemaVersion'])
+        && resource.data.status == 'active'
+        && resource.data.ownerVerified == true
+        && get(/databases/$(database)/documents/listings/$(listingId)).data.status == 'active';
       allow write: if isAdmin();
     }
 
@@ -242,13 +325,14 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         isOwner(userId)
         || isAdmin()
-        || exists(/databases/$(database)/documents/acceptedPairs/$(request.auth.uid + '_' + userId))
+        || acceptedPairActive(request.auth.uid, userId)
       );
-      allow write: if isOwner(userId) || isAdmin();
+      allow write: if (isOwner(userId) && selfAccountMutable()) || isAdmin();
     }
 
     // Accepted connection pairing registry — created/updated on connection acceptance
     match /acceptedPairs/{pairId} {
+      allow get: if isAuthenticated() && resource == null;
       allow read: if isAuthenticated() && (
         request.auth.uid == resource.data.user1 ||
         request.auth.uid == resource.data.user2 ||
@@ -277,7 +361,7 @@ service cloud.firestore {
         )
       );
       allow delete: if isAuthenticated()
-        && (request.auth.uid == resource.data.user1 || request.auth.uid == resource.data.user2 || isAdmin());
+        && (resource == null || request.auth.uid == resource.data.user1 || request.auth.uid == resource.data.user2 || isAdmin());
     }
 
     // Listings: public read access so visitors can browse room listings.
@@ -356,7 +440,8 @@ service cloud.firestore {
     }
 
     match /listings/{listingId} {
-      allow read: if true;
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
+      allow update: if isModerator() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']) && request.resource.data.status in ['active', 'paused', 'filled', 'closed', 'pending_verification'];
       allow create: if isAuthenticated()
         && isActiveUser()
         && completedProfileCanCreateListing()
@@ -380,6 +465,7 @@ service cloud.firestore {
           isAuthenticated()
           && isActiveUser()
           && request.auth.uid == resource.data.ownerId
+          && request.resource.data.ownerId == resource.data.ownerId
           && listingStatusValid()
           && ownerVerifiedUnchanged()
           && listingStatusUpdateSafe()
@@ -405,7 +491,7 @@ service cloud.firestore {
     // policy; staleness is enforced by the client guard (isDiscoverable) and
     // documented as a known limitation.
     function connectionListingAttributionValid() {
-      return !('listingId' in request.resource.data) || (
+      return !('listingId' in request.resource.data) || request.resource.data.listingId == null || (
         request.resource.data.listingId is string
         && request.resource.data.listingId.size() > 0
         && request.resource.data.listingId.size() <= 128
@@ -418,6 +504,7 @@ service cloud.firestore {
 
     match /connections/{connectionId} {
       allow read: if isAuthenticated() && (
+        resource == null ||
         request.auth.uid == resource.data.fromUserId ||
         request.auth.uid == resource.data.toUserId ||
         isAdmin()
@@ -426,38 +513,116 @@ service cloud.firestore {
         && isActiveUser()
         && request.resource.data.fromUserId == request.auth.uid
         && request.resource.data.toUserId != request.auth.uid
+        && exists(/databases/$(database)/documents/users/$(request.resource.data.toUserId))
+        && get(/databases/$(database)/documents/users/$(request.resource.data.toUserId)).data.get('status', 'active') == 'active'
+        && !(request.resource.data.toUserId in myUserDoc().get('blockedUserIds', []))
+        && !(request.auth.uid in get(/databases/$(database)/documents/users/$(request.resource.data.toUserId)).data.get('blockedUserIds', []))
         && request.resource.data.status == 'pending'
+        && newPairRequestSerialized(connectionId)
         && connectionListingAttributionValid()
-        && (isAdmin() || isPremiumUser() || connectionQuotaAvailable());
+        && (isAdmin() || isPremiumUser() || connectionQuotaAvailable(connectionId));
       allow update: if isAdmin() || (
         isAuthenticated()
         && (request.auth.uid == resource.data.fromUserId || request.auth.uid == resource.data.toUserId)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && (isActiveUser() || request.resource.data.status == 'blocked')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
         && (
           request.resource.data.status == 'blocked'
-          || (request.auth.uid == resource.data.toUserId && request.resource.data.status in ['accepted', 'rejected'])
+          || (resource.data.status == 'accepted' && request.resource.data.status == 'disconnected')
+          || (resource.data.status == 'pending' && request.auth.uid == resource.data.fromUserId && request.resource.data.status == 'withdrawn')
+          || (resource.data.status == 'pending' && request.resource.data.status == 'superseded')
+          || (resource.data.status == 'pending' && request.auth.uid == resource.data.toUserId
+            && request.resource.data.status in ['accepted', 'rejected']
+            && (request.resource.data.status == 'rejected' || (consentFresh(resource.data)
+              && get(/databases/$(database)/documents/users/$(resource.data.fromUserId)).data.get('status', 'active') == 'active'))
+            && !(resource.data.toUserId in get(/databases/$(database)/documents/users/$(resource.data.fromUserId)).data.get('blockedUserIds', []))
+            && !(resource.data.fromUserId in get(/databases/$(database)/documents/users/$(resource.data.toUserId)).data.get('blockedUserIds', [])))
         )
       );
-      allow delete: if isAuthenticated() && (
-        request.auth.uid == resource.data.fromUserId ||
-        request.auth.uid == resource.data.toUserId ||
-        isAdmin()
-      );
+      allow delete: if isAdmin() || (isAuthenticated()
+        && request.auth.uid == resource.data.fromUserId
+        && resource.data.status == 'pending');
     }
 
     // Chat rooms: only participants or admin can read/write.
     // Creation requires exactly two participants including the caller,
     // and an active (non-suspended) creator.
+    function acceptedPairActive(userA, userB) {
+      let pair = get(/databases/$(database)/documents/acceptedPairs/$(userA + '_' + userB));
+      let connection = pair == null ? null : get(/databases/$(database)/documents/connections/$(pair.data.connectionId));
+      return pair != null && pair.data.user1 == userA && pair.data.user2 == userB
+        && connection != null && connection.data.status == 'accepted' && consentFresh(connection.data);
+    }
+
+    function listingPairActive(userA, userB) {
+      let pair = get(/databases/$(database)/documents/listingPairs/$(userA + '_' + userB));
+      let connection = pair == null ? null : get(/databases/$(database)/documents/connections/$(pair.data.connectionId));
+      return pair != null && pair.data.user1 == userA && pair.data.user2 == userB
+        && connection != null && connection.data.status == 'accepted'
+        && connection.data.get('listingId', '') == pair.data.listingId && consentFresh(connection.data);
+    }
+
+    match /listingPairs/{pairId} {
+      allow read: if isAuthenticated() && (resource == null || request.auth.uid in [resource.data.user1, resource.data.user2]);
+      allow create, update: if isActiveUser()
+        && pairId == request.resource.data.user1 + '_' + request.resource.data.user2
+        && request.auth.uid == getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.toUserId
+        && getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.status == 'accepted'
+        && getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.listingId == request.resource.data.listingId
+        && request.resource.data.user1 in [getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.fromUserId, request.auth.uid]
+        && request.resource.data.user2 in [getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.fromUserId, request.auth.uid]
+        && request.resource.data.user1 != request.resource.data.user2;
+    }
+
+    function newPairRequestSerialized(connectionId) {
+      let a = request.resource.data.fromUserId;
+      let b = request.resource.data.toUserId;
+      return getAfter(/databases/$(database)/documents/connectionPairs/$(a + '___' + b)).data.connectionId == connectionId
+        && getAfter(/databases/$(database)/documents/connectionPairs/$(b + '___' + a)).data.connectionId == connectionId;
+    }
+
+    match /connectionPairs/{key} {
+      allow read: if isAuthenticated() && (resource == null || request.auth.uid in resource.data.participants);
+      allow create, update: if isActiveUser()
+        && request.resource.data.participants.size() == 2
+        && request.auth.uid in request.resource.data.participants
+        && key in [request.resource.data.participants[0] + '___' + request.resource.data.participants[1], request.resource.data.participants[1] + '___' + request.resource.data.participants[0]]
+        && getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.fromUserId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.toUserId in request.resource.data.participants
+        && getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.status == 'pending'
+        && (resource == null || request.resource.data.connectionId == resource.data.connectionId
+          || get(/databases/$(database)/documents/connections/$(resource.data.connectionId)).data.status in ['rejected', 'withdrawn', 'disconnected', 'superseded']
+          || !consentFresh(get(/databases/$(database)/documents/connections/$(resource.data.connectionId)).data));
+    }
+
     function acceptedPairExists(userA, userB) {
-      return exists(/databases/$(database)/documents/acceptedPairs/$(userA + '_' + userB))
-        || exists(/databases/$(database)/documents/acceptedPairs/$(userB + '_' + userA));
+      return acceptedPairActive(userA, userB) || acceptedPairActive(userB, userA);
     }
 
     function chatParticipantsUnchanged() {
       return request.resource.data.participants == resource.data.participants;
     }
 
+    function activeChatParticipants(participants) {
+      let sender = get(/databases/$(database)/documents/users/$(participants[0]));
+      let recipient = get(/databases/$(database)/documents/users/$(participants[1]));
+      return participants is list && participants.size() == 2 && sender != null && recipient != null
+        && sender.data.get('status', 'active') == 'active' && recipient.data.get('status', 'active') == 'active'
+        && !(participants[1] in sender.data.get('blockedUserIds', []))
+        && !(participants[0] in recipient.data.get('blockedUserIds', []))
+        && (listingPairActive(participants[0], participants[1]) || listingPairActive(participants[1], participants[0]) || acceptedPairExists(participants[0], participants[1]));
+    }
+
+    match /conversationPairs/{key} {
+      allow read: if isAuthenticated() && (resource == null || request.auth.uid in resource.data.participants);
+      allow create: if isActiveUser() && request.resource.data.participants.size() == 2
+        && request.auth.uid in request.resource.data.participants
+        && key in [request.resource.data.participants[0] + '___' + request.resource.data.participants[1], request.resource.data.participants[1] + '___' + request.resource.data.participants[0]]
+        && getAfter(/databases/$(database)/documents/chatRooms/$(request.resource.data.roomId)).data.participants.toSet() == request.resource.data.participants.toSet();
+    }
+
     match /chatRooms/{roomId} {
+      allow get: if isAuthenticated() && resource == null;
       allow read: if isAuthenticated() && (request.auth.uid in resource.data.participants || isAdmin());
       allow create: if isAdmin() || (
         isAuthenticated()
@@ -466,14 +631,33 @@ service cloud.firestore {
         && request.resource.data.participants.size() == 2
         && request.resource.data.participants[0] != request.resource.data.participants[1]
         && request.auth.uid in request.resource.data.participants
-        && acceptedPairExists(request.resource.data.participants[0], request.resource.data.participants[1])
+        && activeChatParticipants(request.resource.data.participants)
+        && getAfter(/databases/$(database)/documents/conversationPairs/$(request.resource.data.participants[0] + '___' + request.resource.data.participants[1])).data.roomId == roomId
+        && getAfter(/databases/$(database)/documents/conversationPairs/$(request.resource.data.participants[1] + '___' + request.resource.data.participants[0])).data.roomId == roomId
       );
       allow update: if isAdmin() || (
         isAuthenticated()
         && request.auth.uid in resource.data.participants
         && chatParticipantsUnchanged()
-        && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['lastMessage', 'lastMessageAt', 'typingStatus', 'phoneSharing'])
+        && (
+          (activeChatParticipants(resource.data.participants)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['listingContexts','contextListingId'])
+            && request.resource.data.listingContexts.toSet().difference(resource.data.get('listingContexts', []).toSet()).hasOnly([request.resource.data.contextListingId])
+            && resource.data.get('listingContexts', []).toSet().difference(request.resource.data.listingContexts.toSet()).size() == 0
+            && get(/databases/$(database)/documents/listings/$(request.resource.data.contextListingId)).data.ownerId in resource.data.participants
+            && get(/databases/$(database)/documents/listings/$(request.resource.data.contextListingId)).data.ownerId != request.auth.uid)
+          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unreadBy'])
+            && request.resource.data.unreadBy.diff(resource.data.get('unreadBy', {})).affectedKeys().hasOnly([request.auth.uid])
+            && request.resource.data.unreadBy[request.auth.uid] == 0)
+          || (activeChatParticipants(resource.data.participants)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'lastMessageAt', 'lastMessageId', 'unreadBy'])
+            && request.resource.data.lastMessageAt == request.time
+            && getAfter(/databases/$(database)/documents/chatRooms/$(roomId)/messages/$(request.resource.data.lastMessageId)).data.senderId == request.auth.uid
+            && request.resource.data.lastMessage == (getAfter(/databases/$(database)/documents/chatRooms/$(roomId)/messages/$(request.resource.data.lastMessageId)).data.content == '' ? 'Photo' : getAfter(/databases/$(database)/documents/chatRooms/$(roomId)/messages/$(request.resource.data.lastMessageId)).data.content)
+            && request.resource.data.unreadBy.diff(resource.data.get('unreadBy', {})).affectedKeys().hasOnly([resource.data.participants[0] == request.auth.uid ? resource.data.participants[1] : resource.data.participants[0]])
+            && !exists(/databases/$(database)/documents/chatRooms/$(roomId)/messages/$(request.resource.data.lastMessageId))
+            && request.resource.data.unreadBy[resource.data.participants[0] == request.auth.uid ? resource.data.participants[1] : resource.data.participants[0]] == resource.data.get('unreadBy', {}).get(resource.data.participants[0] == request.auth.uid ? resource.data.participants[1] : resource.data.participants[0], 0) + 1)
+        )
       );
       allow delete: if isAuthenticated() && (request.auth.uid in resource.data.participants || isAdmin());
 
@@ -483,7 +667,14 @@ service cloud.firestore {
         allow create: if isAuthenticated()
           && isActiveUser()
           && (request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(roomId)).data.participants || isAdmin())
-          && request.resource.data.senderId == request.auth.uid;
+          && activeChatParticipants(get(/databases/$(database)/documents/chatRooms/$(roomId)).data.participants)
+          && request.resource.data.senderId == request.auth.uid
+          && getAfter(/databases/$(database)/documents/chatRooms/$(roomId)).data.lastMessageId == messageId
+          && request.resource.data.content is string && request.resource.data.content.size() <= 10000
+          && request.resource.data.get('imageUrl', '') == ''
+          && (request.resource.data.get('imagePath', '') == '' || request.resource.data.imagePath.matches('chats/' + roomId + '/' + request.auth.uid + '/[a-zA-Z0-9-]+'))
+          && (request.resource.data.content.size() > 0 || request.resource.data.get('imagePath', '') != '')
+          && request.resource.data.createdAt == request.time;
         // Participants may mark read; sender may edit own message content; admins unrestricted
         allow update: if isAdmin() || (
           isAuthenticated()
@@ -492,6 +683,7 @@ service cloud.firestore {
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
             || (
               request.auth.uid == resource.data.senderId
+              && activeChatParticipants(get(/databases/$(database)/documents/chatRooms/$(roomId)).data.participants)
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['content', 'editedAt'])
             )
           )
@@ -505,11 +697,15 @@ service cloud.firestore {
     // notifications require a trusted admin/backend path rather than accepting
     // caller-controlled content for arbitrary recipients.
     match /notifications/{notificationId} {
-      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.userId ||
+        request.auth.uid == resource.data.get('actorId', '') ||
+        isAdmin()
+      );
       allow create: if isAdmin() || (
         isActiveUser()
         && request.resource.data.actorId == request.auth.uid
-        && request.resource.data.type in ['match', 'message', 'connect', 'room', 'agreement', 'verification', 'system']
+        && request.resource.data.type in ['match', 'message', 'connect', 'application', 'room', 'agreement', 'verification', 'system']
         && request.resource.data.title is string
         && request.resource.data.title.size() > 0
         && request.resource.data.title.size() <= 160
@@ -518,27 +714,50 @@ service cloud.firestore {
         && request.resource.data.read == false
         && (
           request.resource.data.userId == request.auth.uid
+          || (request.resource.data.type == 'message'
+            && request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(request.resource.data.roomId)).data.participants
+            && request.resource.data.userId in get(/databases/$(database)/documents/chatRooms/$(request.resource.data.roomId)).data.participants
+            && notificationId == request.resource.data.roomId + '_' + request.resource.data.messageId
+            && getAfter(/databases/$(database)/documents/chatRooms/$(request.resource.data.roomId)/messages/$(request.resource.data.messageId)).data.senderId == request.auth.uid
+            && !exists(/databases/$(database)/documents/chatRooms/$(request.resource.data.roomId)/messages/$(request.resource.data.messageId)))
+          || (request.resource.data.type == 'application'
+            && request.auth.uid in [getAfter(/databases/$(database)/documents/applications/$(request.resource.data.applicationId)).data.ownerId, getAfter(/databases/$(database)/documents/applications/$(request.resource.data.applicationId)).data.applicantId]
+            && request.resource.data.userId in [getAfter(/databases/$(database)/documents/applications/$(request.resource.data.applicationId)).data.ownerId, getAfter(/databases/$(database)/documents/applications/$(request.resource.data.applicationId)).data.applicantId]
+            && request.resource.data.userId != request.auth.uid
+            && notificationId == request.resource.data.applicationId + '_' + getAfter(/databases/$(database)/documents/applications/$(request.resource.data.applicationId)).data.status)
           || (
             request.resource.data.type in ['connect', 'match']
             && request.resource.data.connectionId is string
-            && exists(/databases/$(database)/documents/connections/$(request.resource.data.connectionId))
-            && get(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.status in ['pending', 'accepted']
+            && existsAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId))
+            && getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.status in ['pending', 'accepted', 'rejected', 'disconnected']
+            && notificationId == request.resource.data.connectionId + '_' + getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.status
+            && ((getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.status == 'pending' && request.resource.data.title == 'New Connection Request')
+              || (getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.status == 'accepted' && request.resource.data.title == 'Communication accepted')
+              || (getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.status == 'rejected' && request.resource.data.title == 'Request declined')
+              || (getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.status == 'disconnected' && request.resource.data.title == 'Connection disconnected'))
             && (
               (
-                get(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.fromUserId == request.auth.uid
-                && get(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.toUserId == request.resource.data.userId
+                getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.fromUserId == request.auth.uid
+                && getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.toUserId == request.resource.data.userId
               )
               ||
               (
-                get(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.toUserId == request.auth.uid
-                && get(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.fromUserId == request.resource.data.userId
+                getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.toUserId == request.auth.uid
+                && getAfter(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.fromUserId == request.resource.data.userId
               )
             )
           )
         )
       );
-      allow update: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
-      allow delete: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
+      allow update: if isAdmin() || (isAuthenticated()
+        && request.auth.uid == resource.data.userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read is bool);
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.userId ||
+        request.auth.uid == resource.data.get('actorId', '') ||
+        isAdmin()
+      );
     }
 
     // Listing views analytics: record views for analytics.
@@ -571,7 +790,8 @@ service cloud.firestore {
     // Ratings: authenticated users can read all; only create (no update/delete to prevent tampering)
     match /ratings/{ratingId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
+      // Legacy ratings have no reviewed identity/score schema. Use /reviews.
+      allow create: if isAdmin();
     }
 
     // Persisted match records are visible only to their two participants.
@@ -607,7 +827,12 @@ service cloud.firestore {
         && request.resource.data.rating <= 5
         && (!('text' in request.resource.data) || (request.resource.data.text is string && request.resource.data.text.size() <= 1000));
       allow update: if isAdmin()
-        || (isAuthenticated() && request.auth.uid == resource.data.reviewerId);
+        || (isActiveUser() && request.auth.uid == resource.data.reviewerId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'text', 'updatedAt'])
+          && request.resource.data.rating is int
+          && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+          && (!('text' in request.resource.data)
+            || (request.resource.data.text is string && request.resource.data.text.size() <= 1000)));
       allow delete: if isAdmin()
         || (isAuthenticated() && request.auth.uid == resource.data.reviewerId);
     }
@@ -618,10 +843,10 @@ service cloud.firestore {
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
     }
 
-    // Agreement OTPs
+    // OTP secrets must never be disclosed to clients or client-generated.
+    // A future agreement signing service must verify them on the server.
     match /agreementOTPs/{agreementId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow read, write: if false;
     }
 
     // Rent Agreements
@@ -631,19 +856,44 @@ service cloud.firestore {
         request.auth.uid == resource.data.tenantId ||
         isAdmin()
       );
-      allow create: if isAuthenticated();
+      allow create: if isActiveUser()
+        && request.resource.data.keys().hasOnly(['landlordId', 'tenantId', 'title', 'content', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.landlordId == request.auth.uid
+        && request.resource.data.tenantId is string
+        && request.resource.data.tenantId != request.auth.uid
+        && request.resource.data.get('status', 'draft') == 'draft';
       allow update: if isAuthenticated() && (
-        request.auth.uid == resource.data.landlordId ||
-        request.auth.uid == resource.data.tenantId ||
-        isAdmin()
+        isAdmin() || (
+          (request.auth.uid == resource.data.landlordId || request.auth.uid == resource.data.tenantId)
+          && resource.data.get('status', 'draft') == 'draft'
+          && request.resource.data.landlordId == resource.data.landlordId
+          && request.resource.data.tenantId == resource.data.tenantId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'content', 'updatedAt'])
+        )
       );
     }
 
-    // Verifications (User ID Verification uploads) — legacy document-style verifications
+    function privateVerificationSubmissionValid(userId) {
+      return request.resource.data.userId == userId
+        && request.resource.data.get('documentPath', '') is string
+        && request.resource.data.get('documentPath', '').matches('verificationDocs/[^/]+/[^/]+')
+        && request.resource.data.documentPath.split('/')[1] == userId
+        && !('documentUrl' in request.resource.data)
+        && !request.resource.data.keys().hasAny(['reviewedBy', 'reviewedAt', 'reviewNote'])
+        && request.resource.data.get('consentGiven', false) == true;
+    }
+
+    // Owner-keyed private identity submissions, with admin-only decisions.
     match /verifications/{verificationId} {
-      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update: if isAdmin();
+      allow read: if isOwner(verificationId) || isAdmin();
+      allow create: if isActiveUser() && isOwner(verificationId)
+        && privateVerificationSubmissionValid(verificationId)
+        && request.resource.data.status == 'PENDING';
+      allow update: if isAdmin() || (isActiveUser() && isOwner(verificationId)
+        && resource.data.userId == verificationId
+        && resource.data.status in ['REJECTED', 'RESUBMISSION_REQUIRED']
+        && request.resource.data.status == 'PENDING'
+        && privateVerificationSubmissionValid(verificationId));
       allow delete: if isAdmin();
     }
 
@@ -664,6 +914,7 @@ service cloud.firestore {
       allow read: if isOwner(userId) || isAdmin();
       // Owner can create their own submission record
       allow create: if isOwner(userId)
+        && selfAccountMutable()
         && request.resource.data.userId == request.auth.uid
         && ownerVerificationStatusSafeForOwner();
       // Owner can update when submitting/resubmitting
@@ -671,6 +922,8 @@ service cloud.firestore {
       allow update: if isAdmin() ||
         (
           isOwner(userId)
+          && selfAccountMutable()
+          && request.resource.data.userId == userId
           && (resource.data.status == 'REJECTED' || resource.data.status == 'RESUBMISSION_REQUIRED'
               || resource.data.status == 'NOT_STARTED' || resource.data.status == 'SUBMITTED')
           && ownerVerificationStatusSafeForOwner()
@@ -683,7 +936,7 @@ service cloud.firestore {
     // auth token — it cannot be spoofed. Only admins can read or act on
     // reports. Users can never modify or delete moderation records.
     match /reports/{reportId} {
-      allow read: if isAdmin();
+      allow read: if isModerator();
       allow create: if isAuthenticated()
         && isActiveUser()
         && request.resource.data.reporterId == request.auth.uid
@@ -693,7 +946,7 @@ service cloud.firestore {
         && request.resource.data.reason in ['spam', 'spam_or_scam', 'harassment', 'inappropriate', 'inappropriate_behavior', 'fake', 'fake_profile', 'other']
         && (!('description' in request.resource.data) || (request.resource.data.description is string && request.resource.data.description.size() <= 2000))
         && request.resource.data.status == 'pending';
-      allow update, delete: if isAdmin();
+      allow update, delete: if isModerator();
     }
 
     // Public support entry point with a narrow immutable create schema.
@@ -714,14 +967,14 @@ service cloud.firestore {
 
     // Broadcast audit history is administrative data.
     match /broadcasts/{broadcastId} {
-      allow read, write: if isAdmin();
+      allow read: if isAdmin();
     }
 
     // Admins collection
     match /admins/{adminKey} {
       allow read: if isAuthenticated()
         && (('email' in request.auth.token && request.auth.token.email.lower() == adminKey) || isAdmin());
-      allow write: if isAdmin();
+      allow write: if false;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -753,5 +1006,40 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isActiveUser() && validAnalyticsEvent();
       allow update, delete: if false; // immutable — admin cleanup via console/scripts only
     }
+    match /applicationLocks/{key} {
+      allow read: if isAuthenticated() && (resource == null || resource.data.applicantId == request.auth.uid);
+      allow create, update: if isActiveUser() && request.resource.data.applicantId == request.auth.uid
+        && key == request.resource.data.listingId + '___' + request.auth.uid
+        && getAfter(/databases/$(database)/documents/applications/$(request.resource.data.applicationId)).data.applicantId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/applications/$(request.resource.data.applicationId)).data.listingId == request.resource.data.listingId
+        && (resource == null || get(/databases/$(database)/documents/applications/$(resource.data.applicationId)).data.status in ['rejected', 'withdrawn', 'declined_by_applicant']);
+    }
+    match /applications/{applicationId} {
+      allow get: if isAuthenticated() && resource == null;
+      allow read: if isAuthenticated()
+        && (resource.data.ownerId == request.auth.uid || resource.data.applicantId == request.auth.uid);
+      allow create: if isActiveUser() && request.resource.data.applicantId == request.auth.uid
+        && request.resource.data.ownerId != request.auth.uid
+        && get(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.ownerId == request.resource.data.ownerId
+        && get(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.status == 'active'
+        && get(/databases/$(database)/documents/users/$(request.resource.data.ownerId)).data.get('status', 'active') == 'active'
+        && !(request.resource.data.ownerId in myUserDoc().get('blockedUserIds', []))
+        && !(request.auth.uid in get(/databases/$(database)/documents/users/$(request.resource.data.ownerId)).data.get('blockedUserIds', []))
+        && request.resource.data.status == 'pending'
+        && request.resource.data.screeningAnswers is map
+        && request.resource.data.screeningAnswers.size() <= 10
+        && request.resource.data.screeningAnswers.keys().hasAll(get(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.get('screeningQuestions', []))
+        && request.resource.data.screeningAnswers.keys().hasOnly(get(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.get('screeningQuestions', []))
+        && request.resource.data.createdAt == request.time
+        && getAfter(/databases/$(database)/documents/applicationLocks/$(request.resource.data.listingId + '___' + request.auth.uid)).data.applicationId == applicationId;
+      allow update: if isActiveUser() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+        && ((request.auth.uid == resource.data.ownerId
+            && ((resource.data.status in ['pending', 'shortlisted'] && request.resource.data.status in ['shortlisted', 'selected', 'rejected'])
+              || (resource.data.status == 'selected' && request.resource.data.status == 'rejected')))
+          || (request.auth.uid == resource.data.applicantId
+            && ((resource.data.status in ['pending', 'shortlisted', 'selected'] && request.resource.data.status == 'withdrawn')
+              || (resource.data.status == 'selected' && request.resource.data.status == 'declined_by_applicant'))));
+    }
+
   }
 }

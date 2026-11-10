@@ -177,70 +177,8 @@ export async function adminApproveOwnerVerification(
   adminId: string,
   note?: string
 ): Promise<{ listingsUnlocked: number }> {
-  const existing = await getDoc(ownerVerificationRef(userId));
-  const existingTrail = existing.exists() ? (existing.data()?.auditTrail ?? []) : [];
-
-  // 1. Update verification document
-  await setDoc(
-    ownerVerificationRef(userId),
-    {
-      status: 'APPROVED' as OwnerVerificationStatus,
-      reviewedBy: adminId,
-      reviewedAt: serverTimestamp(),
-      reviewNote: note ?? null,
-      updatedAt: serverTimestamp(),
-      auditTrail: [
-        ...existingTrail,
-        { status: 'APPROVED', timestamp: new Date().toISOString(), actorId: adminId, note: note ?? 'Approved' },
-      ],
-    },
-    { merge: true }
-  );
-
-  // 2. Update user trust fields
-  await setDoc(
-    doc(db, 'users', userId),
-    {
-      isVerified: true,
-      verificationLevel: 3,
-      isAadhaarVerified: true,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
-
-  // 3. Unlock all pending_verification listings owned by this user and set ownerVerified=true
-  const [ownerListingsByOwnerId, ownerListingsByUserId] = await Promise.all([
-    getDocs(query(collection(db, 'listings'), where('ownerId', '==', userId))).catch(() => ({ docs: [] })),
-    getDocs(query(collection(db, 'listings'), where('userId', '==', userId))).catch(() => ({ docs: [] })),
-  ]);
-
-  const allDocs = [...ownerListingsByOwnerId.docs, ...ownerListingsByUserId.docs];
-  const seenIds = new Set<string>();
-  let unlocked = 0;
-
-  for (const listingDoc of allDocs) {
-    if (seenIds.has(listingDoc.id)) continue;
-    seenIds.add(listingDoc.id);
-
-    const data = listingDoc.data();
-    if (data.status === 'pending_verification') {
-      await updateDoc(listingDoc.ref, {
-        status: 'active',
-        ownerVerified: true,
-        lastConfirmedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-      unlocked++;
-    } else if (data.ownerVerified !== true) {
-      await updateDoc(listingDoc.ref, {
-        ownerVerified: true,
-        updatedAt: serverTimestamp(),
-      });
-    }
-  }
-
-  return { listingsUnlocked: unlocked };
+  void userId; void adminId; void note;
+  throw new Error('Open the current private submission in /admin for versioned manual review. Identity approval does not publish listings.');
 }
 
 /**

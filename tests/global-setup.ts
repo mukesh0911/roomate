@@ -17,16 +17,14 @@ export default async function globalSetup(config: FullConfig) {
     for (const persona of PERSONAS) {
       const context = await browser.newContext();
       const page = await context.newPage();
-      await page.goto(`${baseURL}/login`, { waitUntil: 'domcontentloaded' });
-
-      const emailInput = page.getByLabel('Email address').first();
-      if (!(await emailInput.isVisible().catch(() => false))) {
-        await page.getByRole('button', { name: /Sign in with Email/i }).first().click();
-      }
+      await page.goto(baseURL, { waitUntil: 'domcontentloaded' });
+      await page.getByRole('link', { name: 'Sign In', exact: true }).filter({ visible: true }).click();
+      const dialog = page.getByRole('dialog');
+      const emailInput = dialog.getByLabel('Email', { exact: true });
       await emailInput.fill(persona.email);
-      await page.getByLabel('Password').first().fill(persona.password);
-      await page.getByRole('button', { name: /Continue with Email/i }).first().click();
-      await page.waitForURL(url => !url.pathname.startsWith('/login'), { timeout: 20_000 });
+      await dialog.getByLabel('Password', { exact: true }).fill(persona.password);
+      await dialog.getByRole('button', { name: 'Sign in with email', exact: true }).click();
+      await page.waitForURL(url => url.pathname === '/explore', { timeout: 20_000 });
 
       // Firebase Auth persists the real emulator session in IndexedDB. The
       // indexedDB option is essential; localStorage-only states are invalid.

@@ -29,6 +29,7 @@ interface LandingNavbarProps {
 export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
   const navigate = useNavigate();
   const { user, profile, logout } = useAuth();
+  const { openAuthModal } = useStore();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
@@ -152,12 +153,13 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
           >
             How It Works
           </button>
-          <Link
-            to="/safety"
-            className="text-xs font-semibold text-[#1E2229]/80 hover:text-[#FF5A36] transition-colors"
+          <button
+            type="button"
+            onClick={() => scrollToSection('trust')}
+            className="text-xs font-semibold text-[#1E2229]/80 hover:text-[#FF5A36] transition-colors cursor-pointer"
           >
             Safety
-          </Link>
+          </button>
           <button
             type="button"
             onClick={() => scrollToSection('community')}
@@ -238,13 +240,13 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
           ) : (
             <>
               <Link
-                to="/login"
+                to="/explore" onClick={(event) => { event.preventDefault(); setMobileMenuOpen(false); openAuthModal(); }}
                 className="px-2.5 py-1.5 text-xs font-semibold text-[#1E2229] hover:text-[#FF5A36] transition-colors"
               >
                 Sign In
               </Link>
               <Link
-                to="/login"
+                to="/explore" onClick={(event) => { event.preventDefault(); setMobileMenuOpen(false); openAuthModal(); }}
                 className="px-5 py-2 rounded-full bg-[#1E2229] text-xs font-semibold text-white hover:bg-black transition-all shadow-xs"
               >
                 Get Started
@@ -454,10 +456,10 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
               <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-[#FF5A36] group-hover:translate-x-0.5 transition-all" />
             </button>
 
-            <Link
-              to="/safety"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-between px-3 py-2.5 rounded-2xl hover:bg-orange-50/70 active:bg-orange-50 text-[#1E2229] hover:text-[#FF5A36] transition-all group cursor-pointer"
+            <button
+              type="button"
+              onClick={() => scrollToSection('trust')}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-2xl hover:bg-orange-50/70 active:bg-orange-50 text-[#1E2229] hover:text-[#FF5A36] transition-all group cursor-pointer text-left"
             >
               <div className="flex items-center gap-3">
                 <div className="w-8.5 h-8.5 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100/60 group-hover:scale-105 transition-transform">
@@ -473,7 +475,7 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-[#FF5A36] group-hover:translate-x-0.5 transition-all" />
-            </Link>
+            </button>
 
             <button
               type="button"
@@ -534,15 +536,13 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
             <>
               <div className="grid grid-cols-2 gap-3">
                 <Link
-                  to="/login"
-                  onClick={() => setMobileMenuOpen(false)}
+                  to="/explore" onClick={(event) => { event.preventDefault(); setMobileMenuOpen(false); openAuthModal(); }}
                   className="py-3 rounded-full border border-gray-300 text-center text-sm font-bold text-[#1E2229] bg-white hover:bg-gray-50 active:scale-[0.99] transition-all shadow-xs"
                 >
                   Sign In
                 </Link>
                 <Link
-                  to="/login"
-                  onClick={() => setMobileMenuOpen(false)}
+                  to="/explore" onClick={(event) => { event.preventDefault(); setMobileMenuOpen(false); openAuthModal(); }}
                   className="py-3 rounded-full bg-[#1E2229] text-white text-center text-sm font-bold shadow-md hover:bg-black active:scale-[0.99] transition-all flex items-center justify-center gap-1.5"
                 >
                   <span>Get Started</span>

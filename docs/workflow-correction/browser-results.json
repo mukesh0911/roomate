@@ -1,0 +1,61 @@
+{
+  "results": [
+    {
+      "name": "Discovery outage shows a retry state and recovers without losing the page",
+      "status": "PASS"
+    },
+    {
+      "name": "Featured Saved persists after reload and opens the actual listing ID",
+      "status": "PASS"
+    },
+    {
+      "name": "Rooms Message requests listing consent; poster accepts in existing Connections UI",
+      "status": "PASS"
+    },
+    {
+      "name": "Accepted consent is Message on room cards and details after reload",
+      "status": "PASS"
+    },
+    {
+      "name": "Roommates reuses listing permission and sends a real message",
+      "status": "PASS"
+    },
+    {
+      "name": "Apply is independent; owner receives the actual questionnaire response",
+      "status": "PASS"
+    },
+    {
+      "name": "Detail navigation preserves query state through browser Back and reload",
+      "status": "PASS"
+    },
+    {
+      "name": "Account export downloads private current-user records through the callable and worker",
+      "status": "PASS"
+    },
+    {
+      "name": "Privacy and announcement settings persist and enforce discovery opt-in",
+      "status": "PASS"
+    },
+    {
+      "name": "Help route stores a real support ticket and denies peer reads",
+      "status": "PASS"
+    },
+    {
+      "name": "Untrusted listing and profile text cannot create delegated action controls",
+      "status": "PASS"
+    },
+    {
+      "name": "Actual detail layout at 390",
+      "status": "PASS"
+    },
+    {
+      "name": "Actual detail layout at 768",
+      "status": "PASS"
+    },
+    {
+      "name": "Actual detail layout at 1440",
+      "status": "PASS"
+    }
+  ],
+  "pageErrors": []
+}

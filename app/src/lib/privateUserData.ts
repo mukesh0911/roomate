@@ -41,39 +41,14 @@ export async function hydrateOwnProfile<T extends { uid: string; phone?: string;
 ): Promise<T> {
   try {
     const priv = await getPrivateUserData(profile.uid);
-    // Migrate legacy public PII once, then clear it from the public users doc
-    const legacyPhone = !priv.phone && profile.phone ? profile.phone : undefined;
-    const legacyEmail = !priv.email && profile.email ? profile.email : undefined;
-    const legacyWork = !priv.workEmail && profile.workEmail ? profile.workEmail : undefined;
-    const legacyWhatsApp = !priv.whatsappNumber && profile.whatsappNumber ? profile.whatsappNumber : undefined;
-    if (legacyPhone || legacyEmail || legacyWork || legacyWhatsApp) {
-      await savePrivateUserData(profile.uid, {
-        ...(legacyPhone ? { phone: legacyPhone } : {}),
-        ...(legacyEmail ? { email: legacyEmail } : {}),
-        ...(legacyWork ? { workEmail: legacyWork } : {}),
-        ...(legacyWhatsApp ? { whatsappNumber: legacyWhatsApp } : {}),
-      });
-      try {
-        await setDoc(
-          doc(db, 'users', profile.uid),
-          { phone: '', email: '', workEmail: '', whatsappNumber: '', updatedAt: serverTimestamp() },
-          { merge: true }
-        );
-      } catch {
-        // Non-fatal — rules or offline may block; next profile save will retry
-      }
-    }
-
-    const refreshed = (legacyPhone || legacyEmail || legacyWork || legacyWhatsApp)
-      ? await getPrivateUserData(profile.uid)
-      : priv;
-
+    // Loading a profile is read-only. Legacy PII cleanup requires an explicitly
+    // approved migration with backup and verification, never a login side effect.
     return {
       ...profile,
-      phone: refreshed.phone ?? profile.phone ?? '',
-      email: refreshed.email ?? profile.email ?? '',
-      workEmail: refreshed.workEmail ?? profile.workEmail ?? '',
-      whatsappNumber: refreshed.whatsappNumber ?? profile.whatsappNumber ?? '',
+      phone: priv.phone ?? profile.phone ?? '',
+      email: priv.email ?? profile.email ?? '',
+      workEmail: priv.workEmail ?? profile.workEmail ?? '',
+      whatsappNumber: priv.whatsappNumber ?? profile.whatsappNumber ?? '',
     };
   } catch (err) {
     console.warn('Failed to hydrate private user data:', err);

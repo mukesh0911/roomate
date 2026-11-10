@@ -12,30 +12,34 @@ export default function LivingOptionsSection() {
       desc: 'Your own space, your rules.',
       image: LANDING_ASSETS.photos.privateRoom,
       filter: { flatType: ['Private Room', '1BHK', 'Studio'] },
+      destination: '/explore?tab=rooms&type=Private+room',
     },
     {
       title: 'Shared Rooms',
       desc: 'Affordable and social.',
       image: LANDING_ASSETS.photos.sharedRoom,
       filter: { flatType: ['Shared Room', '2BHK', '3BHK'] },
+      destination: '/explore?tab=rooms&type=Shared+room',
     },
     {
       title: 'PGs & Hostels',
       desc: 'Managed stays, hassle-free.',
       image: LANDING_ASSETS.photos.pgHostel,
       filter: { flatType: ['PG', 'Hostel'] },
+      destination: '/explore?tab=pg',
     },
     {
       title: 'Coliving Spaces',
       desc: 'Live, work and belong.',
       image: LANDING_ASSETS.photos.colivingSpace,
       filter: { flatType: ['Coliving', 'PG', 'Shared Room'] },
+      destination: '/explore?tab=pg&propertyType=coliving',
     },
   ];
 
   const handleCardClick = (option: typeof options[0]) => {
     updateFilters(option.filter);
-    navigate('/explore?tab=rooms');
+    navigate(option.destination);
   };
 
   return (

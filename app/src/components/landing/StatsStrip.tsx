@@ -42,30 +42,30 @@ export default function StatsStrip() {
 
   const stats = [
     {
-      value: statsData.usersCount !== null && statsData.usersCount > 0
-        ? `${statsData.usersCount.toLocaleString()}+`
-        : 'Active',
-      label: 'Verified Members',
+      value: statsData.usersCount !== null
+        ? `${statsData.usersCount.toLocaleString()}`
+        : '?',
+      label: 'Registered Profiles',
       icon: Users,
       iconBg: 'bg-blue-50 text-blue-600',
     },
     {
-      value: statsData.listingsCount !== null && statsData.listingsCount > 0
-        ? `${statsData.listingsCount.toLocaleString()}+`
-        : 'Available',
-      label: 'Rooms & PGs Listed',
+      value: statsData.listingsCount !== null
+        ? `${statsData.listingsCount.toLocaleString()}`
+        : '?',
+      label: 'Active Listing Records',
       icon: Home,
       iconBg: 'bg-orange-50 text-[#FF5A36]',
     },
     {
-      value: '100%',
-      label: 'Phone Verified Users',
+      value: 'Manual',
+      label: 'Identity Review',
       icon: ShieldCheck,
       iconBg: 'bg-emerald-50 text-emerald-600',
     },
     {
-      value: '15+',
-      label: 'Metro Cities',
+      value: 'By city',
+      label: 'Explore Locations',
       icon: MapPin,
       iconBg: 'bg-teal-50 text-teal-600',
     },

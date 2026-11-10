@@ -20,11 +20,11 @@ export function calculateCompatibility(
   // parseInt('10_to_12') === 10 and parseInt('6_to_8') === 6, which gives a
   // false numeric diff score and completely wrong compatibility results.
   let score = 0;
-  const commonKeys = keysA.filter((k) => keysB.includes(k));
+  const commonKeys = keysA.filter(k => keysB.includes(k));
 
   if (commonKeys.length > 0) {
     // Score = fraction of shared questions where both users gave the exact same answer
-    const matches = commonKeys.filter((k) => answersA[k] === answersB[k]).length;
+    const matches = commonKeys.filter(k => answersA[k] === answersB[k]).length;
     score = Math.round((matches / commonKeys.length) * 100);
   }
   // If there are no common keys (one or both have no answers), score stays 0 — honest.
@@ -52,8 +52,8 @@ export function calculateCompatibility(
  */
 export interface MatchReasons {
   score: number;
-  reasons: string[];      // positive, data-backed reasons
-  caveats: string[];      // honest limitations (missing data etc.)
+  reasons: string[]; // positive, data-backed reasons
+  caveats: string[]; // honest limitations (missing data etc.)
 }
 
 export function getMatchReasons(
@@ -67,19 +67,26 @@ export function getMatchReasons(
     sharedAnswerCount?: number;
   } = {}
 ): MatchReasons {
-  const score = calculateCompatibility(myAnswers, theirAnswers, opts.myCity, opts.theirCity);
+  const score = calculateCompatibility(
+    myAnswers,
+    theirAnswers,
+    opts.myCity,
+    opts.theirCity
+  );
   const reasons: string[] = [];
   const caveats: string[] = [];
 
   // Location — only when both cities are known and equal
   if (opts.myCity && opts.theirCity) {
-    if (opts.myCity.toLowerCase().trim() === opts.theirCity.toLowerCase().trim()) {
+    if (
+      opts.myCity.toLowerCase().trim() === opts.theirCity.toLowerCase().trim()
+    ) {
       reasons.push(`Same city (${opts.myCity})`);
     } else {
-      caveats.push('Different cities');
+      caveats.push("Different cities");
     }
   } else {
-    caveats.push('Location not fully specified');
+    caveats.push("Location not fully specified");
   }
 
   // Budget overlap — only when both budgets are known and positive
@@ -87,20 +94,28 @@ export function getMatchReasons(
   const theirB = opts.theirBudget || 0;
   if (myB > 0 && theirB > 0) {
     const gapPct = Math.abs(myB - theirB) / Math.max(myB, theirB);
-    if (gapPct <= 0.2) reasons.push('Budgets are close');
-    else caveats.push('Budgets differ significantly');
+    if (gapPct <= 0.2) reasons.push("Budgets are close");
+    else caveats.push("Budgets differ significantly");
   } else {
-    caveats.push('Budget not fully specified');
+    caveats.push("Budget not fully specified");
   }
 
   // Lifestyle — count genuinely shared answers (exact string equality only)
-  const commonKeys = Object.keys(myAnswers).filter(k => k in (theirAnswers || {}));
+  const commonKeys = Object.keys(myAnswers).filter(
+    k => k in (theirAnswers || {})
+  );
   if (commonKeys.length > 0) {
-    const shared = commonKeys.filter(k => myAnswers[k] === theirAnswers[k]).length;
-    if (shared > 0) reasons.push(`${shared} lifestyle preference${shared === 1 ? '' : 's'} in common`);
-    if (commonKeys.length < 5) caveats.push('Few overlapping quiz answers — score is low-confidence');
+    const shared = commonKeys.filter(
+      k => myAnswers[k] === theirAnswers[k]
+    ).length;
+    if (shared > 0)
+      reasons.push(
+        `${shared} lifestyle preference${shared === 1 ? "" : "s"} in common`
+      );
+    if (commonKeys.length < 5)
+      caveats.push("Few overlapping quiz answers — score is low-confidence");
   } else {
-    caveats.push('No overlapping quiz answers yet');
+    caveats.push("No overlapping quiz answers yet");
   }
 
   return { score, reasons, caveats };
@@ -147,7 +162,7 @@ export interface ListingMatchSignal {
 export interface OwnerMatchSignal {
   uid?: string;
   role?: string | null;
-  ownerType?: 'owner_flatmate' | 'landlord' | string | null;
+  ownerType?: "owner_flatmate" | "landlord" | string | null;
   city?: string | null;
   isVerified?: boolean;
   workEmailVerified?: boolean;
@@ -181,218 +196,201 @@ export interface RoomMatchBreakdown {
  * 4. House Rules & Habits Alignment (20%)
  * 5. Trust & Verification Signals (15%)
  */
+const norm = (v: unknown): string =>
+  typeof v === "string" ? v.trim().toLowerCase() : "";
+const positive = (v: unknown): number =>
+  Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : 0;
+function areas(p: any): string[] {
+  const values = p.localities || p.housingPreferences?.preferredLocalities;
+  return [
+    ...new Set(
+      [...(Array.isArray(values) ? values : []), p.locality]
+        .map(norm)
+        .filter(Boolean)
+    ),
+  ];
+}
+function roomTypes(p: any): string[] {
+  const values = p.preferredRoomTypes || (p.roomType ? [p.roomType] : []);
+  return (Array.isArray(values) ? values : []).map(norm).filter(Boolean);
+}
+function occupancy(p: any): string {
+  return norm(p.occupancyPreference || p.preferredOccupancy || p.occupancy);
+}
+function actualQuiz(p: any): Record<string, string> {
+  const q = p.quizAnswers || {},
+    result: Record<string, string> = {};
+  const aliases: Record<string, string> = {
+    diet: "food_pref",
+    smoke: "smoking",
+    sleep: "sleep_time",
+    clean: "cleanliness",
+  };
+  const values: Record<string, string> = {
+    vegetarian: "veg",
+    "non-vegetarian": "non_veg",
+    "non-smoker": "never",
+    "very tidy": "very",
+    "night owl": "after_12",
+    "early riser": "before_10",
+  };
+  // The active profile editor writes these aliases; prefer the same values
+  // as the displayed profile when a legacy canonical answer remains.
+  for (const [key, value] of Object.entries(q).sort(
+    ([a], [b]) => Number(a in aliases) - Number(b in aliases)
+  )) {
+    const v = norm(value);
+    if (v) result[aliases[key] || key] = values[v] || v;
+  }
+  return result;
+}
 export function getRoomMatchReasons(
   seeker: SeekerMatchSignal = {},
   listing: ListingMatchSignal = {},
   owner: OwnerMatchSignal = {}
 ): RoomMatchBreakdown {
-  const reasons: string[] = [];
-  const caveats: string[] = [];
-
-  // 1. Budget Fit (Max 25 pts)
-  const rent = listing.partnerShare || listing.monthlyRent || listing.totalRent || 0;
-  const budget = seeker.budget || 0;
-  let budgetScore = 12; // neutral baseline when unstated
-
-  if (rent > 0 && budget > 0) {
-    if (budget >= rent) {
-      budgetScore = 25;
-      reasons.push(`Budget fits (₹${budget.toLocaleString()} accommodates ₹${rent.toLocaleString()} rent)`);
-    } else if (budget >= rent * 0.85) {
-      budgetScore = 20;
-      reasons.push(`Budget is close (within 15% of ₹${rent.toLocaleString()} rent)`);
-    } else if (budget >= rent * 0.75) {
-      budgetScore = 12;
-      caveats.push(`Budget (₹${budget.toLocaleString()}) is below rent (₹${rent.toLocaleString()})`);
-    } else {
-      budgetScore = 0;
-      caveats.push(`Budget (₹${budget.toLocaleString()}) is significantly below rent (₹${rent.toLocaleString()})`);
-    }
-  } else {
-    caveats.push('Budget not fully specified');
-  }
-
-  // 2. Location & Locality Fit (Max 20 pts)
-  const seekerCity = (seeker.city || '').toLowerCase().trim();
-  const listingCity = (listing.city || owner.city || '').toLowerCase().trim();
-  const listingLocality = (listing.locality || '').toLowerCase().trim();
-  let locationScore = 10; // neutral baseline when unstated
-
-  if (seekerCity && listingCity) {
-    if (seekerCity === listingCity) {
-      const seekerLocs = (seeker.localities || []).map(l => (l || '').toLowerCase().trim());
-      if (seeker.locality) seekerLocs.push(seeker.locality.toLowerCase().trim());
-
-      if (listingLocality && seekerLocs.some(loc => loc === listingLocality || listingLocality.includes(loc) || loc.includes(listingLocality))) {
+  const reasons: string[] = [],
+    caveats: string[] = [];
+  const a: any = seeker,
+    b: any = listing;
+  const rent =
+      positive(b.partnerShare) ||
+      positive(b.monthlyRent) ||
+      positive(b.totalRent),
+    budget = positive(a.budget || a.housingPreferences?.budgetMax);
+  let budgetScore = 0,
+    locationScore = 0,
+    genderScore = 0,
+    rulesScore = 0,
+    preferenceScore = 0;
+  if (budget && rent) {
+    budgetScore =
+      budget >= rent
+        ? 25
+        : budget >= rent * 0.85
+          ? 20
+          : budget >= rent * 0.75
+            ? 12
+            : 0;
+    if (budget >= rent) reasons.push("Budget fits");
+    else caveats.push("Budget below rent");
+  } else caveats.push("Budget not fully specified");
+  const ac = norm(a.city),
+    bc = norm(b.city || owner.city),
+    loc = norm(b.locality);
+  if (ac && bc) {
+    if (ac === bc) {
+      locationScore = 14;
+      reasons.push("Same city");
+      if (loc && areas(a).includes(loc)) {
         locationScore = 20;
-        reasons.push(`Same locality (${listing.locality}, ${listing.city || seeker.city})`);
-      } else {
-        locationScore = 14;
-        reasons.push(`Same city (${listing.city || seeker.city})`);
+        reasons.push("Same locality");
       }
-    } else {
-      locationScore = 0;
-      caveats.push(`Different city (${listing.city || 'Listing'} vs ${seeker.city || 'Seeker'})`);
-    }
-  } else {
-    caveats.push('Location not fully specified');
-  }
-
-  // 3. Gender Requirement Fit (Max 20 pts)
-  const genderPref = (listing.genderPreference || owner.householdExpectations?.genderPref || 'any').toLowerCase().trim();
-  const seekerGender = (seeker.gender || '').toLowerCase().trim();
-  let genderScore = 20;
-  let isExplicitGenderMismatch = false;
-
-  if (genderPref === 'female' || genderPref === 'female only') {
-    if (seekerGender === 'female') {
-      genderScore = 20;
-      reasons.push('Matches Female-only requirement');
-    } else if (seekerGender === 'male') {
-      genderScore = 0;
-      isExplicitGenderMismatch = true;
-      caveats.push('Listing specifies Female-only roommates');
-    } else {
-      genderScore = 10;
-      caveats.push('Gender not specified on profile');
-    }
-  } else if (genderPref === 'male' || genderPref === 'male only') {
-    if (seekerGender === 'male') {
-      genderScore = 20;
-      reasons.push('Matches Male-only requirement');
-    } else if (seekerGender === 'female') {
-      genderScore = 0;
-      isExplicitGenderMismatch = true;
-      caveats.push('Listing specifies Male-only roommates');
-    } else {
-      genderScore = 10;
-      caveats.push('Gender not specified on profile');
-    }
-  } else {
-    // Open to any gender
+    } else caveats.push("Different cities");
+  } else caveats.push("Location not fully specified");
+  const gender = norm(
+      b.preferredGender ||
+        b.genderPreference ||
+        owner.householdExpectations?.genderPref
+    ),
+    mine = norm(a.gender);
+  const required = gender.includes("female")
+    ? "female"
+    : gender.includes("male")
+      ? "male"
+      : "";
+  const genderMismatch = !!required && !!mine && mine !== required;
+  if (required && mine) {
+    genderScore = genderMismatch ? 0 : 20;
+    if (genderMismatch) caveats.push("Listing gender requirement differs");
+    else reasons.push("Matches listing gender requirement");
+  } else if (["any", "co-ed", "coed"].includes(gender)) {
     genderScore = 20;
-    if (seekerGender) {
-      reasons.push('Gender open (Any roommate welcome)');
-    }
-  }
-
-  // 4. House Rules & Habits Alignment (Max 20 pts)
-  const rules = (listing.houseRules || []).map(r => (r || '').toLowerCase());
-  const expectations = owner.householdExpectations || {};
-  const seekerQuiz = seeker.quizAnswers || {};
-  let rulesScore = 0;
-
-  // A. Food Norms (5 pts)
-  const isVegOnly = rules.some(r => r.includes('veg') && !r.includes('non-veg') && !r.includes('allowed')) ||
-    expectations.dietPref === 'veg';
-  if (isVegOnly) {
-    if (seekerQuiz.food_pref === 'veg' || seekerQuiz.food_pref === 'vegan') {
+    reasons.push("Listing welcomes any gender");
+  } else caveats.push("Gender requirement not fully specified");
+  const rules = (b.houseRules || []).map(norm),
+    exp = owner.householdExpectations || {},
+    q = actualQuiz(a);
+  const veg =
+    rules.some(
+      (r: string) =>
+        r.includes("veg") && !r.includes("non-veg") && !r.includes("allowed")
+    ) || exp.dietPref === "veg";
+  const smoke =
+    rules.some(
+      (r: string) => r.includes("no smoking") || r.includes("smoke-free")
+    ) || exp.smokingPolicy === "no_smoking";
+  const pets =
+    rules.some((r: string) => r.includes("no pets")) ||
+    exp.petPolicy === "no_pets";
+  if (veg && q.food_pref) {
+    if (["veg", "vegan"].includes(q.food_pref)) {
       rulesScore += 5;
-      reasons.push('Vegetarian matches veg kitchen rule');
-    } else if (seekerQuiz.food_pref === 'non_veg') {
-      caveats.push('Non-vegetarian applying for veg-only kitchen');
-    } else {
-      rulesScore += 3;
-    }
-  } else {
-    rulesScore += 5;
+      reasons.push("Vegetarian matches veg kitchen rule");
+    } else caveats.push("Diet conflicts with veg-only kitchen");
   }
-
-  // B. Smoking Policy (5 pts)
-  const isNoSmoking = rules.some(r => r.includes('no smoking') || r.includes('smoke-free')) ||
-    expectations.smokingPolicy === 'no_smoking';
-  if (isNoSmoking) {
-    if (seekerQuiz.smoking === 'never') {
+  if (smoke && q.smoking) {
+    if (q.smoking === "never") {
       rulesScore += 5;
-      reasons.push('Non-smoker matches smoke-free home');
-    } else if (seekerQuiz.smoking === 'outside') {
-      rulesScore += 3;
-      reasons.push('Smokes outside only');
-    } else if (seekerQuiz.smoking === 'regularly' || seekerQuiz.smoking === 'socially') {
-      caveats.push('Smoking habit conflicts with smoke-free home rule');
-    } else {
-      rulesScore += 3;
-    }
-  } else {
-    rulesScore += 5;
+      reasons.push("Non-smoker matches smoke-free home");
+    } else caveats.push("Smoking habit conflicts with smoke-free home rule");
   }
-
-  // C. Pet Policy (5 pts)
-  const isNoPets = rules.some(r => r.includes('no pets')) || expectations.petPolicy === 'no_pets';
-  if (isNoPets) {
-    if (seekerQuiz.pets === 'no' || seekerQuiz.pets === 'allergic') {
+  if (pets && q.pets) {
+    if (["no", "allergic"].includes(q.pets)) {
       rulesScore += 5;
-      reasons.push('No pets matches building policy');
-    } else if (seekerQuiz.pets === 'love') {
-      rulesScore += 2;
-      caveats.push('Loves pets but listing has no-pets rule');
-    } else {
-      rulesScore += 4;
-    }
-  } else {
-    rulesScore += 5;
+      reasons.push("No pets matches building policy");
+    } else caveats.push("Pet preference conflicts with no-pets rule");
   }
-
-  // D. Lifestyle / Live-in Host Overlap (5 pts)
-  const hostQuiz = listing.ownerQuizAnswers || owner.quizAnswers;
-  if (hostQuiz && Object.keys(hostQuiz).length > 0 && Object.keys(seekerQuiz).length > 0) {
-    const sharedKeys = Object.keys(hostQuiz).filter(k => k in seekerQuiz);
-    if (sharedKeys.length > 0) {
-      const matches = sharedKeys.filter(k => hostQuiz[k] === seekerQuiz[k]).length;
-      const ratio = matches / sharedKeys.length;
-      if (ratio >= 0.5) {
-        rulesScore += 5;
-        reasons.push('Shared lifestyle rhythm with host');
-      } else {
-        rulesScore += Math.round(ratio * 5);
-      }
-    } else {
-      rulesScore += 3;
-    }
-  } else {
-    // Standalone landlord property: general compliance
-    if (seeker.onboardingComplete !== false) {
-      rulesScore += 5;
-    } else {
-      rulesScore += 3;
-    }
+  const host = actualQuiz({
+      quizAnswers: b.ownerQuizAnswers || owner.quizAnswers || {},
+    }),
+    keys = Object.keys(q).filter(k => host[k]);
+  if (keys.length) {
+    const same = keys.filter(k => host[k] === q[k]).length;
+    rulesScore +=
+      (5 * same) /
+      Math.max(5, new Set([...Object.keys(q), ...Object.keys(host)]).size);
+    if (same) reasons.push("Shared lifestyle preferences with host");
   }
-
-  // 5. Trust & Verification (Max 15 pts)
-  let trustScore = 0;
-  if (seeker.isVerified) {
-    trustScore += 10;
-    reasons.push('ID verified resident');
+  if (!rules.length && !Object.keys(host).length)
+    caveats.push("Household preferences not provided");
+  const types = roomTypes(a),
+    type = norm(b.roomType);
+  if (types.length && type) {
+    if (types.includes(type)) {
+      preferenceScore += 8;
+      reasons.push("Preferred room type");
+    } else caveats.push("Room type differs");
+  } else caveats.push("Room preference not fully specified");
+  if (occupancy(a) && occupancy(b)) {
+    if (occupancy(a) === occupancy(b)) preferenceScore += 7;
+    else caveats.push("Occupancy preference differs");
+  } else caveats.push("Occupancy preference not fully specified");
+  let score =
+    budgetScore + locationScore + genderScore + rulesScore + preferenceScore;
+  if (genderMismatch) score = Math.min(40, score);
+  if (ac && bc && ac !== bc) score = Math.min(60, score * 0.6);
+  if (
+    a.onboardingComplete === false ||
+    !(
+      budget ||
+      ac ||
+      mine ||
+      Object.keys(q).length ||
+      types.length ||
+      occupancy(a)
+    )
+  ) {
+    score = 0;
+    caveats.push("Complete your profile for a match");
   }
-  if (seeker.workEmailVerified) {
-    trustScore += 5;
-    reasons.push('Work email verified');
-  }
-  if (trustScore === 0) {
-    caveats.push('Profile not ID verified yet');
-  }
-
-  let totalScore = budgetScore + locationScore + genderScore + rulesScore + trustScore;
-
-  // Hard Constraint: Explicit gender mismatch is capped at 40%
-  if (isExplicitGenderMismatch) {
-    totalScore = Math.min(40, totalScore);
-  }
-
-  // City Mismatch: Cross-city compatibility capped at 60%
-  if (seekerCity && listingCity && seekerCity !== listingCity) {
-    totalScore = Math.min(60, Math.round(totalScore * 0.6));
-  }
-
-  const finalScore = Math.min(100, Math.max(0, Math.round(totalScore)));
-
   return {
-    score: finalScore,
+    score: Math.round(score),
     budgetScore,
     locationScore,
     genderScore,
     rulesScore,
-    trustScore,
+    trustScore: 0,
     reasons,
     caveats,
   };
@@ -402,20 +400,24 @@ export function getRoomMatchReasons(
  * Synthesize comparable quiz tokens from a profile's quizAnswers,
  * householdExpectations, and listing houseRules.
  */
-export function synthesizeQuizFromProfile(profile: any, listing?: any): Record<string, string> {
+export function synthesizeQuizFromProfile(
+  profile: any,
+  listing?: any
+): Record<string, string> {
   const result: Record<string, string> = { ...(profile?.quizAnswers || {}) };
 
   // 1. Household expectations from owner or seeker
   if (profile?.householdExpectations) {
     const exp = profile.householdExpectations;
     if (!result.smoking && exp.smokingPolicy) {
-      result.smoking = exp.smokingPolicy === 'no_smoking' ? 'never' : 'occasionally';
+      result.smoking =
+        exp.smokingPolicy === "no_smoking" ? "never" : "occasionally";
     }
     if (!result.pets && exp.petPolicy) {
-      result.pets = exp.petPolicy === 'no_pets' ? 'no' : 'love';
+      result.pets = exp.petPolicy === "no_pets" ? "no" : "love";
     }
     if (!result.food_pref && exp.dietPref) {
-      result.food_pref = exp.dietPref === 'veg' ? 'veg' : 'non_veg';
+      result.food_pref = exp.dietPref === "veg" ? "veg" : "non_veg";
     }
     if (!result.roommate_gender && exp.genderPref) {
       result.roommate_gender = exp.genderPref;
@@ -426,27 +428,52 @@ export function synthesizeQuizFromProfile(profile: any, listing?: any): Record<s
   if (listing) {
     if (!result.roommate_gender && listing.genderPreference) {
       const gp = listing.genderPreference.toLowerCase();
-      result.roommate_gender = gp.includes('female') ? 'female' : gp.includes('male') ? 'male' : 'any';
+      result.roommate_gender = gp.includes("female")
+        ? "female"
+        : gp.includes("male")
+          ? "male"
+          : "any";
     }
     if (listing.houseRules && Array.isArray(listing.houseRules)) {
-      const rules = listing.houseRules.map((r: string) => (r || '').toLowerCase());
-      if (!result.cleanliness && rules.some((r: string) => r.includes('clean'))) {
-        result.cleanliness = 'very';
+      const rules = listing.houseRules.map((r: string) =>
+        (r || "").toLowerCase()
+      );
+      if (
+        !result.cleanliness &&
+        rules.some((r: string) => r.includes("clean"))
+      ) {
+        result.cleanliness = "very";
       }
-      if (!result.smoking && rules.some((r: string) => r.includes('no smoking') || r.includes('smoke-free'))) {
-        result.smoking = 'never';
+      if (
+        !result.smoking &&
+        rules.some(
+          (r: string) => r.includes("no smoking") || r.includes("smoke-free")
+        )
+      ) {
+        result.smoking = "never";
       }
-      if (!result.pets && rules.some((r: string) => r.includes('no pets'))) {
-        result.pets = 'no';
+      if (!result.pets && rules.some((r: string) => r.includes("no pets"))) {
+        result.pets = "no";
       }
-      if (!result.food_pref && rules.some((r: string) => r.includes('veg') && !r.includes('non-veg'))) {
-        result.food_pref = 'veg';
+      if (
+        !result.food_pref &&
+        rules.some((r: string) => r.includes("veg") && !r.includes("non-veg"))
+      ) {
+        result.food_pref = "veg";
       }
-      if (!result.guests && rules.some((r: string) => r.includes('no parties') || r.includes('no guests'))) {
-        result.guests = 'rarely';
+      if (
+        !result.guests &&
+        rules.some(
+          (r: string) => r.includes("no parties") || r.includes("no guests")
+        )
+      ) {
+        result.guests = "rarely";
       }
     }
-    if (listing.ownerQuizAnswers && typeof listing.ownerQuizAnswers === 'object') {
+    if (
+      listing.ownerQuizAnswers &&
+      typeof listing.ownerQuizAnswers === "object"
+    ) {
       Object.assign(result, listing.ownerQuizAnswers);
     }
   }
@@ -471,23 +498,27 @@ export function calculateProfileCompatibility(
   listing?: any
 ): ProfileMatchResult {
   if (!userA || !userB) {
-    return { score: 0, reasons: [], caveats: ['Profile information unavailable'] };
+    return {
+      score: 0,
+      reasons: [],
+      caveats: ["Profile information unavailable"],
+    };
   }
 
-  const roleA = (userA.role || '').toLowerCase();
-  const roleB = (userB.role || '').toLowerCase();
+  const roleA = (userA.role || "").toLowerCase();
+  const roleB = (userB.role || "").toLowerCase();
 
   // Scenario 1: One user is Seeker and the other has a Listing (or listing provided)
   const isSeekerAndOwnerWithListing =
     listing &&
-    ((roleA === 'seeker' && roleB === 'owner') ||
-      (roleA === 'owner' && roleB === 'seeker') ||
-      roleB === 'owner' ||
-      roleA === 'owner');
+    ((roleA === "seeker" && roleB === "owner") ||
+      (roleA === "owner" && roleB === "seeker") ||
+      roleB === "owner" ||
+      roleA === "owner");
 
   if (isSeekerAndOwnerWithListing) {
-    const seeker = roleA === 'owner' ? userB : userA;
-    const owner = roleA === 'owner' ? userA : userB;
+    const seeker = roleA === "owner" ? userB : userA;
+    const owner = roleA === "owner" ? userA : userB;
     const breakdown = getRoomMatchReasons(seeker, listing, owner);
     return {
       score: breakdown.score,
@@ -496,18 +527,67 @@ export function calculateProfileCompatibility(
     };
   }
 
-  // Scenario 2: Seeker ↔ Seeker OR User ↔ User without active room listing
-  const answersA = synthesizeQuizFromProfile(userA);
-  const answersB = synthesizeQuizFromProfile(userB, listing);
-
-  const reasonsData = getMatchReasons(answersA, answersB, {
-    myCity: userA.city,
-    theirCity: userB.city,
-    myBudget: userA.budget,
-    theirBudget: userB.budget,
-  });
-
-  return reasonsData;
+  // Symmetric weighted fit. Missing data earns no points. Verification is
+  // displayed separately and never inflates lifestyle compatibility.
+  const reasons: string[] = [],
+    caveats: string[] = [];
+  if (userA.onboardingComplete === false || userB.onboardingComplete === false)
+    return {
+      score: 0,
+      reasons,
+      caveats: ["Complete profile information needed"],
+    };
+  let score = 0;
+  const ac = norm(userA.city),
+    bc = norm(userB.city),
+    aa = areas(userA),
+    ba = areas(userB);
+  if (ac && bc) {
+    if (ac === bc) {
+      score += 15;
+      reasons.push("Same city (" + userA.city + ")");
+      if (aa.length && ba.length && aa.some(l => ba.includes(l))) {
+        score += 10;
+        reasons.push("Preferred localities overlap");
+      }
+    } else caveats.push("Different cities");
+  } else caveats.push("Location not fully specified");
+  const ab = positive(userA.budget || userA.housingPreferences?.budgetMax),
+    bb = positive(userB.budget || userB.housingPreferences?.budgetMax);
+  if (ab && bb) {
+    const ratio = Math.min(ab, bb) / Math.max(ab, bb);
+    score += 25 * ratio;
+    if (ratio >= 0.8) reasons.push("Budgets are close");
+    else caveats.push("Budgets differ significantly");
+  } else caveats.push("Budget not fully specified");
+  const aq = actualQuiz(userA),
+    bq = actualQuiz(userB),
+    keys = Object.keys(aq).filter(k => bq[k]),
+    union = new Set([...Object.keys(aq), ...Object.keys(bq)]);
+  if (keys.length) {
+    const same = keys.filter(k => aq[k] === bq[k]).length;
+    score += (30 * same) / Math.max(5, union.size);
+    if (same) reasons.push(same + " lifestyle preferences in common");
+    if (keys.length < 5) caveats.push("Few overlapping quiz answers");
+  } else caveats.push("No overlapping quiz answers yet");
+  const at = roomTypes(userA),
+    bt = roomTypes(userB);
+  if (at.length && bt.length) {
+    if (at.some(t => bt.includes(t))) {
+      score += 10;
+      reasons.push("Room preferences overlap");
+    } else caveats.push("Room preferences differ");
+  } else caveats.push("Room preferences not fully specified");
+  if (occupancy(userA) && occupancy(userB)) {
+    if (occupancy(userA) === occupancy(userB)) score += 10;
+    else caveats.push("Occupancy preferences differ");
+  } else caveats.push("Occupancy preferences not fully specified");
+  if (ac && bc && ac !== bc) score = Math.min(60, score * 0.6);
+  return {
+    score: Math.max(0, Math.min(100, Math.round(score))),
+    reasons,
+    caveats,
+  };
 }
 
 /**
@@ -524,8 +604,11 @@ export function calculateRoomCompatibility(
 /**
  * Get active status based on lastActiveAt timestamp.
  */
-export function getActiveStatus(timestamp: any): { status: 'online' | 'recent' | 'offline'; text: string } {
-  if (!timestamp) return { status: 'offline', text: 'Active a while ago' };
+export function getActiveStatus(timestamp: any): {
+  status: "online" | "recent" | "offline";
+  text: string;
+} {
+  if (!timestamp) return { status: "offline", text: "Active a while ago" };
 
   const lastActive = timestamp.toMillis
     ? timestamp.toMillis()
@@ -539,12 +622,10 @@ export function getActiveStatus(timestamp: any): { status: 'online' | 'recent' |
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
   if (diffMins < 15) {
-    return { status: 'online', text: 'Active now' };
+    return { status: "online", text: "Active now" };
   } else if (diffHours < 24) {
-    return { status: 'recent', text: `Active ${diffHours || 1}h ago` };
+    return { status: "recent", text: `Active ${diffHours || 1}h ago` };
   } else {
-    return { status: 'offline', text: `Active ${diffDays} days ago` };
+    return { status: "offline", text: `Active ${diffDays} days ago` };
   }
 }
-
-

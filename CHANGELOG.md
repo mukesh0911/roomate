@@ -1,5 +1,13 @@
 # NestMate — Changelog
 
+## Repository maintenance - 8 November 2026
+
+- Archived obsolete audit reports, generated screenshots, one-off scripts and unreachable legacy scaffolding outside the repository with a recovery manifest.
+- Reduced browser runtime dependencies to nine and removed the root-package dependency cycle, unused map styles and empty map/chart bundles.
+- Added a current documentation index, architecture boundaries and maintained testing/setup guidance. Current product contracts and release gates remain unchanged.
+- Verified 474 source regressions plus type, lint, production build, Functions and documentation/asset integrity checks. No deployment performed.
+
+
 All notable product and engineering changes after the production baseline.
 
 Format: newest first. Each entry should include what / why / files / testing when material.

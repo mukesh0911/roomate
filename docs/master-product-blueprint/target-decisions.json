@@ -1,0 +1,156 @@
+[
+  {
+    "id": "D01",
+    "status": "Fixed constraint",
+    "topic": "Marketplace purpose",
+    "decision": "Roommate/accommodation discovery, consensual communication and housing follow-up. No hotel booking, payment capture, reservation or legal lease execution is introduced.",
+    "reason": "Keeps the completion model relevant to long-term housing."
+  },
+  {
+    "id": "D02",
+    "status": "Proposed target",
+    "topic": "Shared account with concurrent intents",
+    "decision": "One person may hold find_room, team_up and have_room concurrently. Publishing capability, staff membership, listing stewardship and actual residence are independent.",
+    "reason": "Avoids forced owner/seeker account switching and inferred occupancy."
+  },
+  {
+    "id": "D03",
+    "status": "Proposed target",
+    "topic": "Anonymous versus member discovery",
+    "decision": "Anyone can browse public accommodation. Identifiable roommate discovery requires sign-in plus eligible disclosed profile access; messaging requires active membership and accepted consent.",
+    "reason": "Provides low-friction property discovery while limiting exposure of personal profiles."
+  },
+  {
+    "id": "D04",
+    "status": "Proposed target",
+    "topic": "Category boundaries",
+    "decision": "All listings combines physical Rooms/Flats and PG/Coliving with explicit kind and price unit. People live in Roommates; a person is never recast as a property.",
+    "reason": "The existing tab layout can remain while record identities become unambiguous."
+  },
+  {
+    "id": "D05",
+    "status": "Policy approval required",
+    "topic": "Request allowance",
+    "decision": "The request service exposes configurable allowance/period/remaining/renewal. Proposed MVP default: five distinct new outbound pair requests per UTC calendar month, displayed with the exact local renewal time. Duplicate/reverse pending requests do not consume another unit; withdrawal does not refund automatically. No Pro upsell without a real purchase path.",
+    "reason": "Replaces an unexplained permanent cap with a measurable anti-spam policy. Numeric allowance/period and legacy-counter conversion need explicit approval before implementation."
+  },
+  {
+    "id": "D06",
+    "status": "Proposed target",
+    "topic": "One communication consent per pair",
+    "decision": "Person connection and listing inquiry share one pair consent lifecycle. An inquiry/application keeps its own listing context and stage; acceptance opens communication, not tenancy.",
+    "reason": "Prevents repeated approval gates and conflation of applicant, connection and occupancy states."
+  },
+  {
+    "id": "D07",
+    "status": "Proposed target",
+    "topic": "Messaging and external contact",
+    "decision": "No direct unsolicited chat. Accepted active pairs may message; an existing accepted pair can discuss another listing without re-requesting consent. Phone/address sharing requires separate explicit disclosure and never follows automatically from acceptance.",
+    "reason": "Protects members from unsolicited contact and silent PII release."
+  },
+  {
+    "id": "D08",
+    "status": "Proposed target",
+    "topic": "Roommate eligibility",
+    "decision": "team_up opt-ins may appear as people. have_room requires an available published listing, publisher/resident linkage and explicit residence declaration; find_room alone and commercial publishing alone do not imply roommate discovery. Multiple intents remain independent.",
+    "reason": "Retains a meaningful distinction between a future co-renter, a resident host and a landlord."
+  },
+  {
+    "id": "D09",
+    "status": "Policy approval required",
+    "topic": "Publication and trust",
+    "decision": "Proposed MVP: a new property needs an authorized publisher, complete listing, manual publisher identity approval and explicit listing content approval before public availability. ID approval alone does not activate the property. Existing published records require a reviewed compatibility policy, not automatic removal.",
+    "reason": "Aligns trust promises with reviewed evidence without requiring ID for ordinary browsing or communication."
+  },
+  {
+    "id": "D10",
+    "status": "Proposed target",
+    "topic": "Identity is not property ownership",
+    "decision": "Manual ID review means a supported document was reviewed for the declared person. It is not Aadhaar/UIDAI certification, legal ownership proof, occupancy proof or a guarantee of safety.",
+    "reason": "Prevents misleading trust badges and wrong lifecycle side effects."
+  },
+  {
+    "id": "D11",
+    "status": "Proposed target",
+    "topic": "Independent lifecycle dimensions",
+    "decision": "Publication, availability, account moderation, applicant consideration, communication consent and actual housing outcome have separate authoritative states.",
+    "reason": "An accepted chat or selected candidate cannot fill a listing or verify residence."
+  },
+  {
+    "id": "D12",
+    "status": "Proposed target",
+    "topic": "Stable entity navigation",
+    "decision": "Use persisted IDs, an authorized entity loader and durable route/query state. Feed cursors/tuple positions are never entity identity.",
+    "reason": "Saved records, chats, notifications and shared links work beyond the first discovery page."
+  },
+  {
+    "id": "D13",
+    "status": "Proposed target",
+    "topic": "Truthful discovery",
+    "decision": "Supported city/locality/type/rent/availability filters run against the full supported query scope before pagination. Unknown data stays unknown. Global price order never mixes room/bed/property units without explicit scope.",
+    "reason": "Prevents misleading loaded-page search and invented property facts."
+  },
+  {
+    "id": "D14",
+    "status": "Policy approval required",
+    "topic": "Compatibility scope",
+    "decision": "One versioned evidence model returns score plus known/missing factors. Anonymous/incomplete users get no fabricated match. MVP global orders are Newest and supported unit-specific Rent; any Best match order must state its bounded candidate cohort and ranking version until global ranking is demonstrated.",
+    "reason": "Makes ranking honest and implementable without silently promising a full-database personalized sort. Candidate-window/read budget is a reviewed cost parameter, not an undocumented constant."
+  },
+  {
+    "id": "D15",
+    "status": "Proposed target",
+    "topic": "Public/private disclosure",
+    "decision": "Public listing projection, opted-in member card, private account/contact/preferences and staff-only identity evidence are separate logical records. Accepted access grants only the specified relationship profile, not raw account data.",
+    "reason": "Firestore cannot hide fields within a readable source document."
+  },
+  {
+    "id": "D16",
+    "status": "Proposed target",
+    "topic": "Staff capabilities",
+    "decision": "Separate content moderation, identity review and administrator membership/operations. A Moderator cannot grant staff or read ID documents unless separately authorized as a reviewer.",
+    "reason": "Enforces the purpose of staff distinctions at the authoritative boundary."
+  },
+  {
+    "id": "D17",
+    "status": "Policy approval required",
+    "topic": "Retention and account erasure",
+    "decision": "Approve a record-class retention schedule, peer-history treatment, moderation-evidence exceptions and deletion retry/progress model before enabling erasure. Export is an authenticated private download, not an unfulfilled email promise.",
+    "reason": "Avoids both incomplete erasure and unexplained deletion of another participant’s records. No legal duration is invented here."
+  },
+  {
+    "id": "D18",
+    "status": "Proposed target",
+    "topic": "Unblock and re-request",
+    "decision": "Each person controls only their own directional block. Any remaining block restricts all pair contexts. Removing a block never restores accepted messaging; new explicit consent is required. A declined requester cannot repeatedly reopen requests; the recipient may explicitly reopen or initiate.",
+    "reason": "Prevents harassment and accidental restoration of access."
+  },
+  {
+    "id": "D19",
+    "status": "Policy approval required",
+    "topic": "Expiry and freshness",
+    "decision": "Return explicit expiresAt/reconfirmAt values from reviewed policy. Expired listings leave new discovery; owners can reconfirm only while authorized and otherwise publishable. Pending requests expose their configured expiry; no hidden timer or arbitrary period is assumed.",
+    "reason": "Users understand unavailable inventory and request closure. Durations require operations/product review."
+  },
+  {
+    "id": "D20",
+    "status": "Proposed target",
+    "topic": "Housing completion",
+    "decision": "Members may privately declare team-up agreed, housing found or moved in, with confidence/source labels. Hosts independently confirm availability/filled status. Offer a one-time optional follow-up and update only the intents the member chooses.",
+    "reason": "Closes the real journey without claiming a booking, lease, payment or automatic occupancy."
+  },
+  {
+    "id": "D21",
+    "status": "Fixed constraint",
+    "topic": "Approved visual design",
+    "decision": "Preserve current styling, cards, navigation placements, form rhythm and responsive layout. Change labels, state availability, destinations and feedback only when justified by a workflow defect.",
+    "reason": "This is a behavior and information architecture blueprint, not a visual redesign."
+  },
+  {
+    "id": "D22",
+    "status": "Proposed target",
+    "topic": "Optional/dormant capabilities",
+    "decision": "Map, push, translation, reviews and agreement signing require independent need/readiness decisions. Hide or clearly disable incomplete promises; do not build them solely because code/dependencies exist. Purge/reset no-op controls and fabricated live inventory have no place in member/staff flows.",
+    "reason": "Keeps the core product coherent and limits unnecessary implementation."
+  }
+]

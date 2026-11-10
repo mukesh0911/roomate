@@ -33,3 +33,14 @@ roomate/
 playwright-report/
 test-results/
 tests/.auth/
+
+# Local audits and generated verification output (not application assets)
+/.capture-runtime/
+/artifacts/
+/screenshots/
+/*.png
+/*.jpg
+/app/.workflow-tests/
+/docs/workflow-correction/*.png
+/docs/workflow-correction/*-progress.json
+/docs/workflow-correction/build-output.txt

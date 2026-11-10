@@ -18,12 +18,6 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ],
-      "@contracts/*": [
-        "./contracts/*"
-      ],
-      "@db/*": [
-        "./db/*"
       ]
     },
     "moduleResolution": "bundler",
@@ -41,5 +35,9 @@
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
   ]
 }

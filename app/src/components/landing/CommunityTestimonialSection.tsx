@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { LANDING_ASSETS } from '@/lib/landingAssets';
 
 export default function CommunityTestimonialSection() {
@@ -37,7 +37,7 @@ export default function CommunityTestimonialSection() {
   };
 
   return (
-    <section className="py-10 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-[1280px] mx-auto">
+    <section id="community" className="py-10 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-[1280px] mx-auto">
       <div className="relative w-full rounded-3xl sm:rounded-[36px] bg-[#F7EFE8]/70 border border-[#EADBCE] p-5 sm:p-10 lg:p-12 overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-center">
           {/* Left Column: Quote, User & Rating */}
@@ -47,6 +47,7 @@ export default function CommunityTestimonialSection() {
               “
             </div>
 
+            <p className="text-xs font-semibold text-[#FF5A36] mb-2">Illustrative roommate stories ? not customer testimonials</p>
             {/* Main Testimonial Quote */}
             <blockquote className="text-xl sm:text-3xl lg:text-[32px] font-serif font-medium text-[#1E2229] leading-snug tracking-tight mb-5 sm:mb-8">
               {current.quote}
@@ -92,12 +93,7 @@ export default function CommunityTestimonialSection() {
                 </div>
               </div>
 
-              {/* 5 Stars */}
-              <div className="flex items-center gap-1 text-amber-400">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-amber-400" />
-                ))}
-              </div>
+              <p className="text-xs text-gray-500">Names and scenarios are illustrative.</p>
             </div>
           </div>
 

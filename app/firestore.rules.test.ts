@@ -16,7 +16,7 @@
  * The suite is SKIPPED unless RUN_RULES_TESTS=1 so plain `npm test`
  * never fails due to a missing emulator.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import {
     assertSucceeds,
     assertFails,
@@ -27,10 +27,14 @@ import {
     doc,
     setDoc,
     getDoc,
+    getDocs,
+    query,
+    where,
     collection,
     addDoc,
     updateDoc,
     writeBatch,
+    runTransaction,
     serverTimestamp,
     type Firestore,
 } from 'firebase/firestore';
@@ -96,7 +100,7 @@ async function seedDisabled<T = void>(fn: (db: Firestore) => Promise<T>): Promis
 
 /** Admin context THROUGH THE RULES (requires admins/{email} to exist). */
 function adminDb(): Firestore {
-    return fsOf(env.authenticatedContext('seed-admin', { email: ADMIN_EMAIL }));
+    return fsOf(env.authenticatedContext('seed-admin', { email: ADMIN_EMAIL, email_verified: true }));
 }
 function seekerDb(): Firestore {
     return fsOf(env.authenticatedContext(SEEKER));
@@ -115,6 +119,24 @@ function roleFreeMemberDb(): Firestore {
 }
 function bannedDb(): Firestore {
     return fsOf(env.authenticatedContext('banned-1'));
+}
+
+// Preserve the authorization under test while satisfying atomic quota policy.
+async function createCountedConnection(database: Firestore, data: Record<string, unknown>) {
+    const connection = doc(collection(database, 'connections'));
+    const account = doc(database, 'users', data.fromUserId as string);
+    await runTransaction(database, async transaction => {
+        const current = (await transaction.get(account)).data();
+        if (current?.isPremium !== true) {
+            transaction.update(account, { connectsUsed: (current?.connectsUsed ?? 0) + 1, lastConnectionId: connection.id });
+        }
+        transaction.set(connection, data);
+        const from = data.fromUserId as string, to = data.toUserId as string;
+        const lock = { participants: [from, to], connectionId: connection.id };
+        transaction.set(doc(database, 'connectionPairs', `${from}___${to}`), lock);
+        transaction.set(doc(database, 'connectionPairs', `${to}___${from}`), lock);
+    });
+    return connection;
 }
 
 async function seed() {
@@ -138,10 +160,11 @@ async function seed() {
             uid: DISCOVERABLE, displayName: 'Discoverable', city: 'Chennai', localities: ['Adyar'],
             roommateDiscoveryEnabled: true, discoverySetupVersion: 1, schemaVersion: 1,
         });
+        await setDoc(doc(db, 'listings', 'approved-public-listing'), {ownerId:OWNER,status:'active'});
         await setDoc(doc(db, 'publicListings', 'approved-public-listing'), {
-            ownerId: OWNER, ownerName: 'Owner', title: 'Approved Public Room', city: 'Chennai', locality: 'Adyar',
-            flatType: '2 BHK', furnishing: 'Furnished', totalRent: 24000, partnerShare: 12000, partnersNeeded: 1,
-            amenities: [], houseRules: [], images: [], status: 'active', ownerVerified: true, schemaVersion: 1,
+            title: 'Approved Public Room', city: 'Chennai', locality: 'Adyar',
+            flatType: '2 BHK', furnishing: 'Furnished', totalRent: 24000, partnerShare: 12000,
+            amenities: [], images: [], status: 'active', ownerVerified: true, schemaVersion: 1,
         });
     });
 }
@@ -171,6 +194,13 @@ d('Firestore security rules (emulator)', () => {
         }
     });
 
+    beforeEach(async () => {
+        // Each authorization case starts independently; an earlier pending
+        // request must not make a later negative case pass for the wrong reason.
+        await env.clearFirestore();
+        await seed();
+    });
+
     // ── Connections ────────────────────────────────────────────────
     it('UNAUTHENTICATED user CANNOT create a connection', async () => {
         await assertFails(
@@ -182,7 +212,7 @@ d('Firestore security rules (emulator)', () => {
 
     it('seeker CAN create a pending connection (no listingId — legacy shape)', async () => {
         await assertSucceeds(
-            addDoc(collection(seekerDb(), 'connections'), {
+            createCountedConnection(seekerDb(), {
                 fromUserId: SEEKER, toUserId: OWNER, status: 'pending', createdAt: serverTimestamp(),
             })
         );
@@ -190,7 +220,7 @@ d('Firestore security rules (emulator)', () => {
 
     it('seeker CAN create a connection attributed to a listing OWNED BY THE RECIPIENT', async () => {
         await assertSucceeds(
-            addDoc(collection(seekerDb(), 'connections'), {
+            createCountedConnection(seekerDb(), {
                 fromUserId: SEEKER, toUserId: OWNER, status: 'pending',
                 listingId: 'listing-owned-by-owner', createdAt: serverTimestamp(),
             })
@@ -200,7 +230,7 @@ d('Firestore security rules (emulator)', () => {
     it('ATTACKER CANNOT claim a listing owned by someone else on a connection', async () => {
         // Attacker sends interest to OWNER but attributes OTHER_OWNER's listing.
         await assertFails(
-            addDoc(collection(attackerDb(), 'connections'), {
+            createCountedConnection(attackerDb(), {
                 fromUserId: ATTACKER, toUserId: OWNER, status: 'pending',
                 listingId: 'listing-owned-by-other', createdAt: serverTimestamp(),
             })
@@ -212,7 +242,7 @@ d('Firestore security rules (emulator)', () => {
             await setDoc(doc(db, 'listings', 'listing-closed'), { title: 'Closed Room', ownerId: OWNER, city: 'Chennai', status: 'closed' });
         });
         await assertFails(
-            addDoc(collection(seekerDb(), 'connections'), {
+            createCountedConnection(seekerDb(), {
                 fromUserId: SEEKER, toUserId: OWNER, status: 'pending',
                 listingId: 'listing-closed', createdAt: serverTimestamp(),
             })
@@ -224,7 +254,7 @@ d('Firestore security rules (emulator)', () => {
             await setDoc(doc(db, 'listings', 'listing-paused'), { title: 'Paused Room', ownerId: OWNER, city: 'Chennai', status: 'paused' });
         });
         await assertFails(
-            addDoc(collection(seekerDb(), 'connections'), {
+            createCountedConnection(seekerDb(), {
                 fromUserId: SEEKER, toUserId: OWNER, status: 'pending',
                 listingId: 'listing-paused', createdAt: serverTimestamp(),
             })
@@ -236,7 +266,7 @@ d('Firestore security rules (emulator)', () => {
             await setDoc(doc(db, 'listings', 'listing-filled'), { title: 'Filled Room', ownerId: OWNER, city: 'Chennai', status: 'filled' });
         });
         await assertFails(
-            addDoc(collection(seekerDb(), 'connections'), {
+            createCountedConnection(seekerDb(), {
                 fromUserId: SEEKER, toUserId: OWNER, status: 'pending',
                 listingId: 'listing-filled', createdAt: serverTimestamp(),
             })
@@ -245,7 +275,7 @@ d('Firestore security rules (emulator)', () => {
 
     it('connection with NONEXISTENT listingId is REJECTED', async () => {
         await assertFails(
-            addDoc(collection(seekerDb(), 'connections'), {
+            createCountedConnection(seekerDb(), {
                 fromUserId: SEEKER, toUserId: OWNER, status: 'pending',
                 listingId: 'no-such-listing', createdAt: serverTimestamp(),
             })
@@ -254,7 +284,7 @@ d('Firestore security rules (emulator)', () => {
 
     it('sender CANNOT self-accept their own pending request', async () => {
         const ref = await assertSucceeds(
-            addDoc(collection(seekerDb(), 'connections'), {
+            createCountedConnection(seekerDb(), {
                 fromUserId: SEEKER, toUserId: OWNER, status: 'pending', createdAt: serverTimestamp(),
             })
         );
@@ -271,22 +301,22 @@ d('Firestore security rules (emulator)', () => {
                 name: 'Five Connections Seeker', role: 'seeker', status: 'active',
                 onboardingComplete: true, isPremium: false, connectsUsed: 0,
             });
+            for (let i = 1; i <= 5; i++) {
+                await setDoc(doc(db, 'users', `owner-${i}`), { name: `Owner ${i}`, status: 'active' }, { merge: true });
+            }
         });
         const userDb = fsOf(env.authenticatedContext(USER_FIVE));
         for (let i = 1; i <= 5; i++) {
             await assertSucceeds(
-                addDoc(collection(userDb, 'connections'), {
+                createCountedConnection(userDb, {
                     fromUserId: USER_FIVE, toUserId: `owner-${i}`, status: 'pending', createdAt: serverTimestamp(),
                 })
             );
-            // Simulate counter update on user doc
-            await seedDisabled(async (db) => {
-                await updateDoc(doc(db, 'users', USER_FIVE), { connectsUsed: i });
-            });
+            expect((await getDoc(doc(userDb, 'users', USER_FIVE))).data()?.connectsUsed).toBe(i);
         }
     });
 
-    it('attempting 6th connection via direct Firestore addDoc is REJECTED with PERMISSION_DENIED', async () => {
+    it('attempting 6th connection via an atomic Firestore write is REJECTED with PERMISSION_DENIED', async () => {
         const USER_EXHAUSTED = 'seeker-exhausted';
         await seedDisabled(async (db) => {
             await setDoc(doc(db, 'users', USER_EXHAUSTED), {
@@ -295,9 +325,9 @@ d('Firestore security rules (emulator)', () => {
             });
         });
         const userDb = fsOf(env.authenticatedContext(USER_EXHAUSTED));
-        // Direct Firestore bypass attempt: Calling addDoc on connections
+        // Direct Firestore bypass attempt, including the otherwise valid quota update.
         await assertFails(
-            addDoc(collection(userDb, 'connections'), {
+            createCountedConnection(userDb, {
                 fromUserId: USER_EXHAUSTED, toUserId: OWNER, status: 'pending', createdAt: serverTimestamp(),
             })
         );
@@ -313,7 +343,7 @@ d('Firestore security rules (emulator)', () => {
         });
         const userDb = fsOf(env.authenticatedContext(USER_PREMIUM));
         await assertSucceeds(
-            addDoc(collection(userDb, 'connections'), {
+            createCountedConnection(userDb, {
                 fromUserId: USER_PREMIUM, toUserId: OWNER, status: 'pending', createdAt: serverTimestamp(),
             })
         );
@@ -378,6 +408,14 @@ d('Firestore security rules (emulator)', () => {
         );
     });
 
+    it('legacy contact fields cannot prevent an unrelated profile update or become editable', async () => {
+        await seedDisabled(async db => { await updateDoc(doc(db,'users',SEEKER),{email:'legacy@example.test'}); });
+        await assertSucceeds(updateDoc(doc(seekerDb(),'users',SEEKER),{name:'Updated member'}));
+        await assertFails(updateDoc(doc(seekerDb(),'users',SEEKER),{email:'changed@example.test'}));
+        await assertFails(getDoc(doc(attackerDb(),'users',SEEKER)));
+        await seedDisabled(async db => { await updateDoc(doc(db,'users',SEEKER),{email:''}); });
+    });
+
     it('user CAN clear legacy public PII while updating their profile', async () => {
         await seedDisabled(async (db) => {
             await setDoc(doc(db, 'users', SEEKER), {
@@ -395,7 +433,7 @@ d('Firestore security rules (emulator)', () => {
     it('participant CANNOT fabricate an acceptedPairs record for a pending connection', async () => {
         await seedDisabled(async (db) => {
             await setDoc(doc(db, 'connections', 'pending-pair-attack'), {
-                fromUserId: SEEKER, toUserId: OWNER, status: 'pending', createdAt: Date.now(),
+                fromUserId: SEEKER, toUserId: OWNER, status: 'pending', createdAt: serverTimestamp(),
             });
         });
         await assertFails(setDoc(doc(seekerDb(), 'acceptedPairs', `${SEEKER}_${OWNER}`), {
@@ -406,7 +444,7 @@ d('Firestore security rules (emulator)', () => {
     it('recipient CAN atomically accept a connection and create both directional accepted pairs', async () => {
         await seedDisabled(async (db) => {
             await setDoc(doc(db, 'connections', 'atomic-accept'), {
-                fromUserId: SEEKER, toUserId: OWNER, status: 'pending', createdAt: Date.now(),
+                fromUserId: SEEKER, toUserId: OWNER, status: 'pending', createdAt: serverTimestamp(),
             });
         });
         const db = ownerDb();
@@ -481,15 +519,20 @@ d('Firestore security rules (emulator)', () => {
     it('accepted participant CAN create a two-person chat', async () => {
         await seedDisabled(async (db) => {
             await setDoc(doc(db, 'connections', 'accepted-chat-connection'), {
-                fromUserId: SEEKER, toUserId: OWNER, status: 'accepted', createdAt: Date.now(),
+                fromUserId: SEEKER, toUserId: OWNER, status: 'accepted', createdAt: serverTimestamp(),
             });
             await setDoc(doc(db, 'acceptedPairs', `${SEEKER}_${OWNER}`), {
                 user1: SEEKER, user2: OWNER, connectionId: 'accepted-chat-connection', createdAt: Date.now(),
             });
         });
-        await assertSucceeds(setDoc(doc(seekerDb(), 'chatRooms', 'accepted-room'), {
+        const database = seekerDb(), batch = writeBatch(database);
+        batch.set(doc(database, 'chatRooms', 'accepted-room'), {
             participants: [SEEKER, OWNER], createdAt: serverTimestamp(), lastMessage: '', lastMessageAt: null,
-        }));
+        });
+        for (const key of [`${SEEKER}___${OWNER}`, `${OWNER}___${SEEKER}`]) {
+            batch.set(doc(database, 'conversationPairs', key), { participants: [SEEKER, OWNER], roomId: 'accepted-room' });
+        }
+        await assertSucceeds(batch.commit());
     });
 
     it('chat participant CANNOT add a third participant', async () => {
@@ -506,13 +549,44 @@ d('Firestore security rules (emulator)', () => {
     it('chat participant CANNOT spoof another message sender', async () => {
         await seedDisabled(async (db) => {
             await setDoc(doc(db, 'chatRooms', 'message-room'), { participants: [SEEKER, OWNER] });
+            await setDoc(doc(db, 'connections', 'message-accepted'), { fromUserId: SEEKER, toUserId: OWNER, status: 'accepted' });
+            await setDoc(doc(db, 'acceptedPairs', `${SEEKER}_${OWNER}`), { user1: SEEKER, user2: OWNER, connectionId: 'message-accepted' });
         });
         await assertFails(addDoc(collection(seekerDb(), 'chatRooms', 'message-room', 'messages'), {
             senderId: OWNER, content: 'spoofed', read: false, createdAt: serverTimestamp(),
         }));
-        await assertSucceeds(addDoc(collection(seekerDb(), 'chatRooms', 'message-room', 'messages'), {
+        const database = seekerDb(), message = doc(collection(database, 'chatRooms', 'message-room', 'messages'));
+        const batch = writeBatch(database);
+        batch.set(message, {
             senderId: SEEKER, content: 'authentic', read: false, createdAt: serverTimestamp(),
-        }));
+        });
+        batch.update(doc(database, 'chatRooms', 'message-room'), {
+            lastMessageId: message.id, lastMessage: 'authentic', lastMessageAt: serverTimestamp(), unreadBy: { [OWNER]: 1 },
+        });
+        await assertSucceeds(batch.commit());
+    });
+
+    it('owner and applicant can query their applications; unrelated principals cannot', async () => {
+        await seedDisabled(async database => {
+            await setDoc(doc(database, 'applications', 'query-fixture'), {
+                listingId: 'listing-owned-by-owner', ownerId: OWNER, applicantId: SEEKER, status: 'pending',
+            });
+        });
+        const owner = fsOf(env.authenticatedContext(OWNER));
+        const owned = await assertSucceeds(getDocs(query(collection(owner, 'applications'), where('ownerId', '==', OWNER))));
+        const applied = await assertSucceeds(getDocs(query(collection(seekerDb(), 'applications'), where('applicantId', '==', SEEKER))));
+        expect(owned.docs.map(record => record.id)).toEqual(['query-fixture']);
+        expect(applied.docs.map(record => record.id)).toEqual(['query-fixture']);
+        await assertFails(getDocs(query(collection(attackerDb(), 'applications'), where('ownerId', '==', OWNER))));
+        await assertFails(getDoc(doc(attackerDb(), 'applications', 'query-fixture')));
+    });
+
+    it('new accounts can persist private fields before their initial public profile', async () => {
+        const uid = 'fresh-private-first';
+        const database = fsOf(env.authenticatedContext(uid));
+        await assertSucceeds(setDoc(doc(database, 'privateUserData', uid), { email: 'fixture@example.test' }));
+        await assertSucceeds(setDoc(doc(database, 'users', uid), { name: 'New member', status: 'active' }));
+        await assertSucceeds(getDoc(doc(database, 'privateUserData', uid)));
     });
 
     // Notification integrity
@@ -694,7 +768,7 @@ d('Firestore security rules (emulator)', () => {
             );
         });
 
-        it('an approved active listing remains publicly visible', async () => {
+        it('an approved active source listing remains private', async () => {
             const listingId = 'approved-public-listing';
             await seedDisabled(async (db) => {
                 await setDoc(doc(db, 'listings', listingId), {
@@ -703,7 +777,7 @@ d('Firestore security rules (emulator)', () => {
                 });
             });
             const anonDb = env.unauthenticatedContext().firestore() as unknown as Firestore;
-            await assertSucceeds(getDoc(doc(anonDb, 'listings', listingId)));
+            await assertFails(getDoc(doc(anonDb, 'listings', listingId)));
         });
 
         it('anonymous callers CANNOT read authenticated discovery cards', async () => {

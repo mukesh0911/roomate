@@ -1,92 +1,51 @@
-# 🏠 NestMate — Roommate & Room Discovery Platform
+# NestMate
 
-> **Version**: 1.0.0-rc1  
-> **Status**: Production Release Candidate (RC1)  
-> **Stack**: React 19, TypeScript 5, Vite 7, Tailwind CSS, Firebase (Auth, Firestore, Storage)
+Room and roommate discovery with consent-based messaging and independent listing applications.
 
----
+Implementation is in progress. [Current acceptance and remaining work](docs/workflow-correction/ACCEPTANCE_STATUS.md) is the release-status source of truth. Local verification does not authorize deployment or production migrations.
 
-## 📌 Overview
+## Project layout
 
-NestMate is a compatibility-based roommate matching and room discovery platform built specifically for young professionals and students in urban India.
+| Location | Responsibility |
+| --- | --- |
+| `app/src/` | React routes, components, hooks, domain helpers and Firebase client adapters. |
+| `app/functions/` | Trusted discovery, account jobs and gated deletion services. |
+| `app/public/` | Referenced application assets and public metadata. |
+| `app/firestore.rules`, `app/storage.rules` | Database and file authorization. |
+| `tests/` | Independent-user integration fixtures, API and browser suites. |
+| `scripts/` | Maintained build and isolated verification runners. |
+| `docs/` | Architecture, setup, product contracts and current acceptance. |
+| `.github/workflows/` | Validation and deployment gates. |
 
-### Key Features
-- **Compatibility-Based Matching**: Transparent compatibility scoring based on lifestyle preferences, habits, budget, and location.
-- **Verified Property Listings**: Detailed property posts with multi-photo carousels, amenity tags, and verified owner trust badges.
-- **Real-Time Communication**: In-app real-time chat with typing indicators, photo attachments, and controlled phone number exchange.
-- **Privacy & PII Protection**: Client-side PII isolation architecture keeping phone/email numbers in owner-accessible collection stores.
-- **Interactive Map Search**: Leaflet-powered geolocation map view of available rooms and potential flatmates.
-- **Admin Moderation Portal**: Multi-tab management for user verifications, listing reviews, user safety reports, and system broadcasts.
+See the [documentation index](docs/README.md), [system architecture](docs/architecture/SYSTEM_ARCHITECTURE.md), and [testing guide](docs/testing/README.md).
 
----
+## Develop
 
-## 🛠️ Technology Stack
+Use Node.js 22. Install the three package boundaries from the repository root:
 
-| Layer | Technology |
-|-------|-----------|
-| **Frontend Framework** | React 19.x (TypeScript 5.9) |
-| **Build System** | Vite 7.x (Code-split vendor chunks) |
-| **Styling** | Tailwind CSS 3.x + shadcn/ui primitives |
-| **State Management** | Zustand 5.x |
-| **Backend & Database** | Cloud Firestore + Firebase Authentication + Firebase Storage |
-| **Mapping & Geocoding** | Leaflet + Nominatim OpenStreetMap API |
-| **Testing** | Vitest 4.x (Unit tests for core logic) |
-| **Deployment** | Firebase Hosting (SPA rewrites, CDN) |
-
----
-
-## 📚 Documentation Index
-
-All technical, architecture, and operational documentation is organized in `docs/`:
-
-### 🏗️ Architecture & Database
-- [System Architecture](docs/architecture/SYSTEM_ARCHITECTURE.md) — System components, security model, PII isolation architecture, and state flow.
-- [Database Schema](docs/architecture/DATABASE_SCHEMA.md) — Firestore collection specifications, field types, security rules, and index definitions.
-- [Known Limitations](docs/architecture/KNOWN_LIMITATIONS.md) — Technical, product, and architectural constraints.
-
-### 🔌 API Reference
-- [API & Hooks Reference](docs/api/API_REFERENCE.md) — Documentation of custom React hooks (`useAuth`, `useMatches`, `useListings`, `useChat`, `useAdmin`, `useUserProfile`).
-
-### 🚀 Deployment & Setup
-- [Environment Setup](docs/deployment/ENVIRONMENT_SETUP.md) — Prerequisites, environment variables, local setup, and emulator config.
-- [Deployment Guide](docs/deployment/DEPLOYMENT_GUIDE.md) — Firebase build scripts, hosting release commands, CI/CD, and rollback steps.
-
-### 📋 Technical Debt & Changelog
-- [Technical Debt](TECHNICAL_DEBT.md) — Open debt register, paid-down items, and maintainability priorities.
-- [Changelog](CHANGELOG.md) — Version history and release notes.
-
-### 📁 RC1 Engineering Archive
-- [RC1 Release Checklist](docs/archive/rc1/RC1_RELEASE_CHECKLIST.md) — Feature QA pass/fail matrix, known issues, and manual QA guide.
-- [Final Release Report](docs/archive/rc1/FINAL_RELEASE_REPORT.md) — Final engineering sign-off report.
-- [Launch Checklist](docs/archive/rc1/LAUNCH_CHECKLIST.md) — Day-of-launch operational go/no-go checklist.
-- [Feature Roadmap](docs/archive/rc1/FEATURE_ROADMAP.md) — Post-v1 feature roadmap and backlog.
-- [Mobile Design Audit](docs/archive/rc1/MOBILE_DESIGN_AUDIT.md) — Mobile UX and responsive design evaluation.
-- [Project Status](docs/archive/rc1/PROJECT_STATUS.md) — Milestone completion and component status.
-
----
-
-## ⚡ Quick Start
-
-```bash
-# 1. Change directory to the app folder
-cd app
-
-# 2. Install dependencies
-npm install
-
-# 3. Create app/.env.local with Firebase credentials
-# (See docs/deployment/ENVIRONMENT_SETUP.md for details)
-
-# 4. Start local development server
-npm run dev
-
-# 5. Run test suite
-npm test
+```powershell
+npm.cmd ci
+npm.cmd --prefix app ci
+npm.cmd --prefix app/functions ci
+npm.cmd --prefix app run dev
 ```
 
----
+Follow [environment setup](docs/deployment/ENVIRONMENT_SETUP.md). Keep real credentials outside version control.
 
-## 📜 License
+## Verify
 
-Private & Proprietary. All rights reserved. NestMate Team 2026.
+```powershell
+npm.cmd --prefix app run check
+npm.cmd --prefix app run lint
+npm.cmd --prefix app test -- src --maxWorkers=1
+npm.cmd --prefix app run build
+npm.cmd --prefix app/functions run check
+node scripts/run-workflow-emulators.cjs
+node scripts/run-workflow-emulators.cjs --regressions
+```
 
+The workflow suite uses local demo emulators. Firebase CLI 15.15.0, Java 21+ and Playwright Chromium are required. Run reset-capable suites sequentially. See the testing guide for Functions tests and evidence boundaries.
+
+Account deletion remains disabled pending coverage and operational acceptance. Application selection never reserves or fills a listing. Person consent, listing consent and applications remain separate.
+
+Private and proprietary. NestMate Team, 2026.

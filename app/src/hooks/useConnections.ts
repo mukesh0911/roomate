@@ -19,6 +19,12 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
+  sendConnectionRequestBackend,
+  updateConnectionStatusBackend,
+  withdrawConnectionRequestBackend,
+  getConnectedUserWhatsApp as getConnectedUserWhatsAppBackend,
+} from '@/lib/nestmateBackend';
+import {
   FREE_CONNECT_LIMIT,
   findExistingConnectionId,
   countConnectionsSince,
@@ -98,60 +104,7 @@ export function useConnections() {
       toId: string,
       opts?: { listingId?: string; screeningAnswers?: Record<string, any> }
     ): Promise<string> => {
-      if (fromId === toId) throw new Error("Cannot connect with yourself");
-
-      const q = query(
-        collection(db, 'connections'),
-        where('fromUserId', '==', fromId),
-        where('toUserId', '==', toId)
-      );
-      const existing = await getDocs(q);
-      const q2 = query(
-        collection(db, 'connections'),
-        where('fromUserId', '==', toId),
-        where('toUserId', '==', fromId)
-      );
-      const existing2 = await getDocs(q2);
-
-      const allDocs = [...existing.docs, ...existing2.docs];
-      if (allDocs.length > 0) {
-        // Return existing connection id if already exists (accepted or pending)
-        const activeDoc = allDocs.find(d => d.data().status === 'accepted' || d.data().status === 'pending');
-        return activeDoc ? activeDoc.id : allDocs[0].id;
-      }
-
-      // Pre-check quota before dispatching
-      const userSnap = await getDoc(doc(db, 'users', fromId));
-      const userData = userSnap.exists() ? userSnap.data() : null;
-      const isPremium = userData?.isPremium === true;
-      const currentConnectsUsed = userData?.connectsUsed ?? 0;
-
-      if (!isPremium && currentConnectsUsed >= FREE_CONNECT_LIMIT) {
-        throw new Error(`Free connection limit reached (${FREE_CONNECT_LIMIT}/${FREE_CONNECT_LIMIT}). Upgrade to NestMate Pro for unlimited connections.`);
-      }
-
-      // Only attach listingId when provided AND non-empty; rules validate ownership.
-      const listingId = opts?.listingId?.trim();
-      const screeningAnswers = opts?.screeningAnswers;
-
-      // Atomically create connection record AND increment user's connectsUsed counter
-      const batch = writeBatch(db);
-      const connRef = doc(collection(db, 'connections'));
-      batch.set(connRef, {
-        fromUserId: fromId,
-        toUserId: toId,
-        status: 'pending',
-        createdAt: serverTimestamp(),
-        ...(listingId ? { listingId } : {}),
-        ...(screeningAnswers ? { screeningAnswers } : {}),
-      });
-      batch.set(doc(db, 'users', fromId), {
-        connectsUsed: increment(1),
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-      await batch.commit();
-
-      return connRef.id;
+      return sendConnectionRequestBackend(toId, opts?.listingId, opts?.screeningAnswers);
     },
     []
   );
@@ -197,70 +150,22 @@ export function useConnections() {
 
   /** Accept a connection request */
   const acceptRequest = useCallback(async (connectionId: string) => {
-    const snap = await getDoc(doc(db, 'connections', connectionId));
-    if (!snap.exists()) throw new Error('Connection request not found.');
-    const { fromUserId, toUserId } = snap.data();
-    if (!fromUserId || !toUserId) throw new Error('Connection participants are invalid.');
-
-    // One atomic state transition. Firestore rules validate each acceptedPairs
-    // document against the post-batch accepted connection via getAfter().
-    const batch = writeBatch(db);
-    batch.update(doc(db, 'connections', connectionId), { status: 'accepted' });
-    batch.set(doc(db, 'acceptedPairs', `${fromUserId}_${toUserId}`), {
-      user1: fromUserId,
-      user2: toUserId,
-      connectionId,
-      createdAt: serverTimestamp(),
-    });
-    batch.set(doc(db, 'acceptedPairs', `${toUserId}_${fromUserId}`), {
-      user1: toUserId,
-      user2: fromUserId,
-      connectionId,
-      createdAt: serverTimestamp(),
-    });
-    await batch.commit();
+    return updateConnectionStatusBackend(connectionId, 'accepted');
   }, []);
 
   /** Reject a connection request */
   const rejectRequest = useCallback(async (connectionId: string) => {
-    const snap = await getDoc(doc(db, 'connections', connectionId));
-    if (snap.exists()) {
-      const { fromUserId, toUserId } = snap.data();
-      if (fromUserId && toUserId) {
-        try {
-          await Promise.all([
-            deleteDoc(doc(db, 'acceptedPairs', `${fromUserId}_${toUserId}`)),
-            deleteDoc(doc(db, 'acceptedPairs', `${toUserId}_${fromUserId}`)),
-          ]);
-        } catch {
-          // Pair documents can already be absent; the connection state remains authoritative.
-        }
-      }
-    }
-    await updateDoc(doc(db, 'connections', connectionId), {
-      status: 'rejected',
-    });
+    return updateConnectionStatusBackend(connectionId, 'rejected');
   }, []);
 
   /** Block a user */
   const blockUser = useCallback(async (connectionId: string) => {
-    const snap = await getDoc(doc(db, 'connections', connectionId));
-    if (snap.exists()) {
-      const { fromUserId, toUserId } = snap.data();
-      if (fromUserId && toUserId) {
-        try {
-          await Promise.all([
-            deleteDoc(doc(db, 'acceptedPairs', `${fromUserId}_${toUserId}`)),
-            deleteDoc(doc(db, 'acceptedPairs', `${toUserId}_${fromUserId}`)),
-          ]);
-        } catch {
-          // Pair documents can already be absent; the connection state remains authoritative.
-        }
-      }
-    }
-    await updateDoc(doc(db, 'connections', connectionId), {
-      status: 'blocked',
-    });
+    return updateConnectionStatusBackend(connectionId, 'blocked');
+  }, []);
+
+  /** Withdraw a connection request */
+  const withdrawRequest = useCallback(async (connectionId: string) => {
+    return withdrawConnectionRequestBackend(connectionId);
   }, []);
 
   /** Subscribe to incoming pending requests (real-time) — used by OwnerDashboard */
@@ -337,6 +242,7 @@ export function useConnections() {
     acceptRequest,
     rejectRequest,
     blockUser,
+    withdrawRequest,
     subscribeToIncoming,
     subscribeToMyConnections,
     getMonthlyConnectCount,

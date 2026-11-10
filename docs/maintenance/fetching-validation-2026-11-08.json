@@ -1,0 +1,58 @@
+{
+  "date": "2026-11-08",
+  "scope": "Fetching, discovery recovery, chat hydration/unread races and unavailable service controls",
+  "checks": {
+    "source": {
+      "passed": 486,
+      "total": 486,
+      "failed": 0
+    },
+    "functions": {
+      "passed": 23,
+      "total": 23
+    },
+    "fullWorkflow": {
+      "passed": 32,
+      "total": 32,
+      "sourceChangedDuringRun": false
+    },
+    "typescript": "PASS",
+    "lint": {
+      "errors": 0,
+      "warnings": 2
+    },
+    "build": "PASS",
+    "functionsSyntaxAndSharedModules": "PASS",
+    "documentationLinks": "PASS"
+  },
+  "sourceHashes": {
+    "app/src/lib/exploreNavigation.ts": "cd7189f5d2594448b40020d072025026381e2e336bd058d9b17c60c4580784de",
+    "app/src/App.tsx": "942b3631784ad3d6ee91e48264042f8d254cef7a20527e18fab3ae04d7594c81",
+    "app/src/pages/HelpPage.tsx": "fdf9ae1627a2df4899750db94b3e6b67b8468788bf5abe2a8a675b8b35b40ebb",
+    "app/src/lib/support.ts": "be780822ed84b75624dc82466e493574285ae3749a1fde0e25126db8c1ea4620",
+    "app/src/components/landing/LandingFooter.tsx": "c88e7c96e2ef1d2a42c2d451f9394284053c8f6941a92ccb1252049892a41142",
+    "app/src/lib/exploreEngine.js": "66ca5da19fa1a3a8b10b7c1dd882c9bb032f77a4d2893e7d8dbee55b0db559e8",
+    "app/src/lib/nestmateBackend.ts": "b244aa4678e01518316753bcd5912cddf787ee4c90ed80e38dee6b639eccfc0d",
+    "app/src/pages/ExplorePage.tsx": "d81bbbcfcdd094f4007077519f00752ec3c82bc6b93f5b67edbf0f57f58b3f93",
+    "app/src/nestmate-explore.css": "821980708aec855bdd1ba4662fbbffc9923a84ab9e50daa94525387c4ba78db2",
+    "app/src/pages/AdminPage.tsx": "c4ec1cf414cbfa98dfa00e451d5b69861348872f144dadca327065a01626f658",
+    "app/src/components/landing/FeaturedListingsSection.tsx": "592afce38a7cbfdbe6f190efb197d89345824121fea5c39a5a1809bb0d35e664",
+    "app/src/components/landing/LivingOptionsSection.tsx": "3d20cf350b69e87582ad4152ecafd05739540bbd8aa7380897d9d3a497ef1630",
+    "app/src/components/landing/HeroSearchModule.tsx": "e4367de319e98e833fcb72dc580505141bbf4cec576ce9e31d3eafc2d533c830",
+    "app/src/lib/listingTruth.ts": "2765ac903efc67482913293fd356b9fc864abdbc57da87ee256e8d958203568f",
+    "app/src/lib/sanitizeRenderedHtml.ts": "964a8b8bdf49a7465953aa50584baeb5f9d013516c9741ce9e31dfe748d3caf1",
+    "app/functions/discoveryGateway.js": "e647a9fd506cacd42d5b73c9d4d73688ecba96145bb09c23fda4b58dfa1551ad",
+    "app/functions/sharedUserIntent.js": "282cb6952dba747765c80811d2129bcb4cc2d47699c540acef3beaf2a3959c13",
+    "app/functions/sharedMatching.js": "36172dc08b93674891c39aac17253700daad13372c4938e559a35d8cf667c856",
+    "app/src/lib/discoveryGateway.ts": "b46c84aef21a37a448c600be4af9b512fd06ff086e89f4a2afe0150f30e80732",
+    "app/src/lib/accountJobs.ts": "9db10e0626b3e558084716c3e4a3552691c00ac83581aa7cf5b38d6455b5fa8c",
+    "app/functions/accountJobs.js": "ad65b8efde5f2391bbc0e2f8ebe420843398b5307ae0136719d7d6ee695e09c8",
+    "app/functions/index.js": "a2079db513442b69e44a97522ff62f1a73308b96bd8d188415ece53977a720a6",
+    "app/functions/accountDeletion.js": "2286d1d4a610e81d60976a1c6117e8903f10f3b1afd5b13ef6336629323c53fe",
+    "app/functions/accountDeletionService.js": "ed310e36ff12b3c7c16bdcee7bddcc2adabcc6d4ccdf7b657c1d33adcdfe5a84",
+    "app/firestore.rules": "29c84301f1ee109796a87505e17bc96bef0479d14478c3d8e4aef321663bb688",
+    "app/storage.rules": "94c0b380dbb0e4bf999e1ba549b9f72046efff5642eacb71bf5cbff16f3c6071",
+    "app/package-lock.json": "ce26736155e656d8916dadacd920dbb0a3d226a296c87a2e7c90b6d0c15232bc"
+  },
+  "boundary": "Isolated emulator/browser checks do not establish signed-in production acceptance, deployed job lifecycle, migration safety or complete release readiness. Only two discovery functions have deployment approval."
+}

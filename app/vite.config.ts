@@ -22,11 +22,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Split heavy vendor libs into separate cacheable chunks
+          // Shared runtime libraries; route components remain lazy-loaded.
           'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-charts': ['recharts'],
-          'vendor-map': ['leaflet', 'react-leaflet'],
         },
       },
     },

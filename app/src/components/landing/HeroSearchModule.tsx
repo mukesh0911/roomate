@@ -86,11 +86,8 @@ export default function HeroSearchModule() {
       flatType: flatTypeForTab,
     });
 
-    if (activeTab === 'flatmates') {
-      navigate('/explore?tab=roommates');
-    } else {
-      navigate('/explore?tab=rooms');
-    }
+    const params = new URLSearchParams({ tab: activeTab === 'flatmates' ? 'roommates' : 'rooms', q: cityAreaQuery.trim(), min: String(selectedBudget.min), max: String(selectedBudget.max), move: moveInDate });
+    navigate('/explore?' + params.toString());
   };
 
   return (
@@ -131,7 +128,7 @@ export default function HeroSearchModule() {
           <div className="flex-1 flex items-center gap-2.5 px-3.5 py-2.5 sm:py-1 bg-gray-50/80 sm:bg-transparent rounded-xl sm:rounded-none min-h-[40px]">
             <Search className="w-4 h-4 text-gray-400 shrink-0" />
             <input
-              id="search-location-input"
+              id="search-location-input-1"
               type="text"
               value={cityAreaQuery}
               onChange={(e) => setCityAreaQuery(e.target.value)}

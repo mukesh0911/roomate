@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
@@ -23,7 +24,45 @@ export default function AuthModal({
   subtitle,
   redirectAfterLogin,
 }: AuthModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if(!isOpen)return;
+    const previous=document.activeElement as HTMLElement|null;
+    const dialog=dialogRef.current;
+    dialog?.querySelector<HTMLElement>('button,input')?.focus();
+    const handleKey=(event:KeyboardEvent) => {
+      if(event.key==='Escape'){event.preventDefault();onClose();return;}
+      if(event.key!=='Tab'||!dialog)return;
+      const elements=Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),a[href]'));
+      const first=elements[0],last=elements[elements.length-1];
+      if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}
+      else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
+    };
+    document.addEventListener('keydown',handleKey);
+    return ()=>{document.removeEventListener('keydown',handleKey);previous?.focus();};
+  },[isOpen,onClose]);
   const navigate = useNavigate();
+  const { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword } = useAuth();
+  const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const submitAuth = async (google = false) => {
+    if (authBusy) return;
+    setAuthBusy(true); setAuthError('');
+    try {
+      if (google) await signInWithGoogle();
+      else if (mode === 'reset') {
+        await resetPassword(email.trim());
+        toast.success('Password reset requested. Check your email.');
+        setMode('signin'); return;
+      } else if (mode === 'signup') await signUpWithEmail(email.trim(), password);
+      else await signInWithEmail(email.trim(), password);
+      onClose(); navigate(redirectAfterLogin || '/explore');
+    } catch (error: any) { setAuthError(error?.message || 'Unable to sign in. Please try again.'); }
+    finally { setAuthBusy(false); }
+  };
   const [loadingRole, setLoadingRole] = useState<'seeker' | 'owner' | null>(null);
   const resolvedSubtitle = subtitle || (DEMO_MODE_ENABLED
     ? 'Create your account or try a local demo to evaluate the complete workflow.'
@@ -84,7 +123,7 @@ export default function AuthModal({
       if (redirectAfterLogin) {
         navigate(redirectAfterLogin);
       } else {
-        navigate(role === 'owner' ? '/my-listings' : '/explore?tab=rooms');
+        navigate(role === 'owner' ? '/listings' : '/explore?tab=rooms');
       }
     } catch (err: any) {
       console.error('Demo login error:', err);
@@ -97,6 +136,8 @@ export default function AuthModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-ink/60 backdrop-blur-sm animate-fade-in">
       <div
+        ref={dialogRef}
+        role="dialog" aria-modal="true" aria-labelledby="auth-modal-title"
         className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-border relative animate-scale-up max-h-[90dvh] overflow-y-auto pb-safe"
         onClick={(e) => e.stopPropagation()}
       >
@@ -112,7 +153,7 @@ export default function AuthModal({
           <div className="w-12 h-12 rounded-2xl gradient-fire flex items-center justify-center mx-auto mb-3 shadow-md">
             <Sparkles className="w-6 h-6 text-white" />
           </div>
-          <h2 className="text-xl font-bold text-ink tracking-tight">{title}</h2>
+          <h2 id="auth-modal-title" className="text-xl font-bold text-ink tracking-tight">{title}</h2>
           <p className="text-xs text-ink/60 mt-1.5 leading-relaxed">{resolvedSubtitle}</p>
         </div>
 
@@ -163,11 +204,23 @@ export default function AuthModal({
           </div>
         </div>}
 
+        <form className="space-y-3 mb-4" onSubmit={(event) => { event.preventDefault(); void submitAuth(); }}>
+          <label className="block text-xs font-semibold text-ink">Email
+            <input className="mt-1 w-full rounded-xl border border-border p-3 text-sm" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
+          </label>
+          {mode !== 'reset' && <label className="block text-xs font-semibold text-ink">Password
+            <input className="mt-1 w-full rounded-xl border border-border p-3 text-sm" type="password" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} minLength={mode === 'signup' ? 8 : undefined} required value={password} onChange={(event) => setPassword(event.target.value)} />
+          </label>}
+          {authError && <p role="alert" className="text-xs text-red-600">{authError}</p>}
+          <button disabled={authBusy || loadingRole !== null} className="w-full py-3 rounded-xl bg-ink text-white text-sm font-bold" type="submit">{authBusy ? 'Please wait…' : mode === 'signup' ? 'Create account' : mode === 'reset' ? 'Send reset email' : 'Sign in with email'}</button>
+          <div className="flex justify-between gap-3 text-xs">
+            <button type="button" onClick={() => { setMode(mode === 'signup' ? 'signin' : 'signup'); setAuthError(''); }}>{mode === 'signup' ? 'Already have an account? Sign in' : 'Create an account'}</button>
+            <button type="button" onClick={() => { setMode(mode === 'reset' ? 'signin' : 'reset'); setAuthError(''); }}>{mode === 'reset' ? 'Back to sign in' : 'Forgot password?'}</button>
+          </div>
+        </form>
         <button
-          onClick={() => {
-            onClose();
-            navigate('/login');
-          }}
+          disabled={authBusy || loadingRole !== null}
+          onClick={() => void submitAuth(true)}
           className="w-full py-3.5 rounded-2xl bg-white border border-border text-ink text-sm font-bold hover:bg-stone-50 transition-all flex items-center justify-center gap-2.5 shadow-xs"
         >
           <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">

@@ -1,0 +1,47 @@
+[
+  {
+    "path": "/",
+    "file": "app/src/App.tsx",
+    "line": 34
+  },
+  {
+    "path": "/explore",
+    "file": "app/src/App.tsx",
+    "line": 35
+  },
+  {
+    "path": "/saved",
+    "file": "app/src/App.tsx",
+    "line": 36
+  },
+  {
+    "path": "/messages",
+    "file": "app/src/App.tsx",
+    "line": 37
+  },
+  {
+    "path": "/connections",
+    "file": "app/src/App.tsx",
+    "line": 38
+  },
+  {
+    "path": "/listings",
+    "file": "app/src/App.tsx",
+    "line": 39
+  },
+  {
+    "path": "/profile",
+    "file": "app/src/App.tsx",
+    "line": 40
+  },
+  {
+    "path": "/admin",
+    "file": "app/src/App.tsx",
+    "line": 41
+  },
+  {
+    "path": "*",
+    "file": "app/src/App.tsx",
+    "line": 42
+  }
+]

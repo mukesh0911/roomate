@@ -1,0 +1,102 @@
+{
+  "clientDate": "2026-11-08",
+  "project": "demo-nestmate-workflows",
+  "fullWorkflow": {
+    "passed": 29,
+    "total": 29,
+    "sourceChangedDuringRun": false,
+    "currentBackendHashMismatches": [],
+    "boundary": "Full account-jobs run precedes settings/help UI changes; final browser repeat covers those changes. Backend and rules hashes match current files."
+  },
+  "finalBrowser": {
+    "passed": 12,
+    "total": 12,
+    "pageErrors": [],
+    "sourceChangedDuringRun": false,
+    "currentHashMismatches": [],
+    "coverage": [
+      {
+        "name": "Featured Saved persists after reload and opens the actual listing ID",
+        "status": "PASS"
+      },
+      {
+        "name": "Rooms Message requests listing consent; poster accepts in existing Connections UI",
+        "status": "PASS"
+      },
+      {
+        "name": "Roommates reuses listing permission and sends a real message",
+        "status": "PASS"
+      },
+      {
+        "name": "Apply is independent; owner receives the actual questionnaire response",
+        "status": "PASS"
+      },
+      {
+        "name": "Detail navigation preserves query state through browser Back and reload",
+        "status": "PASS"
+      },
+      {
+        "name": "Account export downloads private current-user records through the callable and worker",
+        "status": "PASS"
+      },
+      {
+        "name": "Privacy and announcement settings persist and enforce discovery opt-in",
+        "status": "PASS"
+      },
+      {
+        "name": "Help route stores a real support ticket and denies peer reads",
+        "status": "PASS"
+      },
+      {
+        "name": "Untrusted listing and profile text cannot create delegated action controls",
+        "status": "PASS"
+      },
+      {
+        "name": "Actual detail layout at 390",
+        "status": "PASS"
+      },
+      {
+        "name": "Actual detail layout at 768",
+        "status": "PASS"
+      },
+      {
+        "name": "Actual detail layout at 1440",
+        "status": "PASS"
+      }
+    ]
+  },
+  "rules": {
+    "passed": 72,
+    "total": 72,
+    "success": true
+  },
+  "source": {
+    "passed": 474,
+    "total": 474,
+    "success": true,
+    "boundary": "474 source regressions passed before the subsequent help/footer addition; final browser/type/build/lint checks cover that UI addition."
+  },
+  "lint": {
+    "errors": 0,
+    "warnings": 2
+  },
+  "functions": {
+    "passed": 22,
+    "total": 22,
+    "command": "node --test app/functions/accountJobs.node-test.cjs app/functions/productionReadiness.functions.node-test.cjs app/functions/accountDeletion.node-test.cjs app/functions/discoveryGateway.node-test.cjs app/functions/privacyCompatibility.node-test.cjs",
+    "evidence": "Observed process exit 0 and TAP 22/22 in current session."
+  },
+  "typecheck": {
+    "exitCode": 0
+  },
+  "build": {
+    "exitCode": 0,
+    "evidence": "Observed final Vite production build exit 0 including HelpPage and final support/footer changes."
+  },
+  "limitations": [
+    "Loopback SDK callable host and local worker dispatcher; deployed triggers/scheduler not verified.",
+    "Deletion remains disabled pending current/legacy collection and bucket coverage.",
+    "Complete product acceptance and production rollout remain open."
+  ],
+  "productionActions": false
+}

@@ -1,0 +1,222 @@
+[
+  {
+    "id": "P01",
+    "name": "Landing",
+    "route": "/",
+    "audience": "Visitor/member",
+    "parent": "Public entry",
+    "data": "Supported service cities; actual featured listing projections and counts; informational content.",
+    "controls": "Location/budget/date/category form; city links; browse; sign in/register; Post; featured open/save; FAQ; honest trust/story/footer links.",
+    "completion": "A chosen search or safe return action is carried intact to discovery/auth."
+  },
+  {
+    "id": "P02",
+    "name": "Authentication",
+    "route": "Global modal + safe return query",
+    "audience": "Visitor/member",
+    "parent": "Overlay on invoking page",
+    "data": "Supported provider state, email/password inputs, safe internal return descriptor, generic auth errors.",
+    "controls": "Sign in, register, Google, reset password, switch modes, close/Escape. Demo entry only in verified emulator development mode.",
+    "completion": "Session is established; resume the intended action after its remaining prerequisites, without auto-sending it."
+  },
+  {
+    "id": "P03",
+    "name": "Shared onboarding",
+    "route": "/onboarding?returnTo=…",
+    "audience": "Active incomplete member",
+    "parent": "Account/setup",
+    "data": "Name, city, primary locality; selected concurrent intents; explicit discoverability; progressive optional lifestyle/budget/host details.",
+    "controls": "Save step, back, skip optional fields, review disclosure, finish essentials, resume original context.",
+    "completion": "Essential profile and chosen intent state persist; optional skipped values remain unknown."
+  },
+  {
+    "id": "P04",
+    "name": "All physical discovery",
+    "route": "/explore?tab=all",
+    "audience": "Visitor/member",
+    "parent": "Explore",
+    "data": "Published/available/active-publisher property cards, kind, price unit, city/locality, freshness and disclosed trust.",
+    "controls": "Search, city, supported filters, sort, grid/list, continuation, open, save, clear filters.",
+    "completion": "A property detail opens by listingId while search/filter/cursor/scroll context is recoverable."
+  },
+  {
+    "id": "P05",
+    "name": "Rooms/flats discovery",
+    "route": "/explore?tab=rooms",
+    "audience": "Visitor/member",
+    "parent": "Explore",
+    "data": "Physical room/shared-room/entire-flat listings; roomType, BHK and pricing unit are separate fields.",
+    "controls": "Supported room/flat filters; newest or unit-specific rent order; card open/save.",
+    "completion": "Appropriate physical listing is inspected; people are never substituted as room records."
+  },
+  {
+    "id": "P06",
+    "name": "People discovery",
+    "route": "/explore?tab=roommates",
+    "audience": "Authenticated authorized member",
+    "parent": "Explore",
+    "data": "Minimal opted-in eligible team-up/resident cards; actual intent, consented preferences, evidence-qualified fit.",
+    "controls": "Complete own missing setup, filter, supported rank, open person, save, request/withdraw/respond/message according to relationship.",
+    "completion": "Open /people/:uid; contextual relationship state remains consistent elsewhere."
+  },
+  {
+    "id": "P07",
+    "name": "PG/coliving discovery",
+    "route": "/explore?tab=pg",
+    "audience": "Visitor/member",
+    "parent": "Explore",
+    "data": "Managed accommodation with explicit room/bed unit, actual capacity/options, fees and rules.",
+    "controls": "PG filters, unit-specific rent order, open/save, continuation.",
+    "completion": "Open the same canonical property detail by listingId, with managed-accommodation fields."
+  },
+  {
+    "id": "P08",
+    "name": "Accommodation detail",
+    "route": "/places/:listingId",
+    "audience": "Visitor/authorized member",
+    "parent": "Explore or shared/Saved link",
+    "data": "Published projection or authorized owner draft; publisher UID; declared resident linkage; photos; price/deposit/unit; availability; questions; review/freshness labels.",
+    "controls": "Gallery, save, share, publisher/resident profile, report, Express interest/Request to chat, edit/manage only for authorized publisher.",
+    "completion": "Member can create a listing-attributed inquiry and consent request, or continue an already accepted conversation."
+  },
+  {
+    "id": "P09",
+    "name": "Person/publisher detail",
+    "route": "/people/:uid?contextListing=…",
+    "audience": "Authorized member; minimal public publisher subset where allowed",
+    "parent": "Explore/Connections/Messages/place detail",
+    "data": "Authorized profile projection, context scope, intent/residence evidence, availability, known/missing preferences, relationship state.",
+    "controls": "Save, report, request/withdraw/accept/decline/message, own block/unblock, related available place; publisher view omits unsupported roommate claims.",
+    "completion": "The correct UID is resolved independently of feed position; no automatic PII disclosure."
+  },
+  {
+    "id": "P10",
+    "name": "Saved",
+    "route": "/saved?tab=places|people",
+    "audience": "Signed-in member",
+    "parent": "Member navigation",
+    "data": "Typed own bookmarks plus batched authorized entity-by-ID results, unavailable tombstones and original entity kind.",
+    "controls": "Open, remove save, change entity tab, retry unavailable fetch.",
+    "completion": "Saved IDs persist; unavailable items never masquerade as empty successful fetches."
+  },
+  {
+    "id": "P11",
+    "name": "Connections",
+    "route": "/connections?tab=incoming|sent|accepted|closed",
+    "audience": "Signed-in member",
+    "parent": "Member navigation",
+    "data": "Own pair-request summaries with version, direction, listing context, counterpart projection and expiry/restriction reason scope.",
+    "controls": "Accept/decline, withdraw, open person/context listing, message if accepted, see own closed/reopened states.",
+    "completion": "Communication consent changes are authoritative and reflected for both users."
+  },
+  {
+    "id": "P12",
+    "name": "Messages",
+    "route": "/messages and /messages/:conversationId",
+    "audience": "Authorized participant",
+    "parent": "Member navigation",
+    "data": "Authorized room list, partner projection, per-member read state, paged messages and optional listing context cards.",
+    "controls": "Search list, unread filter, open conversation, text/send, attachment upload, retry failed draft, partner/context link, report/block, explicit contact-share request/response.",
+    "completion": "Delivery is acknowledged by persisted message ID; read state and context survive reload."
+  },
+  {
+    "id": "P13",
+    "name": "Notifications",
+    "route": "/notifications",
+    "audience": "Signed-in member",
+    "parent": "Existing notification affordance",
+    "data": "Recipient events with event ID, authorized target reference, unread/read state and action freshness.",
+    "controls": "Open target, mark one/all read, respond to a current consent request; stale targets explain unavailability.",
+    "completion": "The intended entity opens; opening never silently accepts an unrelated request."
+  },
+  {
+    "id": "P14",
+    "name": "My listings",
+    "route": "/listings?status=…",
+    "audience": "Authorized publisher",
+    "parent": "Member navigation",
+    "data": "All own listing IDs and distinct publication/availability states, actual price, review note and fresh applicant count.",
+    "controls": "Create, resume draft, edit, open preview/detail, applicants, pause/reconfirm/fill/delete with proper prerequisites.",
+    "completion": "A selected listing management journey opens by ID; status changes update discovery and related contexts."
+  },
+  {
+    "id": "P15",
+    "name": "Listing creation/edit",
+    "route": "/listings/new or /listings/:id/edit",
+    "audience": "Authorized publisher",
+    "parent": "My listings/Post CTA",
+    "data": "Owned draft version, typed kind/unit/capacity/location/rent/deposit/availability, photos, authorized/resident declarations, amenities/rules/questions.",
+    "controls": "Photo stage, property details, money/move-in, people/questions, preview, Save draft, Submit for review, Close/discard with unsaved-change decision.",
+    "completion": "Draft is recoverable; submission is pending review, never announced as published prematurely."
+  },
+  {
+    "id": "P16",
+    "name": "Applicants",
+    "route": "/listings/:id/applicants",
+    "audience": "Listing publisher/authorized staff",
+    "parent": "My listings",
+    "data": "Listing-attributed inquiries with answer snapshot, applicant disclosure, application stage and separate consent state.",
+    "controls": "Filter, open applicant, review answers, shortlist/decline, select candidate, accept communication explicitly, compare, record owner availability after actual decision.",
+    "completion": "Consideration decisions persist without silently altering consent or occupancy."
+  },
+  {
+    "id": "P17",
+    "name": "Applicant comparison",
+    "route": "/listings/:id/compare?applicants=…",
+    "audience": "Listing publisher",
+    "parent": "Applicants",
+    "data": "Authorized selected application IDs, known/missing fit factors and actual answers for the same listing.",
+    "controls": "Add/remove up to configured comparison limit, return to filtered applicant list, explicit shortlist or communication action.",
+    "completion": "Comparison informs a decision; comparison selection alone persists no tenant choice."
+  },
+  {
+    "id": "P18",
+    "name": "Account/profile/preferences",
+    "route": "/profile?section=overview|edit|preferences",
+    "audience": "Account owner",
+    "parent": "Member navigation",
+    "data": "Own private account, disclosed card, intent set, locality list, preference draft/version and completion state.",
+    "controls": "Edit name/bio/work description/city/areas, intent/discovery consent, avatar, budget/type/gender/move-in/lifestyle; preview own disclosure, Save/Discard.",
+    "completion": "Only confirmed edits persist; related discovery and private entity cache invalidate by UID/version."
+  },
+  {
+    "id": "P19",
+    "name": "Identity verification",
+    "route": "/profile?section=verification",
+    "audience": "Account owner/authorized reviewer via staff view",
+    "parent": "Account/trust prerequisite",
+    "data": "Latest and historical submission version/status, supported document types, consent text, declared name, review note and document reference.",
+    "controls": "Upload private supported evidence, submit, see pending status, correct and resubmit rejected evidence; cancel draft upload where permitted.",
+    "completion": "Owner sees a real decision; trust mirrors derive from the reviewed version, not a client success screen."
+  },
+  {
+    "id": "P20",
+    "name": "Security/privacy/data/outcomes",
+    "route": "/profile?section=settings|privacy|data|outcome",
+    "audience": "Account owner",
+    "parent": "Account",
+    "data": "Provider/security state, enforceable disclosure/notification prefs, own blocks, export/deletion jobs, per-intent private outcome declarations.",
+    "controls": "Reauthenticate/change credentials, logout, consent settings, unblock with warning, request/download export, confirmed deletion, declare housing outcome and choose remaining intents.",
+    "completion": "Each operation has a persisted result/job state or a clear unsupported status; no fake emails, erasure or tenancy."
+  },
+  {
+    "id": "P21",
+    "name": "Help/legal/support",
+    "route": "/help, /safety, /privacy, /terms, /about, /how-it-works",
+    "audience": "Visitor/member",
+    "parent": "Public/member context",
+    "data": "Reviewed published content, support channel availability, safe case reference, no fabricated service claims.",
+    "controls": "Read content, contact support/report with explicit privacy information, return to origin.",
+    "completion": "Requested information or an acknowledged support case is available; no wildcard redirect substitutes for content."
+  },
+  {
+    "id": "P22",
+    "name": "Staff console",
+    "route": "/admin?section=overview|users|listings|reports|verifications|marketplace|notifications|settings",
+    "audience": "Trusted capability-scoped staff",
+    "parent": "Staff access",
+    "data": "Capability map, true environment/project, authorized queues/aggregates and paged records; private evidence only for reviewer capability.",
+    "controls": "Scoped read/search/inspect; permitted moderation/review; real broadcast delivery job; explicit staff grants by administrator; audited history. No pretend purge/reset.",
+    "completion": "A case/decision/job is acknowledged and cross-page results are consistent; failures retain unresolved state."
+  }
+]

@@ -98,11 +98,11 @@ describe('E2E Flatmates & People Discovery Integrity Suite', () => {
     expect(discovered).toHaveLength(2);
   });
 
-  it('Computes high compatibility (>90%) between real seeker and real owner-flatmate listing', () => {
+  it('Computes evidence-based compatibility without awarding missing preferences', () => {
     const match = calculateProfileCompatibility(realSeeker, realOwnerFlatmate, realListing);
-    expect(match.score).toBeGreaterThanOrEqual(90);
+    expect(match.score).toBe(75);
     expect(match.reasons.length).toBeGreaterThan(0);
-    expect(match.caveats).toHaveLength(0);
+    expect(match.caveats).toContain('Room preference not fully specified');
   });
 
   it('Preserves seekers without listings when filtering by flatType/furnishing/amenities', () => {

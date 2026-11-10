@@ -1,30 +1,16 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Check } from 'lucide-react';
-import { toast } from 'sonner';
+import { ArrowRight } from 'lucide-react';
 
 interface LandingFooterProps {
   onListSpace: () => void;
 }
 
 export default function LandingFooter({ onListSpace }: LandingFooterProps) {
-  const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
   const [openSection, setOpenSection] = useState<string | null>(null);
 
   const toggleSection = (section: string) => {
     setOpenSection((prev) => (prev === section ? null : section));
-  };
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim() || !email.includes('@')) {
-      toast.error('Please enter a valid email address');
-      return;
-    }
-    setSubscribed(true);
-    toast.success('Thank you for subscribing to NestMate newsletter!');
-    setEmail('');
   };
 
   const scrollToSection = (id: string) => {
@@ -139,7 +125,7 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
                     </button>
                   </li>
                   <li>
-                    <Link to="/safety" className="hover:text-[#FF5A36] py-0.5 inline-block">Safety</Link>
+                    <button type="button" onClick={() => scrollToSection('trust')} className="hover:text-[#FF5A36] cursor-pointer text-left py-0.5 inline-block">Safety</button>
                   </li>
                 </ul>
               )}
@@ -183,9 +169,9 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
               {openSection === 'resources' && (
                 <ul className="space-y-2.5 pb-3 text-xs text-slate-500 pl-1 font-medium">
                   <li><Link to="/help" className="hover:text-[#FF5A36] py-0.5 inline-block">Help Center</Link></li>
-                  <li><Link to="/trust" className="hover:text-[#FF5A36] py-0.5 inline-block">Community Guidelines</Link></li>
-                  <li><Link to="/safety" className="hover:text-[#FF5A36] py-0.5 inline-block">Safety Tips</Link></li>
-                  <li><Link to="/how-it-works" className="hover:text-[#FF5A36] py-0.5 inline-block">Living Guide</Link></li>
+                  <li><button type="button" onClick={() => scrollToSection('trust')} className="hover:text-[#FF5A36] cursor-pointer text-left py-0.5 inline-block">Community Guidelines</button></li>
+                  <li><button type="button" onClick={() => scrollToSection('trust')} className="hover:text-[#FF5A36] cursor-pointer text-left py-0.5 inline-block">Safety Tips</button></li>
+                  <li><button type="button" onClick={() => scrollToSection('faq')} className="hover:text-[#FF5A36] cursor-pointer text-left py-0.5 inline-block">Living Guide & FAQ</button></li>
                   <li><Link to="/explore" className="hover:text-[#FF5A36] py-0.5 inline-block">Sitemap</Link></li>
                 </ul>
               )}
@@ -208,26 +194,22 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
                   <p className="text-xs text-slate-500 mb-2.5 leading-relaxed">
                     Get tips, new listings and community stories.
                   </p>
-                  <form onSubmit={handleSubscribe} className="relative">
+                  <div className="relative">
                     <input
                       type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Enter your email"
+                      disabled aria-label="Newsletter unavailable"
+                      
+                      placeholder="Newsletter unavailable"
                       className="w-full bg-[#F5F2EC] rounded-xl pl-3 pr-10 py-2.5 text-[13px] sm:text-xs text-[#1E2229] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#FF5A36] min-h-[42px]"
                     />
                     <button
                       type="submit"
-                      aria-label="Subscribe"
+                      aria-label="Newsletter unavailable" disabled
                       className="absolute right-1 top-1 bottom-1 w-8 rounded-lg bg-[#1E2229] text-white flex items-center justify-center cursor-pointer"
                     >
-                      {subscribed ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      ) : (
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      )}
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </button>
-                  </form>
+                  </div>
                 </div>
               )}
             </div>
@@ -432,26 +414,22 @@ export default function LandingFooter({ onListSpace }: LandingFooterProps) {
               Get tips, new listings and community stories.
             </p>
 
-            <form onSubmit={handleSubscribe} className="relative">
+            <div className="relative">
               <input
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
+                disabled aria-label="Newsletter unavailable"
+                
+                placeholder="Newsletter unavailable"
                 className="w-full bg-[#F5F2EC] rounded-xl pl-3 pr-10 py-2.5 text-xs text-[#1E2229] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#FF5A36]"
               />
               <button
                 type="submit"
-                aria-label="Subscribe"
+                aria-label="Newsletter unavailable" disabled
                 className="absolute right-1 top-1 bottom-1 w-8 rounded-lg bg-[#1E2229] hover:bg-black text-white flex items-center justify-center transition-colors cursor-pointer"
               >
-                {subscribed ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                ) : (
-                  <ArrowRight className="w-3.5 h-3.5" />
-                )}
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
-            </form>
+            </div>
           </div>
         </div>
 

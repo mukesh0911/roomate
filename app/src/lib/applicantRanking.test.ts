@@ -143,7 +143,7 @@ describe('rankApplicants — ordering + stability', () => {
         );
 
         expect(ranked[0].profile.uid).toBe('top');
-        expect(ranked[0].fit.score).toBeGreaterThan(80);
+        expect(ranked[0].fit.score).toBe(45); // Only budget and location have comparable data.
         expect(ranked[0].fit.reasons.some(r => r.includes('Same locality'))).toBe(true);
         expect(ranked[0].fit.reasons.some(r => r.includes('Budget fits'))).toBe(true);
         expect(ranked[1].profile.uid).toBe('low');

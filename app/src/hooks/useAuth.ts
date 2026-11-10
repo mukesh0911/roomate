@@ -1,9 +1,5 @@
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import {
-  signInWithPhoneNumber,
-  RecaptchaVerifier,
-  PhoneAuthProvider,
-  signInWithCredential,
   signOut,
   onAuthStateChanged,
   GoogleAuthProvider,
@@ -12,13 +8,13 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
-  linkWithCredential,
   type User as FirebaseUser,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useStore } from '@/store/useStore';
 import { hydrateOwnProfile, savePrivateUserData } from '@/lib/privateUserData';
+import type { UserHousingPreferences } from '@/lib/userIntent';
 
 export function extractGooglePhoto(
   firebaseUser: FirebaseUser | null,
@@ -60,11 +56,9 @@ async function persistPublicUser(
   );
 }
 
-// Declare global recaptchaVerifier to persist across renders
 declare global {
   interface Window {
-    recaptchaVerifier: RecaptchaVerifier | null;
-    confirmationResult: any;
+    confirmationResult?: any;
   }
 }
 
@@ -77,6 +71,9 @@ export interface UserProfile {
   city: string;
   localities: string[];
   budget: number;
+  budgetMin?: number;
+  preferredRoomTypes?: string[];
+  roommateGenderPreference?: 'Any' | 'Female' | 'Male';
   moveInDate: string;
   profession: string;
   company: string;
@@ -118,6 +115,7 @@ export interface UserProfile {
   householdExpectations?: any;
   preferences?: any;
   housingIntent?: string;
+  housingPreferences?: UserHousingPreferences;
   /** Explicit opt-in to appear in the roommate discovery directory. */
   roommateDiscoveryEnabled?: boolean;
   preferredRoomType?: string;
@@ -160,33 +158,41 @@ function setAuthSingleton(partial: Partial<AuthSingletonState>) {
 }
 
 let authListenerInitialized = false;
+let authLoadGeneration = 0;
 
 function initSharedAuthListener() {
   if (authListenerInitialized) return;
   authListenerInitialized = true;
 
   onAuthStateChanged(auth, async (firebaseUser) => {
+    const generation = ++authLoadGeneration;
+    const isCurrent = () => generation === authLoadGeneration && auth.currentUser?.uid === firebaseUser?.uid;
     if (firebaseUser) {
-      setAuthSingleton({ user: firebaseUser });
+      setAuthSingleton({ user: firebaseUser, profile: null, isLoading: true, error: null });
       try {
         const userRef = doc(db, 'users', firebaseUser.uid);
         const profileSnap = await getDoc(userRef);
+        if (!isCurrent()) return;
 
         if (profileSnap.exists()) {
           const data = profileSnap.data() as UserProfile;
           const googlePhoto = extractGooglePhoto(firebaseUser);
           if (googlePhoto && (!data.avatar || data.avatar.trim() === '' || data.avatar.includes('dicebear'))) {
             data.avatar = googlePhoto;
-            await persistPublicUser(firebaseUser.uid, { avatar: googlePhoto });
           }
           const hydrated = await hydrateOwnProfile({ ...data, uid: firebaseUser.uid });
+          if (!isCurrent()) return;
           setAuthSingleton({ user: firebaseUser, profile: hydrated, isLoading: false, error: null });
         } else {
-          setAuthSingleton({ user: firebaseUser, profile: null, isLoading: false, error: null });
+          // Signup may have committed and hydrated the same account while this
+          // earlier missing-document read was in flight. Preserve that result.
+          const createdProfile = authSingleton.profile?.uid === firebaseUser.uid ? authSingleton.profile : null;
+          setAuthSingleton({ user: firebaseUser, profile: createdProfile, isLoading: false, error: null });
         }
       } catch (err: any) {
+        if (!isCurrent()) return;
         console.error('Unable to read user profile during auth load:', err);
-        setAuthSingleton({ user: firebaseUser, isLoading: false, error: 'Unable to load profile data. Please refresh or contact support.' });
+        setAuthSingleton({ user: firebaseUser, profile: null, isLoading: false, error: 'Unable to load profile data. Please refresh or contact support.' });
       }
     } else {
       setAuthSingleton({ user: null, profile: null, isLoading: false, error: null });
@@ -205,85 +211,19 @@ export function useAuth() {
   }, []);
 
   const setUser = useCallback((u: FirebaseUser | null) => {
+    if (u && auth.currentUser?.uid !== u.uid) return;
     setAuthSingleton({ user: u });
   }, []);
 
   const setProfile = useCallback((p: UserProfile | null) => {
+    if (p && auth.currentUser?.uid !== p.uid) return;
     setAuthSingleton({ profile: p });
-  }, []);
-
-  /**
-   * Initialize the invisible reCAPTCHA verifier.
-   * containerId: the id of the div in the DOM to attach to.
-   */
-  const initRecaptcha = useCallback((containerId: string = 'recaptcha-portal-container') => {
-    try {
-      const containerEl = document.getElementById(containerId) || document.getElementById('recaptcha-portal-container');
-      if (!containerEl) {
-        console.warn(`reCAPTCHA container #${containerId} not found in DOM`);
-        return;
-      }
-      if (window.recaptchaVerifier) {
-        try {
-          window.recaptchaVerifier.clear();
-        } catch (e) {
-          console.warn('Error clearing existing recaptchaVerifier:', e);
-        }
-        window.recaptchaVerifier = null;
-      }
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, containerEl, {
-        size: 'invisible',
-        callback: () => { },
-        'expired-callback': () => {
-          try {
-            window.recaptchaVerifier?.clear();
-          } catch {
-            // The verifier may already have released its iframe after expiry.
-          }
-          window.recaptchaVerifier = null;
-        },
-      });
-    } catch (err: any) {
-      console.error('Error initializing RecaptchaVerifier:', err);
-    }
-  }, []);
-
-  /**
-   * Initialize reCAPTCHA for development (bypasses some restrictions)
-   */
-  const initRecaptchaDev = useCallback((containerId: string = 'recaptcha-portal-container') => {
-    try {
-      const containerEl = document.getElementById(containerId) || document.getElementById('recaptcha-portal-container');
-      if (!containerEl) return;
-      if (window.recaptchaVerifier) {
-        try {
-          window.recaptchaVerifier.clear();
-        } catch {
-          // A previously cleared verifier is safe to replace.
-        }
-        window.recaptchaVerifier = null;
-      }
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, containerEl, {
-        size: 'invisible',
-        callback: () => { },
-        'expired-callback': () => {
-          try {
-            window.recaptchaVerifier?.clear();
-          } catch {
-            // The verifier may already have released its iframe after expiry.
-          }
-          window.recaptchaVerifier = null;
-        },
-        'hl': 'en',
-      });
-    } catch (err) {
-      console.error('Error initializing Dev RecaptchaVerifier:', err);
-    }
   }, []);
 
   const refreshProfile = useCallback(async (uid?: string): Promise<UserProfile | null> => {
     const profileUid = uid || user?.uid;
-    if (!profileUid) return null;
+    if (!profileUid || profileUid !== auth.currentUser?.uid) return null;
+    const generation = authLoadGeneration;
 
     try {
       const profileSnap = await getDoc(doc(db, 'users', profileUid));
@@ -291,10 +231,10 @@ export function useAuth() {
         const rawData = profileSnap.data() as UserProfile;
         const googlePhoto = extractGooglePhoto(user);
         if (googlePhoto && (!rawData.avatar || rawData.avatar.trim() === '' || rawData.avatar.includes('dicebear'))) {
-          await persistPublicUser(profileUid, { avatar: googlePhoto });
           rawData.avatar = googlePhoto;
         }
         const data = await hydrateOwnProfile({ ...rawData, uid: profileUid });
+        if (generation !== authLoadGeneration || auth.currentUser?.uid !== profileUid) return null;
         setProfile(data);
         return data;
       }
@@ -303,55 +243,6 @@ export function useAuth() {
     }
     return null;
   }, [setProfile, user]);
-
-  /**
-   * Send OTP to the given phone number (E.164 format, e.g. +919876543210)
-   * Returns the verificationId which must be passed to verifyOTP.
-   */
-  const sendOTP = useCallback(async (phone: string, containerId: string = 'recaptcha-portal-container'): Promise<string> => {
-    setError(null);
-    try {
-      const targetContainer = document.getElementById(containerId) || document.getElementById('recaptcha-portal-container');
-      if (!targetContainer) {
-        throw new Error('reCAPTCHA container not found in DOM.');
-      }
-
-      // Re-create verifier freshly if needed
-      if (!window.recaptchaVerifier) {
-        initRecaptcha(containerId);
-      }
-
-      if (!window.recaptchaVerifier) {
-        throw new Error('reCAPTCHA initialization failed. Please refresh the page and try again.');
-      }
-
-      const confirmation = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
-      window.confirmationResult = confirmation;
-      return confirmation.verificationId;
-    } catch (err: any) {
-      // Clean up captcha on failure so user can retry immediately without being stuck
-      try {
-        window.recaptchaVerifier?.clear();
-      } catch {
-        // Cleanup is best-effort; the authentication error below is authoritative.
-      }
-      window.recaptchaVerifier = null;
-
-      let msg = err.message || 'Failed to send OTP';
-      if (err.code === 'auth/invalid-phone-number') {
-        msg = 'Invalid phone number format. Please check and try again.';
-      } else if (err.code === 'auth/too-many-requests') {
-        msg = 'Too many requests. Please wait a few minutes before trying again.';
-      } else if (err.code === 'auth/quota-exceeded') {
-        msg = 'SMS quota exceeded. Please try again later.';
-      } else if (err.code === 'auth/captcha-check-failed' || msg.includes('reCAPTCHA') || msg.includes('element')) {
-        msg = 'Security check failed. Please try clicking Send again.';
-      }
-
-      setError(msg);
-      throw new Error(msg);
-    }
-  }, [initRecaptcha, setError]);
 
   /**
    * Sign in with email + password.
@@ -512,81 +403,6 @@ export function useAuth() {
     }
   }, [setError]);
 
-  // ── Phone OTP (kept for future re-enable) ────────────────────
-  /**
-   * @deprecated Use signInWithEmail instead.
-   * Verify OTP code. On success, creates/updates Firestore user profile.
-   * Returns true if new user (needs onboarding), false if existing user.
-   */
-  const verifyOTP = useCallback(
-    async (verificationId: string, code: string): Promise<{ isNew: boolean; role?: string | null; onboardingComplete?: boolean }> => {
-      setError(null);
-      try {
-        const credential = PhoneAuthProvider.credential(verificationId, code);
-        const result = await signInWithCredential(auth, credential);
-        const firebaseUser = result.user;
-
-        const userRef = doc(db, 'users', firebaseUser.uid);
-        const userSnap = await getDoc(userRef);
-        const isNew = !userSnap.exists();
-
-        if (isNew) {
-          // Create minimal profile in Firestore — rest filled during onboarding
-          const phone = firebaseUser.phoneNumber || '';
-          const newProfile: Partial<UserProfile> = {
-            uid: firebaseUser.uid,
-            phone: '',
-            name: '',
-            email: '',
-            role: null,
-            city: '',
-            localities: [],
-            // BUG-12 FIX: budget is collected during onboarding, not fabricated.
-            budget: 0,
-            moveInDate: '',
-            profession: '',
-            company: '',
-            age: 0,
-            gender: '',
-            avatar: '',
-            quizAnswers: {},
-            onboardingComplete: false,
-            isPremium: false,
-            connectsUsed: 0,
-            connectsLimit: 5,
-            verificationLevel: 0,
-            isVerified: false,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          };
-          await persistPublicUser(
-            firebaseUser.uid,
-            newProfile as Record<string, unknown>,
-            { phone }
-          );
-          setProfile(await hydrateOwnProfile({ ...newProfile, uid: firebaseUser.uid, phone } as UserProfile));
-        } else {
-          setProfile(await hydrateOwnProfile({ ...(userSnap.data() as UserProfile), uid: firebaseUser.uid }));
-        }
-
-        setUser(firebaseUser);
-        const existingData = userSnap.data() as UserProfile | undefined;
-        return {
-          isNew,
-          role: isNew ? null : (existingData?.role || null),
-          onboardingComplete: isNew ? false : !!existingData?.onboardingComplete,
-        };
-      } catch (err: any) {
-        const msg = err.code === 'auth/invalid-verification-code'
-          ? 'Invalid OTP. Please try again.'
-          : err.message || 'Verification failed';
-        setError(msg);
-        throw new Error(msg);
-      }
-    },
-    [setError, setProfile, setUser]
-  );
-
   /**
    * Google Sign-in flow
    * Continues seamlessly, creates profile if new.
@@ -646,12 +462,13 @@ export function useAuth() {
           newProfile as unknown as Record<string, unknown>,
           { phone, email }
         );
+        setProfile(await hydrateOwnProfile({ ...newProfile, phone, email }));
+        setUser(firebaseUser);
         const hasPhone = !!firebaseUser.phoneNumber;
         return { isNew: true, role: null, onboardingComplete: false, email: firebaseUser.email, hasPhone };
       } else {
         const existingProfile = userSnap.data() as UserProfile;
         if (googlePhoto && (!existingProfile.avatar || existingProfile.avatar.trim() === '' || existingProfile.avatar.includes('dicebear'))) {
-          await persistPublicUser(firebaseUser.uid, { avatar: googlePhoto });
           existingProfile.avatar = googlePhoto;
         }
         const hydrated = await hydrateOwnProfile({ ...existingProfile, uid: firebaseUser.uid });
@@ -674,47 +491,8 @@ export function useAuth() {
     await signOut(auth);
     setUser(null);
     setProfile(null);
-    window.recaptchaVerifier = null;
     useStore.getState().resetAll();
   }, [setProfile, setUser]);
-
-  /**
-   * Verify OTP and link/save phone to the currently signed-in Google user.
-   */
-  const verifyAndLinkPhone = useCallback(
-    async (verificationId: string, code: string, phone: string): Promise<void> => {
-      setError(null);
-      try {
-        const credential = PhoneAuthProvider.credential(verificationId, code);
-        const currentUser = auth.currentUser;
-        if (!currentUser) throw new Error('You must be signed in to verify your mobile number.');
-
-        // Link with Firebase Auth if possible
-        try {
-          await linkWithCredential(currentUser, credential);
-        } catch (linkErr: any) {
-          console.warn('Credential link note (proceeding with profile save):', linkErr?.code || linkErr?.message);
-        }
-
-        // Save phone to privateUserData and mark phoneVerified in users/{uid}
-        await savePrivateUserData(currentUser.uid, { phone });
-        await setDoc(
-          doc(db, 'users', currentUser.uid),
-          { phoneVerified: true, phone: '', updatedAt: serverTimestamp() },
-          { merge: true }
-        );
-
-        await refreshProfile(currentUser.uid);
-      } catch (err: any) {
-        const msg = err.code === 'auth/invalid-verification-code'
-          ? 'Invalid OTP code. Please check and try again.'
-          : err.message || 'Phone verification failed';
-        setError(msg);
-        throw new Error(msg);
-      }
-    },
-    [refreshProfile, setError]
-  );
 
   return {
     user,
@@ -731,10 +509,5 @@ export function useAuth() {
     // Shared
     logout,
     refreshProfile,
-    // Phone OTP
-    initRecaptcha,
-    sendOTP,
-    verifyOTP,
-    verifyAndLinkPhone,
   };
 }

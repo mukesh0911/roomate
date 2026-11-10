@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-08",
+  "suppliedLog": {
+    "imageEntries": 22,
+    "imageUrlLengths": [
+      4096
+    ],
+    "interaction403Responses": 3
+  },
+  "changes": [
+    "Preserve complete bounded raster image URLs; reject malformed inline payloads and SVG",
+    "Supply room ID when hydrating a conversation; validate exact participant pair before historical peer identity disclosure",
+    "Historical room membership never grants messaging permission",
+    "Remove global landing-only image preloads from Explore and other routes"
+  ],
+  "checks": {
+    "functions": "26/26 PASS",
+    "focusedClientTests": "35/35 PASS",
+    "typescript": "PASS",
+    "lint": "PASS (focused changed TypeScript files)",
+    "productionBuild": "PASS",
+    "functionsSyntaxAndSharedModules": "PASS"
+  },
+  "sourceHashes": {
+    "app/functions/discoveryGateway.js": "d804f4ef0f95c3ba31fce292cd289b9af9942a5dc21bbfdd4875bf2217a3d2f1",
+    "app/functions/discoveryGateway.node-test.cjs": "fc2b0cc00ad441fa513956dbe00dcad2a18dc4c252b86dbc118e13bdbf0678ed",
+    "app/src/lib/discoveryGateway.ts": "44573ccac25947bd138cf2c0ea16c13fb9ecae0006b0878b92d3057c0d5a67a2",
+    "app/src/lib/nestmateBackend.ts": "5cd26285d06261e7851425b70d41a1511a8c2ce83e5b9dd433ba3ea8ac710cd9",
+    "app/src/lib/productionReadinessBackend.test.ts": "9cae2bafe4f7eed1050905bce95d2571acaa1f649527874b312fa29c7d56151b",
+    "app/index.html": "99d3fbd97302aa579357b2a0d2b2eb25cc6be941447e11cc00768d257638f0f0"
+  },
+  "boundary": "Supplied log omits the callable error response body; historical-room context is a verified denial path, not proof that all three observed 403 responses have the same cause. Incomplete, restricted and unauthorized callers remain denied. Signed-in live browser acceptance remains unverified.",
+  "liveDeployment": {
+    "passed": true,
+    "evidence": "discovery-deployment-2026-11-08.json"
+  }
+}

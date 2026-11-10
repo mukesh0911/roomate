@@ -1,0 +1,418 @@
+[
+  {
+    "id": "A01",
+    "file": "app/src/components/landing/HeroSearchModule.tsx",
+    "line": 71,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A02",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "line": 1963,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A03",
+    "file": "app/src/components/landing/LivingOptionsSection.tsx",
+    "line": 36,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A04",
+    "file": "app/src/components/landing/FeaturedListingsSection.tsx",
+    "line": 68,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A05",
+    "file": "app/src/components/landing/FeaturedListingsSection.tsx",
+    "line": 118,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A06",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "line": 1248,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A07",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "line": 1255,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A08",
+    "file": "app/src/lib/nestmateBackend.ts",
+    "line": 790,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A09",
+    "file": "app/src/lib/nestmateBackend.ts",
+    "line": 780,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A10",
+    "file": "app/src/pages/AdminPage.tsx",
+    "line": 242,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A11",
+    "file": "app/src/pages/AdminPage.tsx",
+    "line": 243,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A12",
+    "file": "app/src/pages/AdminPage.tsx",
+    "line": 306,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A13",
+    "file": "app/src/pages/AdminPage.tsx",
+    "line": 810,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A14",
+    "file": "app/src/pages/AdminPage.tsx",
+    "line": 939,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A15",
+    "file": "app/src/pages/AdminPage.tsx",
+    "line": 969,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A16",
+    "file": "app/src/pages/AdminPage.tsx",
+    "line": 1004,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A17",
+    "file": "app/src/pages/AdminPage.tsx",
+    "line": 865,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A18",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "line": 1738,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A19",
+    "file": "app/src/lib/nestmateBackend.ts",
+    "line": 872,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A20",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "line": 924,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A21",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "line": 831,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A22",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "line": 1061,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A23",
+    "file": "app/src/components/landing/LandingFooter.tsx",
+    "line": 462,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A24",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "line": 1424,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A25",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "line": 634,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A26",
+    "file": "app/src/lib/profileEditor.ts",
+    "line": 29,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A27",
+    "file": "app/src/lib/nestmateBackend.ts",
+    "line": 1674,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A28",
+    "file": "app/src/lib/nestmateBackend.ts",
+    "line": 1235,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A29",
+    "file": "app/firestore.rules",
+    "line": 149,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A30",
+    "file": "app/firestore.rules",
+    "line": 125,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A31",
+    "file": "app/src/lib/sanitizeRenderedHtml.ts",
+    "line": 9,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A32",
+    "file": "app/src/lib/nestmateBackend.ts",
+    "line": 1825,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A33",
+    "file": "app/storage.rules",
+    "line": 83,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A34",
+    "file": "app/functions/index.js",
+    "line": 39,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A35",
+    "file": "app/functions/index.js",
+    "line": 11,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A36",
+    "file": "app/src/lib/marketplaceVisibility.ts",
+    "line": 32,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A37",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "line": 270,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A38",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "line": 1431,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A39",
+    "file": "app/src/pages/AdminPage.tsx",
+    "line": 692,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A40",
+    "file": "app/src/hooks/useAdmin.ts",
+    "line": 23,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A41",
+    "file": "app/src/lib/displayTruth.test.ts",
+    "line": 27,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A42",
+    "file": "tests/e2e/workflows/multiUserSync.spec.ts",
+    "line": 24,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A43",
+    "file": ".github/workflows/deploy-beta.yml",
+    "line": 14,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A44",
+    "file": "README.md",
+    "line": 18,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A45",
+    "file": "app/src/components/landing/HeroSearchModule.tsx",
+    "line": 134,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A46",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "line": 1936,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A47",
+    "file": "app/src/components/landing/LandingNavbar.tsx",
+    "line": 36,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A48",
+    "file": "app/firestore.rules",
+    "line": 776,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A49",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "line": 1887,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A50",
+    "file": "app/src/lib/ownerVerification.ts",
+    "line": 206,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A51",
+    "file": "app/public/sitemap.xml",
+    "line": 9,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  },
+  {
+    "id": "A52",
+    "file": "app/src/pages/AdminPage.tsx",
+    "line": 1935,
+    "lineExists": true,
+    "excerptMatches": true,
+    "matchMethod": "Stored excerpt occurs within exact referenced line; excerpts may be partial lines."
+  }
+]

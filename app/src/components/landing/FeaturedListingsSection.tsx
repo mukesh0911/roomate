@@ -1,50 +1,55 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Heart, ChevronLeft, ChevronRight, ShieldCheck, ArrowRight } from 'lucide-react';
-import { collection, query, where, limit, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { getListingPhotos } from '@/lib/displayTruth';
-import { LANDING_ASSETS } from '@/lib/landingAssets';
+import { listingRent } from '@/lib/listingTruth';
+import { useAuth } from '@/hooks/useAuth';
+import { useStore } from '@/store/useStore';
+import { saveUserBookmarkBackend, fetchBoundedExploreListings } from '@/lib/nestmateBackend';
+import { toast } from 'sonner';
 
 export default function FeaturedListingsSection() {
   const navigate = useNavigate();
   const carouselRef = useRef<HTMLDivElement>(null);
-  const [favorites, setFavorites] = useState<Record<string | number, boolean>>({});
+  const { user, profile, refreshProfile } = useAuth();
+  const openAuthModal = useStore(state => state.openAuthModal);
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
+  const savesInFlight = useRef(new Set<string>());
+  const favorites = Object.fromEntries((profile?.savedRoomIds || []).map(id => [id, true]));
   const [realListings, setRealListings] = useState<any[]>([]);
+  const [fetchState, setFetchState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     let mounted = true;
+    setFetchState('loading');
     async function loadFeatured() {
       try {
-        const q = query(
-          collection(db, 'listings'),
-          where('status', '==', 'active'),
-          limit(8)
-        );
-        const snap = await getDocs(q);
+        const result = await fetchBoundedExploreListings({ pageSize: 8, maxReadBudget: 32 });
         if (!mounted) return;
-        const items = snap.docs.map(d => {
-          const data = d.data();
+        const items = result.all.map((d) => {
+          const data = d.raw;
           const { photos, hasRealPhotos } = getListingPhotos(data.images);
-          const rent = data.partnerShare || data.totalRent || 0;
+          const rent = listingRent(data);
           const tags = [data.flatType, data.furnishing, data.locality].filter(Boolean);
           return {
             id: d.id,
-            title: data.title || 'Verified Space',
-            price: rent > 0 ? `₹ ${rent.toLocaleString()}` : 'Rent on request',
-            period: rent > 0 ? '/ month' : '',
-            image: hasRealPhotos && photos[0] ? photos[0] : LANDING_ASSETS.photos.cozyPrivateRoom,
-            tags: tags.length > 0 ? tags : ['Verified Space'],
-            verified: !!data.ownerVerified,
-            city: data.city || 'Bengaluru',
-            distance: data.locality ? `${data.locality}, ${data.city || 'Bengaluru'}` : data.city || 'Bengaluru',
+            title: data.title || 'Untitled listing',
+            price: rent != null ? `₹ ${rent.toLocaleString()}` : 'Rent not provided',
+            period: rent != null ? '/ month' : '',
+            image: hasRealPhotos && photos[0] ? photos[0] : undefined,
+            tags,
+            verified: data.ownerVerified === true,
+            city: data.city || '',
+            distance: [data.locality, data.city].filter(Boolean).join(', '),
           };
         });
-        if (items.length > 0) {
-          setRealListings(items);
-        }
+        setRealListings(items);
+        setFetchState('ready');
       } catch (e) {
-        console.warn('Could not load featured listings from Firestore:', e);
+        if (!mounted) return;
+        setFetchState('error');
+        console.warn('Could not load featured places:', e);
       }
     }
     const handle = typeof window !== 'undefined' && 'requestIdleCallback' in window
@@ -59,65 +64,25 @@ export default function FeaturedListingsSection() {
         clearTimeout(handle);
       }
     };
-  }, []);
+  }, [user?.uid, retry]);
 
   const prefetchRoomDetail = () => {
-    import('@/pages/RoomDetail');
+    // prefetch no-op
   };
 
-  const DEFAULT_FEATURED = [
-    {
-      id: 'f1',
-      title: 'Cozy Private Room in 3BHK',
-      price: '₹ 14,000',
-      period: '/ month',
-      image: LANDING_ASSETS.photos.cozyPrivateRoom,
-      tags: ['Private Room', 'Furnished', 'Indiranagar'],
-      verified: true,
-      city: 'Bengaluru',
-      distance: 'Indiranagar, Bengaluru',
-    },
-    {
-      id: 'f2',
-      title: 'Modern Room in Luxury Coliving',
-      price: '₹ 18,500',
-      period: '/ month',
-      image: LANDING_ASSETS.photos.modernPg,
-      tags: ['Coliving', 'Fully Furnished', 'Bandra West'],
-      verified: true,
-      city: 'Mumbai',
-      distance: 'Bandra West, Mumbai',
-    },
-    {
-      id: 'f3',
-      title: 'Spacious Master Bedroom',
-      price: '₹ 16,000',
-      period: '/ month',
-      image: LANDING_ASSETS.photos.sharedApartment,
-      tags: ['Master Bed', 'Attached Bath', 'Hauz Khas'],
-      verified: true,
-      city: 'Delhi NCR',
-      distance: 'Hauz Khas, Delhi NCR',
-    },
-    {
-      id: 'f4',
-      title: 'Premium Coliving Suite',
-      price: '₹ 15,500',
-      period: '/ month',
-      image: LANDING_ASSETS.photos.colivingListing,
-      tags: ['Private Room', 'All Amenities', 'Koregaon Park'],
-      verified: true,
-      city: 'Pune',
-      distance: 'Koregaon Park, Pune',
-    },
-  ];
-
-  const listings = realListings.length > 0 ? realListings : DEFAULT_FEATURED;
+  const listings = realListings;
 
 
-  const toggleFavorite = (e: React.MouseEvent, id: string | number) => {
+  const toggleFavorite = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
+    if (!user) { openAuthModal({ title: 'Sign in to save this listing' }); return; }
+    if (savesInFlight.current.has(id)) return;
+    savesInFlight.current.add(id); setSaving(previous => ({ ...previous, [id]: true }));
+    try {
+      await saveUserBookmarkBackend(id, true, !favorites[id]);
+      await refreshProfile();
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not update Saved. Try again.'); }
+    finally { savesInFlight.current.delete(id); setSaving(previous => ({ ...previous, [id]: false })); }
   };
 
   const scroll = (direction: 'left' | 'right') => {
@@ -132,6 +97,9 @@ export default function FeaturedListingsSection() {
 
   return (
     <section className="py-10 sm:py-20 px-4 sm:px-6 lg:px-8 max-w-[1280px] mx-auto">
+      {fetchState === 'loading' && !realListings.length && <p role="status" className="mb-4 text-slate-600">Loading featured places...</p>}
+      {fetchState === 'error' && <div role="alert" className="mb-4 rounded-xl border p-4 text-slate-700">Featured places could not refresh. <button className="underline" onClick={() => setRetry(value => value + 1)}>Try again</button></div>}
+      {fetchState === 'ready' && !realListings.length && <p role="status" className="mb-4 text-slate-600">No featured places are available right now. <Link className="underline" to="/explore">Explore places</Link></p>}
       {/* ─── MOBILE VIEW (< md): Matches Reference Mockup Exactly ─── */}
       <div className="md:hidden text-left mb-6">
         <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-[#FF5A36] uppercase mb-1.5 block">
@@ -141,7 +109,7 @@ export default function FeaturedListingsSection() {
           Find your next space
         </h2>
         <p className="text-[13px] text-slate-600 mb-5 leading-relaxed">
-          Discover verified listings across top cities.
+          Discover places across cities.
         </p>
 
         {/* 2 Mobile Cards Stacked/Presented cleanly matching reference */}
@@ -152,11 +120,7 @@ export default function FeaturedListingsSection() {
               <div
                 key={item.id}
                 onClick={() => {
-                  if (String(item.id).startsWith('f')) {
-                    navigate('/explore?tab=rooms');
-                  } else {
-                    navigate(`/room/${item.id}`);
-                  }
+                  navigate('/explore?room=' + encodeURIComponent(item.id));
                 }}
                 className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-xs cursor-pointer flex flex-col"
                 onMouseEnter={prefetchRoomDetail}
@@ -179,7 +143,9 @@ export default function FeaturedListingsSection() {
                   <button
                     type="button"
                     onClick={(e) => toggleFavorite(e, item.id)}
-                    aria-label="Save listing"
+                    aria-label={(isFav ? 'Unsave ' : 'Save ') + item.title}
+                    aria-pressed={isFav}
+                    disabled={saving[item.id]}
                     className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-slate-700 shadow-xs cursor-pointer"
                   >
                     <Heart
@@ -269,7 +235,7 @@ export default function FeaturedListingsSection() {
               Find your next space
             </h2>
             <p className="text-sm sm:text-base text-slate-600">
-              Discover verified listings across top cities.
+              Discover places across cities.
             </p>
           </div>
 
@@ -314,11 +280,7 @@ export default function FeaturedListingsSection() {
                 <div
                   key={item.id}
                   onClick={() => {
-                    if (String(item.id).startsWith('f')) {
-                      navigate('/explore?tab=rooms');
-                    } else {
-                      navigate(`/room/${item.id}`);
-                    }
+                    navigate('/explore?room=' + encodeURIComponent(item.id));
                   }}
                   className="group/card min-w-[270px] sm:min-w-[290px] md:min-w-0 flex-1 bg-white rounded-2xl sm:rounded-3xl overflow-hidden border border-border/60 shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col snap-start"
                   onMouseEnter={prefetchRoomDetail}
@@ -341,7 +303,9 @@ export default function FeaturedListingsSection() {
                     <button
                       type="button"
                       onClick={(e) => toggleFavorite(e, item.id)}
-                      aria-label="Save listing"
+                      aria-label={(isFav ? 'Unsave ' : 'Save ') + item.title}
+                      aria-pressed={isFav}
+                      disabled={saving[item.id]}
                       className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-slate-700 hover:bg-white hover:scale-110 transition-all shadow-xs cursor-pointer"
                     >
                       <Heart

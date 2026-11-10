@@ -24,8 +24,7 @@ import {
 } from './displayTruth';
 import { calculateCompatibility, getMatchReasons } from './matching';
 // NOTE: relative imports — the root vitest runner does not resolve the '@/' alias.
-import { computeTrustScore } from '../components/TrustBadge';
-import type { UserProfile } from '../hooks/useAuth';
+import { mapFirestoreUser } from './nestmateBackend';
 
 // ── 1. Missing listing images ────────────────────────────────────────────────
 describe('listing photos (truth)', () => {
@@ -87,34 +86,14 @@ describe('owner preferences gate (truth)', () => {
 });
 
 // ── 4. Trust model: unverified stays unverified ──────────────────────────────
-describe('trust model (truth)', () => {
-    const base = {
-        uid: 'u1', phone: '', name: 'U', email: '', role: 'seeker' as const,
-        city: '', localities: [], budget: 0, moveInDate: '', profession: '',
-        company: '', age: 0, gender: '', avatar: '', quizAnswers: {},
-        onboardingComplete: true, isPremium: false, connectsUsed: 0,
-        connectsLimit: 5,
-    } as unknown as UserProfile;
-
-    it('a brand-new user (verificationLevel 0, isVerified false) is Bronze/unverified', () => {
-        const t = computeTrustScore({ ...base, verificationLevel: 0, isVerified: false }, []);
-        expect(t.tier).toBe('bronze');
-        expect(t.score).toBe(0);
-    });
-
-    it('only a real admin-approved flag produces Verified Pro', () => {
-        const t = computeTrustScore({ ...base, verificationLevel: 3, isVerified: true }, []);
-        expect(t.tier).toBe('pro');
-    });
-
-    it('a high verificationLevel WITHOUT the real flag does NOT grant Pro', () => {
-        // Regression guard for the old bug where UI keyed off verificationLevel.
-        const t = computeTrustScore({ ...base, verificationLevel: 3, isVerified: false }, []);
-        expect(t.tier).not.toBe('pro');
-    });
+describe('active manual identity display (truth)', () => {
+  it('requires the real approval flag, not level, upload, name or completeness', () => {
+    expect(mapFirestoreUser({isVerified:false,verificationLevel:3}).isVerified).toBe(0);
+    expect(mapFirestoreUser({documentPath:'private',name:'Complete profile'}).isVerified).toBe(0);
+    expect(mapFirestoreUser({isVerified:true,verificationLevel:2}).isVerified).toBe(1);
+  });
 });
 
-// ── 5. Missing seeker budget ─────────────────────────────────────────────────
 describe('budget formatting (truth)', () => {
     it('missing budget renders "Budget not provided" — never ₹10,000', () => {
         expect(formatBudgetINR(undefined)).toBe('Budget not provided');

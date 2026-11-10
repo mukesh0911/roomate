@@ -1,0 +1,772 @@
+[
+  {
+    "id": "W01",
+    "name": "Landing search to results",
+    "steps": "Visitor submits location, budget and date → updateFilters → tab URL → Explore initializes S.",
+    "dependencies": "Zustand versus independent DOM engine; no query handoff.",
+    "findings": [
+      "A01",
+      "A02",
+      "A03"
+    ],
+    "status": "FAILED: source/browser handoff mismatch.",
+    "target": "T01",
+    "classification": "Incorrectly implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/components/landing/HeroSearchModule.tsx",
+        "line": 71,
+        "excerpt": "const handleSearch = (e?: React.FormEvent) => {\r"
+      },
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 1963,
+        "excerpt": "var cityParam = searchParams.get('city');"
+      },
+      {
+        "file": "app/src/components/landing/LivingOptionsSection.tsx",
+        "line": 36,
+        "excerpt": "const handleCardClick = (option: typeof options[0]) => {\r"
+      }
+    ]
+  },
+  {
+    "id": "W02",
+    "name": "City card to market",
+    "steps": "Visitor clicks city → URL city parameter → S.q locality text, Bengaluru city remains.",
+    "dependencies": "City service scope and query indexes.",
+    "findings": [
+      "A02"
+    ],
+    "status": "FAILED: observed in read-only browser.",
+    "target": "T01",
+    "classification": "Incorrectly implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 1963,
+        "excerpt": "var cityParam = searchParams.get('city');"
+      }
+    ]
+  },
+  {
+    "id": "W03",
+    "name": "Featured property to detail",
+    "steps": "Visitor opens featured card → real ID room query or stock fallback generic Rooms.",
+    "dependencies": "First-page-only D resolution.",
+    "findings": [
+      "A04",
+      "A21"
+    ],
+    "status": "PARTIALLY VERIFIED: source chain; not every featured record exercised.",
+    "target": "T02",
+    "classification": "Partially implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/components/landing/FeaturedListingsSection.tsx",
+        "line": 68,
+        "excerpt": "const DEFAULT_FEATURED = [\r"
+      },
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 831,
+        "excerpt": "var requestedRoom=searchParams.get(\"room\");if(requestedRoom){var requestedIndex=D.findIndex(function(x){return x[12]===requestedRoom});if(requestedIndex>=0){S.room=requestedIndex;S.nav=\"room\";}}"
+      }
+    ]
+  },
+  {
+    "id": "W04",
+    "name": "Landing favorite to Saved",
+    "steps": "Visitor toggles heart → local component favorites → navigates away.",
+    "dependencies": "No authoritative bookmark write.",
+    "findings": [
+      "A05",
+      "A20"
+    ],
+    "status": "FAILED: source-established persistence gap.",
+    "target": "T05",
+    "classification": "Disconnected",
+    "sourceLocations": [
+      {
+        "file": "app/src/components/landing/FeaturedListingsSection.tsx",
+        "line": 118,
+        "excerpt": "const toggleFavorite = (e: React.MouseEvent, id: string | number) => {\r"
+      },
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 924,
+        "excerpt": "var connUids = connList.map(function(c){"
+      }
+    ]
+  },
+  {
+    "id": "W05",
+    "name": "Register then become discoverable",
+    "steps": "Email signup → Auth identity → users/privateUserData → profile edit city/locality/intents/consent → refresh.",
+    "dependencies": "Canonical resolver distinguishes team-up/live-in host/find-room-only; no tenancy inference.",
+    "findings": [
+      "A26",
+      "A29"
+    ],
+    "status": "PARTIALLY VERIFIED: fresh helper suite passes; no new account was created in this analysis.",
+    "target": "T03 T04",
+    "classification": "Partially implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/lib/profileEditor.ts",
+        "line": 29,
+        "excerpt": "localities: [area], bio: draft.bio,"
+      },
+      {
+        "file": "app/firestore.rules",
+        "line": 149,
+        "excerpt": "match /users/{userId} {\r"
+      }
+    ]
+  },
+  {
+    "id": "W06",
+    "name": "Sign in, refresh and sign out",
+    "steps": "Email or Google → singleton Auth generation → hydrateOwnProfile → protected screen → logout/reset.",
+    "dependencies": "Provider config, private read recovery, stale response protection.",
+    "findings": [
+      "A38"
+    ],
+    "status": "PARTIALLY VERIFIED: existing emulator login succeeded; no live provider delivery verified.",
+    "target": "T03 T27",
+    "classification": "Partially implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 1431,
+        "excerpt": "Data export is not available yet. No request has been sent.\")"
+      }
+    ]
+  },
+  {
+    "id": "W07",
+    "name": "Recover access / change credentials",
+    "steps": "Reset mode → Auth reset email; account settings → reauthenticate → password/email-change API.",
+    "dependencies": "Real provider and email infrastructure; Google-only password semantics.",
+    "findings": [
+      "A38"
+    ],
+    "status": "NOT VERIFIED end to end; source implementation inspected.",
+    "target": "T03 T27",
+    "classification": "Partially implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 1431,
+        "excerpt": "Data export is not available yet. No request has been sent.\")"
+      }
+    ]
+  },
+  {
+    "id": "W08",
+    "name": "Create a property for review",
+    "steps": "Post CTA/auth → PF five-step wizard → explicit live-in checkbox → draft reservation → listing-ID photos → pending.",
+    "dependencies": "Completed shared profile; owner Storage authorization; moderator approval distinct from ID trust.",
+    "findings": [
+      "A10",
+      "A11",
+      "A36"
+    ],
+    "status": "PARTIALLY VERIFIED: existing helper cases rerun; no new listing mutation here.",
+    "target": "T18 T19",
+    "classification": "Partially implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/AdminPage.tsx",
+        "line": 242,
+        "excerpt": "rent: Number(data.rent) || 14000,"
+      },
+      {
+        "file": "app/src/pages/AdminPage.tsx",
+        "line": 243,
+        "excerpt": "status: data.status === 'flagged' ? 'Flagged' : data.status === 'paused' ? 'Paused' : data.status === 'filled' ? 'Filled' : 'Active',"
+      },
+      {
+        "file": "app/src/lib/marketplaceVisibility.ts",
+        "line": 32,
+        "excerpt": "export function isPubliclyVisibleListing(listing: unknown): boolean {"
+      }
+    ]
+  },
+  {
+    "id": "W09",
+    "name": "Edit and resubmit a listing",
+    "steps": "Owner MY → oed → updateListingBackend → photo upload/replacement → pending for draft/rejected.",
+    "dependencies": "Re-review policy, stable draft ID, orphan objects.",
+    "findings": [
+      "A11",
+      "A36"
+    ],
+    "status": "PARTIALLY VERIFIED: source and helper tests; complete moderation roundtrip NOT VERIFIED.",
+    "target": "T21",
+    "classification": "Partially implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/AdminPage.tsx",
+        "line": 243,
+        "excerpt": "status: data.status === 'flagged' ? 'Flagged' : data.status === 'paused' ? 'Paused' : data.status === 'filled' ? 'Filled' : 'Active',"
+      },
+      {
+        "file": "app/src/lib/marketplaceVisibility.ts",
+        "line": 32,
+        "excerpt": "export function isPubliclyVisibleListing(listing: unknown): boolean {"
+      }
+    ]
+  },
+  {
+    "id": "W10",
+    "name": "Pause, fill, resume or delete",
+    "steps": "Owner action → backend status/delete → owner snapshot; public query requires active.",
+    "dependencies": "Owner-active status and verified publication policy; no selection/tenancy inference.",
+    "findings": [
+      "A13",
+      "A36"
+    ],
+    "status": "NOT VERIFIED through mutations in this phase.",
+    "target": "T22",
+    "classification": "Inconsistent with another section",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/AdminPage.tsx",
+        "line": 810,
+        "excerpt": "Their active listings will be paused and removed from search.',"
+      },
+      {
+        "file": "app/src/lib/marketplaceVisibility.ts",
+        "line": 32,
+        "excerpt": "export function isPubliclyVisibleListing(listing: unknown): boolean {"
+      }
+    ]
+  },
+  {
+    "id": "W11",
+    "name": "Questionnaire to listing interest",
+    "steps": "Host questions → screeningQuestions; the only active request call supplies target UID without listingId/answers.",
+    "dependencies": "Owner intake filters connection.listingId; no current page provides that attribution or questionnaire answers.",
+    "findings": [
+      "A19",
+      "A49"
+    ],
+    "status": "FAILED contract: current intake chain is disconnected in source.",
+    "target": "T06 T23",
+    "classification": "Disconnected",
+    "sourceLocations": [
+      {
+        "file": "app/src/lib/nestmateBackend.ts",
+        "line": 872,
+        "excerpt": "Fetch all connections sent to this owner (conforms with security rules)"
+      },
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 1887,
+        "excerpt": "sendConnectionRequestBackend(targetUid).then(function(){"
+      }
+    ]
+  },
+  {
+    "id": "W12",
+    "name": "Request communication consent",
+    "steps": "Profile/card → shared relationship action → deterministic request/quota transaction → notification.",
+    "dependencies": "Active accounts, five-request cumulative cap, target block list, duplicate request checks.",
+    "findings": [
+      "A28"
+    ],
+    "status": "PARTIALLY VERIFIED: regression assertions pass; no new request sent during analysis.",
+    "target": "T07",
+    "classification": "Partially implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/lib/nestmateBackend.ts",
+        "line": 1235,
+        "excerpt": "Upgrade to NestMate Pro for unlimited connections.`);"
+      }
+    ]
+  },
+  {
+    "id": "W13",
+    "name": "Recipient decision and sender withdrawal",
+    "steps": "Incoming Accept/Decline or outgoing Withdraw → pending-only authorized transition → live collections.",
+    "dependencies": "Participant identity, acceptedPairs and no automatic occupancy change.",
+    "findings": [
+      "A18"
+    ],
+    "status": "PARTIALLY VERIFIED: source plus existing tests; this phase performed no decisions.",
+    "target": "T08 T09 T10",
+    "classification": "Partially implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 1738,
+        "excerpt": "APS[k+\":\"+i3]=\"Declined\";"
+      }
+    ]
+  },
+  {
+    "id": "W14",
+    "name": "Notification to relationship action",
+    "steps": "Event → nw → mark read / connectionId-based accept/reject → refresh.",
+    "dependencies": "Missing referenced record and unsupported type mapping need explicit recovery.",
+    "findings": [
+      "A20",
+      "A22"
+    ],
+    "status": "PARTIALLY VERIFIED source chain.",
+    "target": "T02 T08 T09",
+    "classification": "Partially implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 924,
+        "excerpt": "var connUids = connList.map(function(c){"
+      },
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 1061,
+        "excerpt": "else if(b.dataset.n){S.nav=b.dataset.n;S.sub=0;render();scrollTo(0,0)}"
+      }
+    ]
+  },
+  {
+    "id": "W15",
+    "name": "Accepted request to text conversation",
+    "steps": "Accepted pair → deterministic/reused room → Message → snd batch → room listener rehydrates messages.",
+    "dependencies": "Both participants active, live accepted connection; query cost grows with history.",
+    "findings": [
+      "A08",
+      "A09"
+    ],
+    "status": "PARTIALLY VERIFIED: helper tests executed; no new message sent here.",
+    "target": "T11 T12",
+    "classification": "Partially implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/lib/nestmateBackend.ts",
+        "line": 790,
+        "excerpt": "un: data.unreadCount || 0,"
+      },
+      {
+        "file": "app/src/lib/nestmateBackend.ts",
+        "line": 780,
+        "excerpt": "md.imageUrl || '', 'Today', dateStr];"
+      }
+    ]
+  },
+  {
+    "id": "W16",
+    "name": "Send a chat photo",
+    "steps": "Attach file → FileReader data URL → snd → Firestore message, not Storage.",
+    "dependencies": "Document-size and content validation; accepted pair required.",
+    "findings": [
+      "A07"
+    ],
+    "status": "FAILED contract: source confirms no authorized file-upload step.",
+    "target": "T13",
+    "classification": "Incorrectly implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 1255,
+        "excerpt": "if(e.target.id==\"cfile\"&&e.target.files[0]){var r=new FileReader();r.onload=function(){snd(\"\",r.result)};r.readAsDataURL(e.target.files[0])}});"
+      }
+    ]
+  },
+  {
+    "id": "W17",
+    "name": "Return to unread conversations",
+    "steps": "Room unreadCount → CH.un → Unread filter; local open zeroes count.",
+    "dependencies": "No per-recipient write/read-cursor contract in active services.",
+    "findings": [
+      "A08"
+    ],
+    "status": "FAILED contract: persistence gap established from source.",
+    "target": "T14",
+    "classification": "Incorrectly implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/lib/nestmateBackend.ts",
+        "line": 790,
+        "excerpt": "un: data.unreadCount || 0,"
+      }
+    ]
+  },
+  {
+    "id": "W18",
+    "name": "Chat to partner profile",
+    "steps": "Partner header data-vp UID → unary + → RM[index] → profile renderer.",
+    "dependencies": "UID-based lookup and independent record hydration.",
+    "findings": [
+      "A06",
+      "A20"
+    ],
+    "status": "NOT VERIFIED in browser: seeded login had no available chat fixture; source mismatch VERIFIED.",
+    "target": "T02",
+    "classification": "Incorrectly implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 1248,
+        "excerpt": "else if(d.vp!==undefined){S.rmi=+d.vp;S.back=\"messages\";S.nav=\"roommate\";render();scrollTo(0,0)}"
+      },
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 924,
+        "excerpt": "var connUids = connList.map(function(c){"
+      }
+    ]
+  },
+  {
+    "id": "W19",
+    "name": "Report then moderate content",
+    "steps": "Member report writes reportedBy/target → admin report view → resolve → optional sanction.",
+    "dependencies": "Typed target, notes/outcomes, atomic workflow and deletion retention.",
+    "findings": [
+      "A17",
+      "A34"
+    ],
+    "status": "PARTIALLY VERIFIED source; no report/moderation write performed.",
+    "target": "T17 T31",
+    "classification": "Partially implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/AdminPage.tsx",
+        "line": 865,
+        "excerpt": "adminResolveReportBackend(qId, 'resolved').then(async () => {"
+      },
+      {
+        "file": "app/functions/index.js",
+        "line": 39,
+        "excerpt": "['reports', 'reporterId'], ['reports', 'targetId'],"
+      }
+    ]
+  },
+  {
+    "id": "W20",
+    "name": "Block and later inspect restrictions",
+    "steps": "Participant block → user block list + blocked connection + pair deletion → restricted list/history.",
+    "dependencies": "Historic block compatibility; explicit unblock consent policy.",
+    "findings": [
+      "A20",
+      "A38"
+    ],
+    "status": "PARTIALLY VERIFIED: existing tests pass; no new block executed.",
+    "target": "T16",
+    "classification": "Partially implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 924,
+        "excerpt": "var connUids = connList.map(function(c){"
+      },
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 1431,
+        "excerpt": "Data export is not available yet. No request has been sent.\")"
+      }
+    ]
+  },
+  {
+    "id": "W21",
+    "name": "Revisit Saved or Connections outside discovery",
+    "steps": "Stable saved/relationship ID → current tuples only → missing result if not loaded/eligible.",
+    "dependencies": "Privacy-aware ID hydration independent of public discovery.",
+    "findings": [
+      "A20"
+    ],
+    "status": "FAILED contract: source-established reference loss.",
+    "target": "T02 T05",
+    "classification": "Disconnected",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 924,
+        "excerpt": "var connUids = connList.map(function(c){"
+      }
+    ]
+  },
+  {
+    "id": "W22",
+    "name": "Basic profile edit after matching setup",
+    "steps": "Saved multi-locality preferences → basic editor first area → Save writes [area].",
+    "dependencies": "Preserve undisplayed preferences; separate city and locality.",
+    "findings": [
+      "A26",
+      "A46"
+    ],
+    "status": "FAILED contract: source-established destructive replacement.",
+    "target": "T25",
+    "classification": "Incorrectly implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/lib/profileEditor.ts",
+        "line": 29,
+        "excerpt": "localities: [area], bio: draft.bio,"
+      },
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 1936,
+        "excerpt": "ME.area = (currentProfile.localities && currentProfile.localities[0]) || currentProfile.city || ME.area;"
+      }
+    ]
+  },
+  {
+    "id": "W23",
+    "name": "Change matching preferences",
+    "steps": "Budget/areas/types/gender/move-in → typed mapper → profile write → refresh.",
+    "dependencies": "Canonical/legacy fields and unavailable weighting model.",
+    "findings": [
+      "A25",
+      "A26",
+      "A37"
+    ],
+    "status": "PARTIALLY VERIFIED: mapper tests executed; all UI combinations NOT VERIFIED.",
+    "target": "T25",
+    "classification": "Inconsistent with another section",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 634,
+        "excerpt": "\"Within 30 days\", mv],"
+      },
+      {
+        "file": "app/src/lib/profileEditor.ts",
+        "line": 29,
+        "excerpt": "localities: [area], bio: draft.bio,"
+      },
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 270,
+        "excerpt": "function calcRoommateMatch(x, y) {"
+      }
+    ]
+  },
+  {
+    "id": "W24",
+    "name": "Select avatar then discard form",
+    "steps": "efile selection → upload avatar → immediate users.avatar write → draft Save/Discard remains.",
+    "dependencies": "Draft commit semantics and orphan cleanup.",
+    "findings": [
+      "A27",
+      "A46"
+    ],
+    "status": "PARTIALLY VERIFIED; immediate write verified, cancel journey not executed.",
+    "target": "T25",
+    "classification": "Inconsistent with another section",
+    "sourceLocations": [
+      {
+        "file": "app/src/lib/nestmateBackend.ts",
+        "line": 1674,
+        "excerpt": "export async function uploadProfileAvatarBackend(file: File): Promise<string> {"
+      },
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 1936,
+        "excerpt": "ME.area = (currentProfile.localities && currentProfile.localities[0]) || currentProfile.city || ME.area;"
+      }
+    ]
+  },
+  {
+    "id": "W25",
+    "name": "Submit ID, review and resubmit",
+    "steps": "Consent/document → private Storage path → PENDING/mirrored SUBMITTED → authenticated preview → APPROVED/REJECTED → resubmission.",
+    "dependencies": "Versioned evidence, correct document metadata, trust mirrors and retention.",
+    "findings": [
+      "A12",
+      "A32",
+      "A33"
+    ],
+    "status": "PARTIALLY VERIFIED: source/helper tests; actual private upload/review not repeated here.",
+    "target": "T26",
+    "classification": "Inconsistent with another section",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/AdminPage.tsx",
+        "line": 306,
+        "excerpt": "docType: data.docType || 'Masked Aadhaar',"
+      },
+      {
+        "file": "app/src/lib/nestmateBackend.ts",
+        "line": 1825,
+        "excerpt": "async function reviewVerificationBackend(userId: string, adminEmail: string, approved: boolean, note: string): Promise<void> {"
+      },
+      {
+        "file": "app/storage.rules",
+        "line": 83,
+        "excerpt": "match /verificationDocs/{userId}/{allPaths=**} {\r"
+      }
+    ]
+  },
+  {
+    "id": "W26",
+    "name": "Suspend/ban and reinstate",
+    "steps": "Admin confirmation → users.status write → per-operation rules; listing discovery does not join owner status.",
+    "dependencies": "Account restriction versus listing publication; no Auth revoke/delete shown.",
+    "findings": [
+      "A13"
+    ],
+    "status": "FAILED advertised listing effect in source; no moderation mutation executed.",
+    "target": "T30",
+    "classification": "Partially implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/AdminPage.tsx",
+        "line": 810,
+        "excerpt": "Their active listings will be paused and removed from search.',"
+      }
+    ]
+  },
+  {
+    "id": "W27",
+    "name": "Send group announcement",
+    "steps": "Staff title/message/audience → confirmation → broadcasts document → claimed delivery.",
+    "dependencies": "No recipient fanout/tracking/exported trigger.",
+    "findings": [
+      "A14"
+    ],
+    "status": "FAILED delivery contract from source.",
+    "target": "T32",
+    "classification": "Disconnected",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/AdminPage.tsx",
+        "line": 939,
+        "excerpt": "Broadcast sent successfully');"
+      }
+    ]
+  },
+  {
+    "id": "W28",
+    "name": "Invite staff and enforce moderator limits",
+    "steps": "UI Admin role check → admins record write → claimed invitation; rules accept moderator as full isAdmin.",
+    "dependencies": "Grant versus invitation; authoritative capability policy.",
+    "findings": [
+      "A15",
+      "A30"
+    ],
+    "status": "FAILED UI/rules contract; no access grant attempted.",
+    "target": "T32",
+    "classification": "Incorrectly implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/AdminPage.tsx",
+        "line": 969,
+        "excerpt": "Invitation sent to ${em}`);"
+      },
+      {
+        "file": "app/firestore.rules",
+        "line": 125,
+        "excerpt": "match /{document=**} {\r"
+      }
+    ]
+  },
+  {
+    "id": "W29",
+    "name": "Run maintenance controls",
+    "steps": "Admin purge/reset confirmation → success-shaped toast only.",
+    "dependencies": "No operation or result verification.",
+    "findings": [
+      "A16"
+    ],
+    "status": "FAILED contract; never clicked during analysis.",
+    "target": "T32",
+    "classification": "Unnecessary",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/AdminPage.tsx",
+        "line": 1004,
+        "excerpt": "Factory reset verified (clean state)');"
+      }
+    ]
+  },
+  {
+    "id": "W30",
+    "name": "Export or delete account",
+    "steps": "Settings affordance → unavailable; separate deletion callable requires recent auth and DELETE.",
+    "dependencies": "Retention, correct bucket/fields, peer-history effect, retry progress.",
+    "findings": [
+      "A34",
+      "A35",
+      "A38"
+    ],
+    "status": "NOT VERIFIED execution; UI disconnection/source scope confirmed.",
+    "target": "T29",
+    "classification": "Disconnected",
+    "sourceLocations": [
+      {
+        "file": "app/functions/index.js",
+        "line": 39,
+        "excerpt": "['reports', 'reporterId'], ['reports', 'targetId'],"
+      },
+      {
+        "file": "app/functions/index.js",
+        "line": 11,
+        "excerpt": "storageBucket: projectId ? `${projectId}.appspot.com` : undefined,"
+      },
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 1431,
+        "excerpt": "Data export is not available yet. No request has been sent.\")"
+      }
+    ]
+  },
+  {
+    "id": "W31",
+    "name": "Refresh, back and offline recovery",
+    "steps": "Internal S views → selective replaceState → remount/reset; discovery catches errors; some listeners convert failures to empty.",
+    "dependencies": "Typed navigation and consistent error/loading/empty states.",
+    "findings": [
+      "A21",
+      "A22",
+      "A24"
+    ],
+    "status": "PARTIALLY VERIFIED: route views observed; full offline/back matrix NOT VERIFIED.",
+    "target": "T02 T03",
+    "classification": "Partially implemented",
+    "sourceLocations": [
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 831,
+        "excerpt": "var requestedRoom=searchParams.get(\"room\");if(requestedRoom){var requestedIndex=D.findIndex(function(x){return x[12]===requestedRoom});if(requestedIndex>=0){S.room=requestedIndex;S.nav=\"room\";}}"
+      },
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 1061,
+        "excerpt": "else if(b.dataset.n){S.nav=b.dataset.n;S.sub=0;render();scrollTo(0,0)}"
+      },
+      {
+        "file": "app/src/pages/ExplorePage.tsx",
+        "line": 1424,
+        "excerpt": "navigator.clipboard.writeText(v)}catch(x){}toast(\"Link copied\")}"
+      }
+    ]
+  },
+  {
+    "id": "W32",
+    "name": "Language, push and activity continuation",
+    "steps": "Local language badge / dormant translation hook; dormant activity/push hooks; worker defaults to removed /chat.",
+    "dependencies": "Translation data, subscription delivery, privacy consent and valid routing.",
+    "findings": [
+      "A44",
+      "A47"
+    ],
+    "status": "NOT VERIFIED as shipped capabilities; code-only status established.",
+    "target": "T28",
+    "classification": "Disconnected",
+    "sourceLocations": [
+      {
+        "file": "README.md",
+        "line": 18,
+        "excerpt": "Interactive Map Search**: Leaflet-powered geolocation map view of available rooms and potential flatmates.\r"
+      },
+      {
+        "file": "app/src/components/landing/LandingNavbar.tsx",
+        "line": 36,
+        "excerpt": "const [selectedLang, setSelectedLang] = useState('EN');\r"
+      }
+    ]
+  }
+]

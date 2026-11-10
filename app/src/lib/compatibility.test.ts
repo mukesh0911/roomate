@@ -107,20 +107,20 @@ describe('calculateRoomCompatibility & getRoomMatchReasons (5-Factor Engine)', (
     houseRules: ['Veg kitchen only', 'No smoking inside', 'No pets'],
   };
 
-  it('calculates 100% for a perfect match across all 5 dimensions', () => {
+  it('scores only evidenced dimensions without inventing absent room or occupancy preferences', () => {
     const breakdown = getRoomMatchReasons(perfectSeeker, perfectListing);
-    expect(breakdown.score).toBe(100);
+    expect(breakdown.score).toBe(80);
     expect(breakdown.budgetScore).toBe(25);
     expect(breakdown.locationScore).toBe(20);
     expect(breakdown.genderScore).toBe(20);
-    expect(breakdown.rulesScore).toBe(20);
-    expect(breakdown.trustScore).toBe(15);
+    expect(breakdown.rulesScore).toBe(15);
+    expect(breakdown.trustScore).toBe(0);
     expect(breakdown.reasons.some(r => r.includes('Budget fits'))).toBe(true);
     expect(breakdown.reasons.some(r => r.includes('Same locality'))).toBe(true);
-    expect(breakdown.reasons.some(r => r.includes('Female-only'))).toBe(true);
+    expect(breakdown.reasons.some(r => r.includes('gender requirement'))).toBe(true);
     expect(breakdown.reasons.some(r => r.includes('Vegetarian matches'))).toBe(true);
     expect(breakdown.reasons.some(r => r.includes('Non-smoker'))).toBe(true);
-    expect(breakdown.reasons.some(r => r.includes('ID verified'))).toBe(true);
+    expect(breakdown.reasons.some(r => r.includes('Budget fits'))).toBe(true);
   });
 
   it('penalizes significant budget shortfall', () => {
@@ -136,7 +136,7 @@ describe('calculateRoomCompatibility & getRoomMatchReasons (5-Factor Engine)', (
     const breakdown = getRoomMatchReasons(maleSeeker, perfectListing);
     expect(breakdown.genderScore).toBe(0);
     expect(breakdown.score).toBeLessThanOrEqual(40);
-    expect(breakdown.caveats.some(c => c.includes('Female-only'))).toBe(true);
+    expect(breakdown.caveats.some(c => c.includes('gender requirement'))).toBe(true);
   });
 
   it('flags diet and smoking conflicts honestly', () => {
@@ -148,7 +148,7 @@ describe('calculateRoomCompatibility & getRoomMatchReasons (5-Factor Engine)', (
     expect(breakdown.rulesScore).toBeLessThan(10);
     expect(breakdown.caveats.some(c => c.includes('veg-only'))).toBe(true);
     expect(breakdown.caveats.some(c => c.includes('Smoking habit conflicts'))).toBe(true);
-    expect(breakdown.caveats.some(c => c.includes('Loves pets'))).toBe(true);
+    expect(breakdown.caveats.some(c => c.includes('Pet preference'))).toBe(true);
   });
 
   it('caps cross-city matches at 60%', () => {
@@ -157,12 +157,11 @@ describe('calculateRoomCompatibility & getRoomMatchReasons (5-Factor Engine)', (
     expect(score).toBeLessThanOrEqual(60);
   });
 
-  it('gives verified trust points only when genuine verification exists', () => {
+  it('keeps identity verification separate from compatibility', () => {
     const unverified = { ...perfectSeeker, isVerified: false, workEmailVerified: false };
     const breakdown = getRoomMatchReasons(unverified, perfectListing);
     expect(breakdown.trustScore).toBe(0);
-    expect(breakdown.score).toBe(85);
-    expect(breakdown.caveats).toContain('Profile not ID verified yet');
+    expect(breakdown.score).toBe(getRoomMatchReasons(perfectSeeker, perfectListing).score);
   });
 
   it('correctly ranks a high-match room above a low-match room', () => {
@@ -180,7 +179,7 @@ describe('calculateRoomCompatibility & getRoomMatchReasons (5-Factor Engine)', (
     const lowScore = calculateRoomCompatibility(seeker, lowMatchListing);
 
     expect(highScore).toBeGreaterThan(lowScore);
-    expect(highScore).toBe(100);
+    expect(highScore).toBe(80);
     expect(lowScore).toBeLessThanOrEqual(40);
   });
 });
@@ -239,7 +238,7 @@ describe('calculateProfileCompatibility & synthesizeQuizFromProfile', () => {
     };
 
     const match = calculateProfileCompatibility(seeker, owner, listing);
-    expect(match.score).toBeGreaterThanOrEqual(80);
+    expect(match.score).toBe(60);
     expect(match.reasons).toEqual(
       expect.arrayContaining([
         expect.stringContaining('Same locality'),
@@ -273,7 +272,7 @@ describe('calculateProfileCompatibility & synthesizeQuizFromProfile', () => {
     };
 
     const match = calculateProfileCompatibility(seekerA, seekerB);
-    expect(match.score).toBe(67); // 2 of 3 shared answers
+    expect(match.score).toBe(50); // City 15 + budget ratio 23 + two known lifestyle answers 12.
     expect(match.reasons).toEqual(
       expect.arrayContaining([
         'Same city (Bengaluru)',

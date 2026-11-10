@@ -50,7 +50,7 @@ export default function TrustSection() {
   ];
 
   return (
-    <section className="py-10 sm:py-20 px-4 sm:px-6 lg:px-8 bg-white border-t border-gray-100">
+    <section id="trust" className="py-10 sm:py-20 px-4 sm:px-6 lg:px-8 bg-white border-t border-gray-100">
       <div className="max-w-[1280px] mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
           {/* Left Column (Editorial Context & CTAs) */}
@@ -71,7 +71,7 @@ export default function TrustSection() {
 
             <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap items-center sm:gap-3">
               <Link
-                to="/login"
+                to="/explore"
                 className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 sm:py-3 rounded-full bg-[#1E2229] hover:bg-black text-white text-xs sm:text-sm font-semibold shadow-xs transition-all text-center"
               >
                 <span>Get Started</span>
@@ -79,7 +79,7 @@ export default function TrustSection() {
               </Link>
 
               <Link
-                to="/about"
+                to="/explore?tab=rooms"
                 className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-full border border-gray-200 hover:border-gray-300 bg-white text-xs sm:text-sm font-semibold text-[#1E2229] hover:bg-gray-50 transition-all shadow-xs text-center"
               >
                 <Play className="w-3 h-3 fill-[#1E2229] text-[#1E2229]" />

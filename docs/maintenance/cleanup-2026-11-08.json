@@ -1,0 +1,60 @@
+{
+  "date": "2026-11-08",
+  "scope": "Repository maintenance; no deployment or production changes.",
+  "backup": "D:\\nestmate-cleanup-2026-11-08",
+  "filesMovedOutOfRepository": 1470,
+  "bytesMoved": 247224880,
+  "categories": {
+    "generated root artifact": 66,
+    "superseded root report": 16,
+    "historical audit/design artifacts": 972,
+    "regenerable local test output": 31,
+    "superseded architecture report": 4,
+    "historical readiness audit": 10,
+    "superseded/generated workflow evidence": 19,
+    "unreferenced one-off patch/debug script": 257,
+    "unreferenced asset/reference image": 36,
+    "unreferenced source reference image": 34,
+    "generated log": 7,
+    "unreachable legacy source or obsolete scaffolding": 18
+  },
+  "runtimeDependenciesBefore": 63,
+  "runtimeDependenciesAfter": 9,
+  "installedPackagesRemoved": 179,
+  "maintainedScripts": 12,
+  "validation": {
+    "status": "PASS",
+    "typescript": {
+      "exitCode": 0
+    },
+    "lint": {
+      "errors": 0,
+      "warnings": 2,
+      "note": "Existing AdminPage effect-dependency warnings."
+    },
+    "sourceTests": {
+      "passed": 474,
+      "failed": 0
+    },
+    "productionBuild": {
+      "exitCode": 0
+    },
+    "functionsSyntaxAndSharedDrift": {
+      "exitCode": 0
+    },
+    "localDocumentationLinks": {
+      "broken": 0
+    },
+    "referencedPublicImages": {
+      "missing": 0
+    },
+    "dependencyBoundary": {
+      "runtimeDependencies": 9,
+      "rootPackageCycle": false,
+      "packageLockMatches": true
+    },
+    "browserAndEmulatorBoundary": "No new browser or emulator pass is claimed for repository cleanup. The retained 12-browser, 19-backend and 72-rule checkpoints precede cleanup; Functions, active routes, rules and domain contracts are preserved."
+  },
+  "recovery": "removed-files.zip, removed/ originals, before-edit configurations and removal-manifest.csv are retained outside the workspace. Bulk deletion was rejected by automatic review; reversible moves completed the cleanup instead.",
+  "sourceScope": "Archived 15 unreachable legacy modules, unused scaffold/style files and reference assets; retained current runtime imports, domain/test dependencies and the product blueprint."
+}

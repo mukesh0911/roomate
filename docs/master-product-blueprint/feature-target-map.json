@@ -1,0 +1,1464 @@
+[
+  {
+    "id": "F01",
+    "name": "Landing navigation",
+    "purpose": "Visitors orient themselves and reach discovery, posting and account access.",
+    "file": "app/src/components/landing/LandingNavbar.tsx",
+    "decision": "KEEP",
+    "reason": "Preserve a simple entry point; distinguish in-page sections from route destinations.",
+    "chain": "React clicks → navigate/openAuthModal; UI-only state.",
+    "classification": "Partially implemented",
+    "targetPages": "P01 P21",
+    "targetTransitions": "T01 T03",
+    "targetDecisions": "D04 D13 D21 D22",
+    "findings": [
+      "A22"
+    ],
+    "sourceAnchor": 29,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F02",
+    "name": "City selection",
+    "purpose": "Visitors choose a service market.",
+    "file": "app/src/components/landing/PopularCitiesSection.tsx",
+    "decision": "MODIFY",
+    "reason": "City choice must become a real supported query, not locality text.",
+    "chain": "city links → /explore?city=… → engine S.q.",
+    "classification": "Incorrectly implemented",
+    "targetPages": "P01 P21",
+    "targetTransitions": "T01 T03",
+    "targetDecisions": "D04 D13 D21 D22",
+    "findings": [
+      "A02"
+    ],
+    "sourceAnchor": 87,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F03",
+    "name": "Hero location search",
+    "purpose": "Visitors narrow their initial search.",
+    "file": "app/src/components/landing/HeroSearchModule.tsx",
+    "decision": "MODIFY",
+    "reason": "Carry the chosen search into the actual discovery query/state.",
+    "chain": "form → handleSearch → Zustand updateFilters → tab URL.",
+    "classification": "Incorrectly implemented",
+    "targetPages": "P01 P21",
+    "targetTransitions": "T01 T03",
+    "targetDecisions": "D04 D13 D21 D22",
+    "findings": [
+      "A01",
+      "A45"
+    ],
+    "sourceAnchor": 71,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F04",
+    "name": "Hero move-in selector",
+    "purpose": "Visitors express a desired move date.",
+    "file": "app/src/components/landing/HeroSearchModule.tsx",
+    "decision": "MODIFY",
+    "reason": "The selected date currently remains component state.",
+    "chain": "setMoveInDate → no date field in handleSearch payload.",
+    "classification": "Disconnected",
+    "targetPages": "P01 P21",
+    "targetTransitions": "T01 T03",
+    "targetDecisions": "D04 D13 D21 D22",
+    "findings": [
+      "A03"
+    ],
+    "sourceAnchor": 18,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F05",
+    "name": "Hero budget selector",
+    "purpose": "Visitors choose an affordability band.",
+    "file": "app/src/components/landing/HeroSearchModule.tsx",
+    "decision": "MODIFY",
+    "reason": "Explore must consume the budget or the selector must clearly defer filtering.",
+    "chain": "budgetOptions → updateFilters → disconnected engine S.max.",
+    "classification": "Disconnected",
+    "targetPages": "P01 P21",
+    "targetTransitions": "T01 T03",
+    "targetDecisions": "D04 D13 D21 D22",
+    "findings": [
+      "A01"
+    ],
+    "sourceAnchor": 71,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F06",
+    "name": "Living-option cards",
+    "purpose": "Visitors choose private/shared/PG/coliving accommodation.",
+    "file": "app/src/components/landing/LivingOptionsSection.tsx",
+    "decision": "MODIFY",
+    "reason": "Accommodation type and BHK are different dimensions; preserve the chosen category.",
+    "chain": "updateFilters(flatType) → /explore?tab=rooms.",
+    "classification": "Disconnected",
+    "targetPages": "P01 P21",
+    "targetTransitions": "T01 T03",
+    "targetDecisions": "D04 D13 D21 D22",
+    "findings": [
+      "A03"
+    ],
+    "sourceAnchor": 36,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F07",
+    "name": "Featured listings",
+    "purpose": "Visitors sample available inventory.",
+    "file": "app/src/components/landing/FeaturedListingsSection.tsx",
+    "decision": "MODIFY",
+    "reason": "Show real inventory or an explicit empty/error state; separate illustrative inventory.",
+    "chain": "Firestore listings status=active limit8 → cards; stock fallback on zero/error.",
+    "classification": "Incorrectly implemented",
+    "targetPages": "P01 P21",
+    "targetTransitions": "T01 T03",
+    "targetDecisions": "D04 D13 D21 D22",
+    "findings": [
+      "A04"
+    ],
+    "sourceAnchor": 68,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F08",
+    "name": "Landing favorites",
+    "purpose": "Visitors save a featured property.",
+    "file": "app/src/components/landing/FeaturedListingsSection.tsx",
+    "decision": "MERGE",
+    "reason": "Use the same bookmark contract as Explore; local heart state is not a saved record.",
+    "chain": "toggleFavorite → React setFavorites only.",
+    "classification": "Disconnected",
+    "targetPages": "P01 P21",
+    "targetTransitions": "T01 T03",
+    "targetDecisions": "D04 D13 D21 D22",
+    "findings": [
+      "A05"
+    ],
+    "sourceAnchor": 118,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F09",
+    "name": "Marketplace counts",
+    "purpose": "Visitors assess marketplace activity.",
+    "file": "app/src/components/landing/StatsStrip.tsx",
+    "decision": "KEEP",
+    "reason": "Retain truthful aggregate labels; define demo and moderation exclusions.",
+    "chain": "getCountFromServer(users / active listings) → labels.",
+    "classification": "Partially implemented",
+    "targetPages": "P01 P21",
+    "targetTransitions": "T01 T03",
+    "targetDecisions": "D04 D13 D21 D22",
+    "findings": [
+      "A39"
+    ],
+    "sourceAnchor": 6,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F10",
+    "name": "Trust explanation",
+    "purpose": "Visitors understand safety and moderation.",
+    "file": "app/src/components/landing/TrustSection.tsx",
+    "decision": "MODIFY",
+    "reason": "Claims must describe the actual manual identity/property policy.",
+    "chain": "Static informational component; no verification operation.",
+    "classification": "Partially implemented",
+    "targetPages": "P01 P21",
+    "targetTransitions": "T01 T03",
+    "targetDecisions": "D04 D13 D21 D22",
+    "findings": [
+      "A50"
+    ],
+    "sourceAnchor": 12,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F11",
+    "name": "Illustrative community stories",
+    "purpose": "Visitors understand intended use cases.",
+    "file": "app/src/components/landing/CommunityTestimonialSection.tsx",
+    "decision": "KEEP",
+    "reason": "Clearly labelled illustration is distinct from a real testimonial or metric.",
+    "chain": "Local story carousel only.",
+    "classification": "Partially implemented",
+    "targetPages": "P01 P21",
+    "targetTransitions": "T01 T03",
+    "targetDecisions": "D04 D13 D21 D22",
+    "findings": [],
+    "sourceAnchor": 5,
+    "verification": "Source implementation present; target end-to-end runtime acceptance unverified."
+  },
+  {
+    "id": "F12",
+    "name": "How it works",
+    "purpose": "Visitors learn the discovery/contact process.",
+    "file": "app/src/components/landing/HowItWorksSection.tsx",
+    "decision": "KEEP",
+    "reason": "Keep synchronized with actual consent and publication steps.",
+    "chain": "Static section and landing navigation anchors.",
+    "classification": "Partially implemented",
+    "targetPages": "P01 P21",
+    "targetTransitions": "T01 T03",
+    "targetDecisions": "D04 D13 D21 D22",
+    "findings": [],
+    "sourceAnchor": 3,
+    "verification": "Source implementation present; target end-to-end runtime acceptance unverified."
+  },
+  {
+    "id": "F13",
+    "name": "Rental FAQ",
+    "purpose": "Visitors answer common questions.",
+    "file": "app/src/components/landing/RentalGuideFaqSection.tsx",
+    "decision": "KEEP",
+    "reason": "Accordion solves a distinct information need.",
+    "chain": "toggle index → component state.",
+    "classification": "Partially implemented",
+    "targetPages": "P01 P21",
+    "targetTransitions": "T01 T03",
+    "targetDecisions": "D04 D13 D21 D22",
+    "findings": [],
+    "sourceAnchor": 37,
+    "verification": "Source implementation present; target end-to-end runtime acceptance unverified."
+  },
+  {
+    "id": "F14",
+    "name": "Newsletter signup",
+    "purpose": "Visitors request ongoing updates.",
+    "file": "app/src/components/landing/LandingFooter.tsx",
+    "decision": "REMOVE",
+    "reason": "Remove the active submission affordance until a subscription service exists; keep honest availability copy.",
+    "chain": "email validation → unavailable toast; no submission.",
+    "classification": "Unnecessary",
+    "targetPages": "P01 P21",
+    "targetTransitions": "T01 T03",
+    "targetDecisions": "D04 D13 D21 D22",
+    "findings": [
+      "A38"
+    ],
+    "sourceAnchor": 10,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F15",
+    "name": "Footer policy/help links",
+    "purpose": "Visitors seek legal and safety information.",
+    "file": "app/src/components/landing/LandingFooter.tsx",
+    "decision": "INTRODUCE SUPPORTING FUNCTIONALITY",
+    "reason": "Important destinations need actual content and registered routes.",
+    "chain": "Links → unregistered paths → wildcard home.",
+    "classification": "Missing",
+    "targetPages": "P01 P21",
+    "targetTransitions": "T01 T03",
+    "targetDecisions": "D04 D13 D21 D22",
+    "findings": [
+      "A23",
+      "A51"
+    ],
+    "sourceAnchor": 462,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F16",
+    "name": "Footer social links",
+    "purpose": "Visitors reach official social accounts.",
+    "file": "app/src/components/landing/LandingFooter.tsx",
+    "decision": "MODIFY",
+    "reason": "Generic social home pages do not identify NestMate support or community.",
+    "chain": "External generic social destinations.",
+    "classification": "Unverified",
+    "targetPages": "P01 P21",
+    "targetTransitions": "T01 T03",
+    "targetDecisions": "D04 D13 D21 D22",
+    "findings": [
+      "A23"
+    ],
+    "sourceAnchor": 462,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F17",
+    "name": "Email/password sign-in",
+    "purpose": "Existing members authenticate.",
+    "file": "app/src/components/AuthModal.tsx",
+    "decision": "KEEP",
+    "reason": "Supported real Firebase authentication with surfaced failure.",
+    "chain": "submitAuth → useAuth.signInWithEmail → Firebase Auth → profile hydration.",
+    "classification": "Partially implemented",
+    "targetPages": "P02",
+    "targetTransitions": "T03 T27",
+    "targetDecisions": "D02",
+    "findings": [],
+    "sourceAnchor": 20,
+    "verification": "Source implementation present; target end-to-end runtime acceptance unverified."
+  },
+  {
+    "id": "F18",
+    "name": "Email registration",
+    "purpose": "New members create an account.",
+    "file": "app/src/components/AuthModal.tsx",
+    "decision": "KEEP",
+    "reason": "Retain explicit profile setup and discovery opt-in after identity creation.",
+    "chain": "createUserWithEmailAndPassword → public/private profile writes.",
+    "classification": "Partially implemented",
+    "targetPages": "P02",
+    "targetTransitions": "T03 T27",
+    "targetDecisions": "D02",
+    "findings": [],
+    "sourceAnchor": 20,
+    "verification": "Source implementation present; target end-to-end runtime acceptance unverified."
+  },
+  {
+    "id": "F19",
+    "name": "Password reset",
+    "purpose": "Members recover access.",
+    "file": "app/src/components/AuthModal.tsx",
+    "decision": "KEEP",
+    "reason": "Real email delivery/configuration still needs environment verification.",
+    "chain": "resetPassword → sendPasswordResetEmail.",
+    "classification": "Partially implemented",
+    "targetPages": "P02",
+    "targetTransitions": "T03 T27",
+    "targetDecisions": "D02",
+    "findings": [],
+    "sourceAnchor": 20,
+    "verification": "Source implementation present; target end-to-end runtime acceptance unverified."
+  },
+  {
+    "id": "F20",
+    "name": "Google sign-in",
+    "purpose": "Members use an alternative identity provider.",
+    "file": "app/src/components/AuthModal.tsx",
+    "decision": "KEEP",
+    "reason": "Provider setup and popup restrictions require staging verification.",
+    "chain": "signInWithPopup → useAuth → profile hydration.",
+    "classification": "Partially implemented",
+    "targetPages": "P02",
+    "targetTransitions": "T03 T27",
+    "targetDecisions": "D02",
+    "findings": [],
+    "sourceAnchor": 20,
+    "verification": "Source implementation present; target end-to-end runtime acceptance unverified."
+  },
+  {
+    "id": "F21",
+    "name": "Emulator demo login",
+    "purpose": "Developers evaluate a safe sample account.",
+    "file": "app/src/components/AuthModal.tsx",
+    "decision": "KEEP",
+    "reason": "Keep strictly gated to DEV plus explicit emulator mode.",
+    "chain": "DEMO_MODE_ENABLED → sample Auth/profile creation.",
+    "classification": "Partially implemented",
+    "targetPages": "P02",
+    "targetTransitions": "T03 T27",
+    "targetDecisions": "D02",
+    "findings": [],
+    "sourceAnchor": 20,
+    "verification": "Source implementation present; target end-to-end runtime acceptance unverified."
+  },
+  {
+    "id": "F22",
+    "name": "Category browsing",
+    "purpose": "Visitors browse all/rooms/roommates/PG.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "KEEP",
+    "reason": "These are discovery views, not permanent account modes.",
+    "chain": "data-c → S.cat → bounded listings/roommate service.",
+    "classification": "Partially implemented",
+    "targetPages": "P04 P05 P06 P07",
+    "targetTransitions": "T01 T02",
+    "targetDecisions": "D04 D08 D13 D14",
+    "findings": [
+      "A36"
+    ],
+    "sourceAnchor": 58,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F23",
+    "name": "Discovery continuation",
+    "purpose": "Visitors expand loaded results.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "MODIFY",
+    "reason": "Preserve cursor fixes; bound supporting reads and define sparse-page behavior.",
+    "chain": "data-act=load-more → fetchBoundedExploreListings/Roommates.",
+    "classification": "Partially implemented",
+    "targetPages": "P04 P05 P06 P07",
+    "targetTransitions": "T01 T02",
+    "targetDecisions": "D04 D08 D13 D14",
+    "findings": [
+      "A20",
+      "A21"
+    ],
+    "sourceAnchor": 924,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F24",
+    "name": "Explore search and filters",
+    "purpose": "Visitors narrow the loaded set.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "MODIFY",
+    "reason": "Loaded-only scope must be prominent; global search needs a supported query model.",
+    "chain": "S.q/max/types/gender → list/rml/pgl over loaded tuples.",
+    "classification": "Incorrectly implemented",
+    "targetPages": "P04 P05 P06 P07",
+    "targetTransitions": "T01 T02",
+    "targetDecisions": "D04 D08 D13 D14",
+    "findings": [
+      "A01",
+      "A02",
+      "A36"
+    ],
+    "sourceAnchor": 1963,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F25",
+    "name": "Compatibility and sort",
+    "purpose": "Members rank potentially suitable rooms/people.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "MERGE",
+    "reason": "Consolidate multiple score/explanation implementations after characterizing behavior.",
+    "chain": "backend matching → tuple → calcRoomMatch/calcRoommateMatch overwrite/display.",
+    "classification": "Inconsistent with another section",
+    "targetPages": "P04 P05 P06 P07",
+    "targetTransitions": "T01 T02",
+    "targetDecisions": "D04 D08 D13 D14",
+    "findings": [
+      "A25",
+      "A37"
+    ],
+    "sourceAnchor": 634,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F26",
+    "name": "Grid/list presentation",
+    "purpose": "Visitors choose a reading layout.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "KEEP",
+    "reason": "Presentation choice serves a distinct browsing need.",
+    "chain": "data-v → S.view → renderer.",
+    "classification": "Partially implemented",
+    "targetPages": "P04 P05 P06 P07",
+    "targetTransitions": "T01 T02",
+    "targetDecisions": "D04 D08 D13 D14",
+    "findings": [],
+    "sourceAnchor": 58,
+    "verification": "Source implementation present; target end-to-end runtime acceptance unverified."
+  },
+  {
+    "id": "F27",
+    "name": "Room details and gallery",
+    "purpose": "Visitors evaluate a property.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "KEEP",
+    "reason": "Keep real record facts and neutral missing states; fetch detail by ID.",
+    "chain": "data-i → S.room → rd/gallery over D.",
+    "classification": "Partially implemented",
+    "targetPages": "P08 P09",
+    "targetTransitions": "T02 T06 T07",
+    "targetDecisions": "D10 D12 D15",
+    "findings": [
+      "A21"
+    ],
+    "sourceAnchor": 831,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F28",
+    "name": "Room sharing",
+    "purpose": "Visitors share a property reference.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "MODIFY",
+    "reason": "Stable ID links must resolve independently of the first discovery page.",
+    "chain": "shd → /explore?room=id → loaded D lookup.",
+    "classification": "Incorrectly implemented",
+    "targetPages": "P08 P09",
+    "targetTransitions": "T02 T06 T07",
+    "targetDecisions": "D10 D12 D15",
+    "findings": [
+      "A21",
+      "A24"
+    ],
+    "sourceAnchor": 831,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F29",
+    "name": "PG details and room options",
+    "purpose": "Visitors evaluate managed accommodation.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "MODIFY",
+    "reason": "Do not infer bed availability or room options absent source evidence.",
+    "chain": "data-g → G → rdg; fallback option/one-bed row.",
+    "classification": "Partially implemented",
+    "targetPages": "P08 P09",
+    "targetTransitions": "T02 T06 T07",
+    "targetDecisions": "D10 D12 D15",
+    "findings": [
+      "A10",
+      "A21"
+    ],
+    "sourceAnchor": 831,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F30",
+    "name": "Roommate profile details",
+    "purpose": "Members compare preferences and trust.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "MODIFY",
+    "reason": "Use real viewer answers and evidence-qualified explanations.",
+    "chain": "data-r → RM/RX → rdr plus shared relationship controls.",
+    "classification": "Incorrectly implemented",
+    "targetPages": "P08 P09",
+    "targetTransitions": "T02 T06 T07",
+    "targetDecisions": "D10 D12 D15",
+    "findings": [
+      "A06",
+      "A20"
+    ],
+    "sourceAnchor": 1248,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F31",
+    "name": "Listing bookmarks",
+    "purpose": "Members revisit properties.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "KEEP",
+    "reason": "Authoritative saved IDs are appropriate; add independent hydration.",
+    "chain": "data-save/data-id → saveUserBookmarkBackend → users.savedRoomIds.",
+    "classification": "Partially implemented",
+    "targetPages": "P10",
+    "targetTransitions": "T05 T02",
+    "targetDecisions": "D12 D15",
+    "findings": [],
+    "sourceAnchor": 58,
+    "verification": "Source implementation present; target end-to-end runtime acceptance unverified."
+  },
+  {
+    "id": "F32",
+    "name": "Profile bookmarks",
+    "purpose": "Members revisit people.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "KEEP",
+    "reason": "Distinct entity type is justified; preserve stable UID and privacy checks.",
+    "chain": "saveUserBookmarkBackend → users.savedProfileIds.",
+    "classification": "Partially implemented",
+    "targetPages": "P10",
+    "targetTransitions": "T05 T02",
+    "targetDecisions": "D12 D15",
+    "findings": [],
+    "sourceAnchor": 58,
+    "verification": "Source implementation present; target end-to-end runtime acceptance unverified."
+  },
+  {
+    "id": "F33",
+    "name": "Saved destination",
+    "purpose": "Members resume prior discovery.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "MODIFY",
+    "reason": "Referenced records must load independently of discovery pagination.",
+    "chain": "saved IDs mapped to loaded D/G/RM indices only.",
+    "classification": "Disconnected",
+    "targetPages": "P10",
+    "targetTransitions": "T05 T02",
+    "targetDecisions": "D12 D15",
+    "findings": [
+      "A20"
+    ],
+    "sourceAnchor": 924,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F34",
+    "name": "Connection request and quota",
+    "purpose": "Members request communication consent.",
+    "file": "app/src/lib/nestmateBackend.ts",
+    "decision": "MODIFY",
+    "reason": "Atomic request/quota is sound; define cumulative limit and an honest next step at exhaustion.",
+    "chain": "sendConnectionRequestBackend → transaction users+connections → notification.",
+    "classification": "Partially implemented",
+    "targetPages": "P11 P13",
+    "targetTransitions": "T06 T07 T08 T09 T10",
+    "targetDecisions": "D05 D06 D18 D19",
+    "findings": [
+      "A28",
+      "A49"
+    ],
+    "sourceAnchor": 1235,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F35",
+    "name": "Accept/decline/withdraw",
+    "purpose": "Members control communication consent.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "KEEP",
+    "reason": "Keep participant-bound backend transitions distinct from tenancy/applicant stage.",
+    "chain": "relationshipState → updateConnectionStatusBackend / withdraw.",
+    "classification": "Partially implemented",
+    "targetPages": "P11 P13",
+    "targetTransitions": "T06 T07 T08 T09 T10",
+    "targetDecisions": "D05 D06 D18 D19",
+    "findings": [
+      "A18"
+    ],
+    "sourceAnchor": 1738,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F36",
+    "name": "Notification inbox and decisions",
+    "purpose": "Members see events and respond.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "MODIFY",
+    "reason": "Preserve connection IDs and recover missing/outdated referenced records.",
+    "chain": "notifications listener → nw → mark read / connection decisions.",
+    "classification": "Partially implemented",
+    "targetPages": "P11 P13",
+    "targetTransitions": "T06 T07 T08 T09 T10",
+    "targetDecisions": "D05 D06 D18 D19",
+    "findings": [
+      "A14",
+      "A22"
+    ],
+    "sourceAnchor": 1061,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F37",
+    "name": "Authorized conversation creation",
+    "purpose": "Accepted members open a conversation.",
+    "file": "app/src/lib/nestmateBackend.ts",
+    "decision": "KEEP",
+    "reason": "Deterministic room transaction and existing legacy-room reuse are valuable.",
+    "chain": "acceptedPairs + participants → getOrCreateChatRoomBackend.",
+    "classification": "Partially implemented",
+    "targetPages": "P12",
+    "targetTransitions": "T11 T12 T13 T14",
+    "targetDecisions": "D06 D07 D12 D15",
+    "findings": [],
+    "sourceAnchor": 118,
+    "verification": "Source implementation present; target end-to-end runtime acceptance unverified."
+  },
+  {
+    "id": "F38",
+    "name": "Text messaging",
+    "purpose": "Accepted members communicate.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "MODIFY",
+    "reason": "Keep atomic send; add bounded history, read state and robust composer continuity.",
+    "chain": "snd → sendMessageBackend batch → room snapshot → CH.",
+    "classification": "Partially implemented",
+    "targetPages": "P12",
+    "targetTransitions": "T11 T12 T13 T14",
+    "targetDecisions": "D06 D07 D12 D15",
+    "findings": [
+      "A09"
+    ],
+    "sourceAnchor": 58,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F39",
+    "name": "Chat photo attachments",
+    "purpose": "Members exchange photos.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "REPLACE",
+    "reason": "Use authorized Storage uploads and explicit validation rather than raw base64 in message documents.",
+    "chain": "cfile FileReader → snd imageUrl → Firestore message.",
+    "classification": "Incorrectly implemented",
+    "targetPages": "P12",
+    "targetTransitions": "T11 T12 T13 T14",
+    "targetDecisions": "D06 D07 D12 D15",
+    "findings": [
+      "A07"
+    ],
+    "sourceAnchor": 1255,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F40",
+    "name": "Chat profile navigation",
+    "purpose": "Members inspect the conversation partner.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "MODIFY",
+    "reason": "Resolve UID to entity rather than coercing it to a numeric array index.",
+    "chain": "data-vp=partner UID → +d.vp → S.rmi.",
+    "classification": "Incorrectly implemented",
+    "targetPages": "P12",
+    "targetTransitions": "T11 T12 T13 T14",
+    "targetDecisions": "D06 D07 D12 D15",
+    "findings": [
+      "A06"
+    ],
+    "sourceAnchor": 1248,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F41",
+    "name": "Unread messages filter",
+    "purpose": "Members prioritize unread conversations.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "MODIFY",
+    "reason": "Establish per-member unread/read semantics and persist read receipts.",
+    "chain": "CH.un reads room.unreadCount; mg clears only local state.",
+    "classification": "Incorrectly implemented",
+    "targetPages": "P12",
+    "targetTransitions": "T11 T12 T13 T14",
+    "targetDecisions": "D06 D07 D12 D15",
+    "findings": [
+      "A08"
+    ],
+    "sourceAnchor": 58,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F42",
+    "name": "Report listing/person/chat",
+    "purpose": "Members flag safety concerns.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "KEEP",
+    "reason": "Persisted moderation reports are justified; ensure target and review linkage.",
+    "chain": "submitReportBackend → reports reportedBy/targetType/targetId.",
+    "classification": "Partially implemented",
+    "targetPages": "P09 P12 P20",
+    "targetTransitions": "T16 T17",
+    "targetDecisions": "D15 D16 D18",
+    "findings": [],
+    "sourceAnchor": 58,
+    "verification": "Source implementation present; target end-to-end runtime acceptance unverified."
+  },
+  {
+    "id": "F43",
+    "name": "Blocking",
+    "purpose": "Members stop unwanted communication.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "KEEP",
+    "reason": "Retain server live-pair enforcement and block-list transaction; review historic compatibility.",
+    "chain": "updateConnectionStatusBackend blocked → users.blockedUserIds + pair deletion.",
+    "classification": "Partially implemented",
+    "targetPages": "P09 P12 P20",
+    "targetTransitions": "T16 T17",
+    "targetDecisions": "D15 D16 D18",
+    "findings": [
+      "A38"
+    ],
+    "sourceAnchor": 1431,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F44",
+    "name": "Restricted list/unblock",
+    "purpose": "Members understand and reverse restrictions.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "INTRODUCE SUPPORTING FUNCTIONALITY",
+    "reason": "Unblocking needs an explicit mutual-consent policy; no automatic restoration of accepted access.",
+    "chain": "restricted records displayed; unblock unavailable.",
+    "classification": "Missing",
+    "targetPages": "P09 P12 P20",
+    "targetTransitions": "T16 T17",
+    "targetDecisions": "D15 D16 D18",
+    "findings": [
+      "A38"
+    ],
+    "sourceAnchor": 1431,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F45",
+    "name": "Owner listing dashboard",
+    "purpose": "Hosts manage their records.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "MODIFY",
+    "reason": "Show all publication states explicitly and keep applicants current.",
+    "chain": "subscribeOwnerListings → MY → status/search filters.",
+    "classification": "Inconsistent with another section",
+    "targetPages": "P14 P15",
+    "targetTransitions": "T18 T19 T21 T22",
+    "targetDecisions": "D09 D10 D11 D19",
+    "findings": [
+      "A10",
+      "A11",
+      "A19"
+    ],
+    "sourceAnchor": 58,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F46",
+    "name": "New listing wizard",
+    "purpose": "Hosts describe a property and submit for review.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "KEEP",
+    "reason": "Keep explicit residence declaration and draft-before-photo authorization.",
+    "chain": "PF steps → fin → draft ID → Storage → pending_verification.",
+    "classification": "Partially implemented",
+    "targetPages": "P14 P15",
+    "targetTransitions": "T18 T19 T21 T22",
+    "targetDecisions": "D09 D10 D11 D19",
+    "findings": [],
+    "sourceAnchor": 58,
+    "verification": "Source implementation present; target end-to-end runtime acceptance unverified."
+  },
+  {
+    "id": "F47",
+    "name": "Listing edit and photo replacement",
+    "purpose": "Hosts correct or update a property.",
+    "file": "app/src/lib/nestmateBackend.ts",
+    "decision": "MODIFY",
+    "reason": "Add orphan cleanup and a clear policy for edits to already active listings.",
+    "chain": "oed → updateListingBackend → images/status fields.",
+    "classification": "Partially implemented",
+    "targetPages": "P14 P15",
+    "targetTransitions": "T18 T19 T21 T22",
+    "targetDecisions": "D09 D10 D11 D19",
+    "findings": [
+      "A36"
+    ],
+    "sourceAnchor": 118,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F48",
+    "name": "Availability lifecycle",
+    "purpose": "Hosts pause, resume, fill or remove inventory.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "MODIFY",
+    "reason": "Separate publication approval, trust and actual availability confirmation.",
+    "chain": "data-la → updateListingStatusBackend / deleteListingBackend.",
+    "classification": "Inconsistent with another section",
+    "targetPages": "P14 P15",
+    "targetTransitions": "T18 T19 T21 T22",
+    "targetDecisions": "D09 D10 D11 D19",
+    "findings": [
+      "A11",
+      "A13",
+      "A36"
+    ],
+    "sourceAnchor": 58,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F49",
+    "name": "Screening questions",
+    "purpose": "Hosts ask contextual suitability questions.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "MODIFY",
+    "reason": "Questions need a reachable answer/submission journey with listing attribution.",
+    "chain": "PF.qs → listings.screeningQuestions; request helper accepts optional answers.",
+    "classification": "Disconnected",
+    "targetPages": "P14 P15",
+    "targetTransitions": "T18 T19 T21 T22",
+    "targetDecisions": "D09 D10 D11 D19",
+    "findings": [
+      "A49"
+    ],
+    "sourceAnchor": 1887,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F50",
+    "name": "Applicant review",
+    "purpose": "Hosts inspect people interested in a listing.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "MODIFY",
+    "reason": "Persist applicant decisions separately and react to connection changes.",
+    "chain": "listing-attributed connections → owner hydration → applicant cards.",
+    "classification": "Disconnected",
+    "targetPages": "P16 P17",
+    "targetTransitions": "T06 T23",
+    "targetDecisions": "D06 D11 D14",
+    "findings": [
+      "A18",
+      "A19",
+      "A49"
+    ],
+    "sourceAnchor": 1738,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F51",
+    "name": "Applicant comparison",
+    "purpose": "Hosts compare candidates.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "KEEP",
+    "reason": "Comparison differs from acceptance; avoid arbitrary/default evidence.",
+    "chain": "AS selected indices → mc table; no tenancy operation.",
+    "classification": "Partially implemented",
+    "targetPages": "P16 P17",
+    "targetTransitions": "T06 T23",
+    "targetDecisions": "D06 D11 D14",
+    "findings": [
+      "A25",
+      "A37"
+    ],
+    "sourceAnchor": 634,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F52",
+    "name": "Shortlisting and selection",
+    "purpose": "Hosts track a candidate decision.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "INTRODUCE SUPPORTING FUNCTIONALITY",
+    "reason": "Disabled controls truthfully expose a missing owner-scoped stage model.",
+    "chain": "data-apst/data-apsl/data-sel → unavailable; no persisted stage.",
+    "classification": "Partially implemented",
+    "targetPages": "P16 P17",
+    "targetTransitions": "T06 T23",
+    "targetDecisions": "D06 D11 D14",
+    "findings": [
+      "A18",
+      "A49"
+    ],
+    "sourceAnchor": 1738,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F53",
+    "name": "Profile onboarding",
+    "purpose": "Members describe themselves and choose housing goals.",
+    "file": "app/src/lib/profileEditor.ts",
+    "decision": "MODIFY",
+    "reason": "Keep multi-intent consent; preserve multiple localities on unrelated edits.",
+    "chain": "acE → buildProfileEditorUpdate → updateUserProfileBackend → refresh.",
+    "classification": "Partially implemented",
+    "targetPages": "P03 P18",
+    "targetTransitions": "T04 T25",
+    "targetDecisions": "D02 D08 D14 D15",
+    "findings": [
+      "A46"
+    ],
+    "sourceAnchor": 14,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F54",
+    "name": "Avatar editing",
+    "purpose": "Members identify their profile.",
+    "file": "app/src/lib/nestmateBackend.ts",
+    "decision": "MODIFY",
+    "reason": "Uploading currently persists immediately, so cancel/discard semantics need clarification.",
+    "chain": "efile → uploadProfileAvatarBackend → Storage + immediate users.avatar write.",
+    "classification": "Inconsistent with another section",
+    "targetPages": "P03 P18",
+    "targetTransitions": "T04 T25",
+    "targetDecisions": "D02 D08 D14 D15",
+    "findings": [
+      "A27"
+    ],
+    "sourceAnchor": 1674,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F55",
+    "name": "Matching preferences",
+    "purpose": "Members express budget, areas and desired arrangements.",
+    "file": "app/src/lib/profileEditor.ts",
+    "decision": "MODIFY",
+    "reason": "Supported choices persist; weights and canonical/legacy normalization need one policy.",
+    "chain": "buildMatchingPreferencesUpdate → public profile fields → refresh.",
+    "classification": "Incorrectly implemented",
+    "targetPages": "P03 P18",
+    "targetTransitions": "T04 T25",
+    "targetDecisions": "D02 D08 D14 D15",
+    "findings": [
+      "A26",
+      "A37",
+      "A46"
+    ],
+    "sourceAnchor": 29,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F56",
+    "name": "Manual ID submission",
+    "purpose": "Members request a trust signal.",
+    "file": "app/src/lib/nestmateBackend.ts",
+    "decision": "KEEP",
+    "reason": "Private path, consent and manual review are sound; retain minimal data.",
+    "chain": "submitManualKycBackend → verificationDocs → verifications + ownerVerifications.",
+    "classification": "Partially implemented",
+    "targetPages": "P19",
+    "targetTransitions": "T26",
+    "targetDecisions": "D09 D10 D15",
+    "findings": [
+      "A12",
+      "A32",
+      "A33"
+    ],
+    "sourceAnchor": 1825,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F57",
+    "name": "Password/email change",
+    "purpose": "Members manage login credentials.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "KEEP",
+    "reason": "Retain reauthentication and real verification email; cover provider-specific accounts.",
+    "chain": "reauthenticateWithCredential → updatePassword / verifyBeforeUpdateEmail.",
+    "classification": "Partially implemented",
+    "targetPages": "P20",
+    "targetTransitions": "T27 T28 T29",
+    "targetDecisions": "D15 D17 D18 D20",
+    "findings": [],
+    "sourceAnchor": 58,
+    "verification": "Source implementation present; target end-to-end runtime acceptance unverified."
+  },
+  {
+    "id": "F58",
+    "name": "Privacy and notification settings",
+    "purpose": "Members control disclosure and communication.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "REPLACE",
+    "reason": "Unsupported toggles need honest disabled affordances until enforceable persistence exists.",
+    "chain": "data-sw/data-vis/data-eb → unavailable; no saved preference.",
+    "classification": "Missing",
+    "targetPages": "P20",
+    "targetTransitions": "T27 T28 T29",
+    "targetDecisions": "D15 D17 D18 D20",
+    "findings": [
+      "A38"
+    ],
+    "sourceAnchor": 1431,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F59",
+    "name": "Logout",
+    "purpose": "Members end a session.",
+    "file": "app/src/hooks/useAuth.ts",
+    "decision": "KEEP",
+    "reason": "Clear shared state and protect against stale hydration.",
+    "chain": "signOut → auth generation → store reset → navigation.",
+    "classification": "Partially implemented",
+    "targetPages": "P20",
+    "targetTransitions": "T27 T28 T29",
+    "targetDecisions": "D15 D17 D18 D20",
+    "findings": [],
+    "sourceAnchor": 19,
+    "verification": "Source implementation present; target end-to-end runtime acceptance unverified."
+  },
+  {
+    "id": "F60",
+    "name": "Account export UI",
+    "purpose": "Members obtain a copy of their data.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "INTRODUCE SUPPORTING FUNCTIONALITY",
+    "reason": "Provide a scoped, authenticated export workflow; current screen is unavailable.",
+    "chain": "data-ex → unavailable toast only.",
+    "classification": "Missing",
+    "targetPages": "P20",
+    "targetTransitions": "T27 T28 T29",
+    "targetDecisions": "D15 D17 D18 D20",
+    "findings": [
+      "A38"
+    ],
+    "sourceAnchor": 1431,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F61",
+    "name": "Account deletion UI",
+    "purpose": "Members close their account.",
+    "file": "app/src/pages/ExplorePage.tsx",
+    "decision": "INTRODUCE SUPPORTING FUNCTIONALITY",
+    "reason": "Connect a reviewed retention/deletion service only after defining peer-data effects.",
+    "chain": "data-dl → unavailable despite existing callable.",
+    "classification": "Disconnected",
+    "targetPages": "P20",
+    "targetTransitions": "T27 T28 T29",
+    "targetDecisions": "D15 D17 D18 D20",
+    "findings": [
+      "A34",
+      "A35",
+      "A38"
+    ],
+    "sourceAnchor": 1431,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F62",
+    "name": "Admin dashboard",
+    "purpose": "Staff assess marketplace state.",
+    "file": "app/src/pages/AdminPage.tsx",
+    "decision": "MODIFY",
+    "reason": "Counts are capped samples and an all-zero signup series is replaced by synthetic growth; show true scope and zero states.",
+    "chain": "loadAdminData → capped snapshots → local aggregates.",
+    "classification": "Incorrectly implemented",
+    "targetPages": "P22",
+    "targetTransitions": "T20 T26 T30 T31 T32",
+    "targetDecisions": "D09 D10 D16",
+    "findings": [
+      "A39",
+      "A52"
+    ],
+    "sourceAnchor": 692,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F63",
+    "name": "User moderation",
+    "purpose": "Staff suspend, ban or reinstate an account.",
+    "file": "app/src/pages/AdminPage.tsx",
+    "decision": "MODIFY",
+    "reason": "Enforce and explain resulting listing visibility consistently.",
+    "chain": "adminUpdateUserStatusBackend → users.status only.",
+    "classification": "Partially implemented",
+    "targetPages": "P22",
+    "targetTransitions": "T20 T26 T30 T31 T32",
+    "targetDecisions": "D09 D10 D16",
+    "findings": [
+      "A13",
+      "A30"
+    ],
+    "sourceAnchor": 810,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F64",
+    "name": "Listing moderation",
+    "purpose": "Staff flag, approve/remove or verify listings.",
+    "file": "app/src/pages/AdminPage.tsx",
+    "decision": "MODIFY",
+    "reason": "Use canonical rent/status/trust fields and explicit publication policy.",
+    "chain": "updateListingStatusBackend/adminVerifyListingBackend → listings.",
+    "classification": "Incorrectly implemented",
+    "targetPages": "P22",
+    "targetTransitions": "T20 T26 T30 T31 T32",
+    "targetDecisions": "D09 D10 D16",
+    "findings": [
+      "A10",
+      "A11",
+      "A30"
+    ],
+    "sourceAnchor": 242,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F65",
+    "name": "Report moderation",
+    "purpose": "Staff investigate and resolve reports.",
+    "file": "app/src/pages/AdminPage.tsx",
+    "decision": "MODIFY",
+    "reason": "Persist reasons/outcomes and avoid resolving before a required sanction succeeds.",
+    "chain": "adminResolveReportBackend → reports; separate user/listing action.",
+    "classification": "Incorrectly implemented",
+    "targetPages": "P22",
+    "targetTransitions": "T20 T26 T30 T31 T32",
+    "targetDecisions": "D09 D10 D16",
+    "findings": [
+      "A17"
+    ],
+    "sourceAnchor": 865,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F66",
+    "name": "Admin ID review",
+    "purpose": "Staff inspect documents and approve/reject.",
+    "file": "app/src/pages/AdminPage.tsx",
+    "decision": "MODIFY",
+    "reason": "Correct document metadata, add version-aware review and retention workflow.",
+    "chain": "authenticated getBlob → reviewVerificationBackend batch.",
+    "classification": "Incorrectly implemented",
+    "targetPages": "P22",
+    "targetTransitions": "T20 T26 T30 T31 T32",
+    "targetDecisions": "D09 D10 D16",
+    "findings": [
+      "A12",
+      "A30",
+      "A32",
+      "A50"
+    ],
+    "sourceAnchor": 306,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F67",
+    "name": "Marketplace admin analysis",
+    "purpose": "Staff review activity and integrity.",
+    "file": "app/src/pages/AdminPage.tsx",
+    "decision": "MODIFY",
+    "reason": "Use truthful sample scope and measured signals, not inferred analytics.",
+    "chain": "capped users/listings/connections and view fields → tables.",
+    "classification": "Partially implemented",
+    "targetPages": "P22",
+    "targetTransitions": "T20 T26 T30 T31 T32",
+    "targetDecisions": "D09 D10 D16",
+    "findings": [
+      "A39"
+    ],
+    "sourceAnchor": 692,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F68",
+    "name": "Broadcasting",
+    "purpose": "Staff communicate with member groups.",
+    "file": "app/src/pages/AdminPage.tsx",
+    "decision": "INTRODUCE SUPPORTING FUNCTIONALITY",
+    "reason": "An auditable recipient delivery job is missing; do not claim delivery from a saved record.",
+    "chain": "addDoc broadcasts → success toast; no fanout function.",
+    "classification": "Disconnected",
+    "targetPages": "P22",
+    "targetTransitions": "T20 T26 T30 T31 T32",
+    "targetDecisions": "D09 D10 D16",
+    "findings": [
+      "A14"
+    ],
+    "sourceAnchor": 939,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F69",
+    "name": "Admin membership",
+    "purpose": "Administrators grant staff access.",
+    "file": "app/src/pages/AdminPage.tsx",
+    "decision": "MODIFY",
+    "reason": "Separate invitation from authorization; enforce staff-management privilege in rules.",
+    "chain": "admins setDoc → Invitation sent toast; moderator also passes isAdmin rules.",
+    "classification": "Incorrectly implemented",
+    "targetPages": "P22",
+    "targetTransitions": "T20 T26 T30 T31 T32",
+    "targetDecisions": "D09 D10 D16",
+    "findings": [
+      "A15",
+      "A30"
+    ],
+    "sourceAnchor": 969,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F70",
+    "name": "Purge/factory reset controls",
+    "purpose": "Staff perform maintenance.",
+    "file": "app/src/pages/AdminPage.tsx",
+    "decision": "REMOVE",
+    "reason": "No-op destructive-looking controls create false confidence and do not serve users.",
+    "chain": "confirmation → success toast only.",
+    "classification": "Unnecessary",
+    "targetPages": "P22",
+    "targetTransitions": "T32",
+    "targetDecisions": "D22",
+    "findings": [
+      "A16"
+    ],
+    "sourceAnchor": 1004,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F71",
+    "name": "Map/geocoding code",
+    "purpose": "Potential map users locate housing geographically.",
+    "file": "app/src/hooks/useGeocoding.ts",
+    "decision": "INVESTIGATE FURTHER",
+    "reason": "Dormant hook and dependencies are not a shipped map journey.",
+    "chain": "Nominatim fetch/geoLocation write; no current imported map page.",
+    "classification": "Unverified",
+    "targetPages": "P04 P06 P08",
+    "targetTransitions": "T01 T02",
+    "targetDecisions": "D13 D14 D15 D22",
+    "findings": [
+      "A40",
+      "A44"
+    ],
+    "sourceAnchor": 15,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F72",
+    "name": "Public discovery projections",
+    "purpose": "Members disclose a minimal public card.",
+    "file": "app/src/lib/privacyContracts.ts",
+    "decision": "INTRODUCE SUPPORTING FUNCTIONALITY",
+    "reason": "Complete the read/write migration before treating raw source documents as private.",
+    "chain": "toPublicProfile/useUserProfile prototype; active engine reads users/listings.",
+    "classification": "Disconnected",
+    "targetPages": "P04 P06 P08",
+    "targetTransitions": "T01 T02",
+    "targetDecisions": "D13 D14 D15 D22",
+    "findings": [
+      "A29"
+    ],
+    "sourceAnchor": 26,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F73",
+    "name": "Compatibility callable prototype",
+    "purpose": "Members compare without reading raw answers.",
+    "file": "app/functions/index.js",
+    "decision": "INVESTIGATE FURTHER",
+    "reason": "Useful privacy direction; currently disconnected from active matching and needs abuse/policy review.",
+    "chain": "getDiscoveryCompatibility → Admin SDK accounts+cards → reason codes.",
+    "classification": "Redundant",
+    "targetPages": "P04 P06 P08",
+    "targetTransitions": "T01 T02",
+    "targetDecisions": "D13 D14 D15 D22",
+    "findings": [
+      "A37",
+      "A40"
+    ],
+    "sourceAnchor": 16,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F74",
+    "name": "Account deletion callable",
+    "purpose": "Authenticated members request erasure.",
+    "file": "app/functions/index.js",
+    "decision": "MODIFY",
+    "reason": "Define retained reports/peer history, fix field/path/bucket coverage and prove retry behavior.",
+    "chain": "recent-auth onCall → Storage prefixes → recursiveDelete → Auth delete.",
+    "classification": "Partially implemented",
+    "targetPages": "P20",
+    "targetTransitions": "T29",
+    "targetDecisions": "D17",
+    "findings": [
+      "A34",
+      "A35"
+    ],
+    "sourceAnchor": 39,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F75",
+    "name": "Review/vouch code",
+    "purpose": "Potential members leave interpersonal feedback.",
+    "file": "app/src/hooks/useReviews.ts",
+    "decision": "INVESTIGATE FURTHER",
+    "reason": "Dormant feature requires eligibility and abuse decisions before exposure.",
+    "chain": "reviews duplicate query → validateReview → addDoc; no active UI.",
+    "classification": "Unverified",
+    "targetPages": "P01 P09 P20",
+    "targetTransitions": "T28",
+    "targetDecisions": "D15 D22",
+    "findings": [
+      "A40"
+    ],
+    "sourceAnchor": 26,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F76",
+    "name": "Activity tracking code",
+    "purpose": "Potential product records last active timestamps.",
+    "file": "app/src/hooks/useActiveTracking.ts",
+    "decision": "INVESTIGATE FURTHER",
+    "reason": "Inactive hook must not justify live activity claims.",
+    "chain": "throttled events → users.lastActiveAt; not imported by current entry.",
+    "classification": "Unverified",
+    "targetPages": "P01 P09 P20",
+    "targetTransitions": "T28",
+    "targetDecisions": "D15 D22",
+    "findings": [
+      "A40"
+    ],
+    "sourceAnchor": 8,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F77",
+    "name": "Analytics event code",
+    "purpose": "Product staff measure journeys.",
+    "file": "app/src/hooks/useAnalytics.ts",
+    "decision": "INVESTIGATE FURTHER",
+    "reason": "Validated helper exists but active user journeys do not invoke it.",
+    "chain": "validateAnalyticsEvent → analyticsEvents; dormant hook.",
+    "classification": "Unverified",
+    "targetPages": "P01 P09 P20",
+    "targetTransitions": "T28",
+    "targetDecisions": "D15 D22",
+    "findings": [
+      "A40"
+    ],
+    "sourceAnchor": 20,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F78",
+    "name": "Push notification code",
+    "purpose": "Potential members receive background events.",
+    "file": "app/src/hooks/usePushNotifications.ts",
+    "decision": "INVESTIGATE FURTHER",
+    "reason": "Permission/local notification is distinct from subscribed server push.",
+    "chain": "register sw.js/requestPermission; no active subscription/fanout integration.",
+    "classification": "Disconnected",
+    "targetPages": "P01 P09 P20",
+    "targetTransitions": "T28",
+    "targetDecisions": "D15 D22",
+    "findings": [
+      "A47"
+    ],
+    "sourceAnchor": 4,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F79",
+    "name": "Localization selector/code",
+    "purpose": "Members choose a language.",
+    "file": "app/src/components/landing/LandingNavbar.tsx",
+    "decision": "MODIFY",
+    "reason": "Displayed language changes locally; translation hook is dormant and UI text stays English.",
+    "chain": "selectedLang UI state; useTranslation reads different profile.settings.language.",
+    "classification": "Disconnected",
+    "targetPages": "P01 P09 P20",
+    "targetTransitions": "T28",
+    "targetDecisions": "D15 D22",
+    "findings": [
+      "A47"
+    ],
+    "sourceAnchor": 36,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F80",
+    "name": "Support-ticket backend contract",
+    "purpose": "Members contact support.",
+    "file": "app/firestore.rules",
+    "decision": "INTRODUCE SUPPORTING FUNCTIONALITY",
+    "reason": "Define a reachable, truthful support journey and abuse controls.",
+    "chain": "supportTickets rules and support copy exist; engine support action is a toast.",
+    "classification": "Disconnected",
+    "targetPages": "P21",
+    "targetTransitions": "T17",
+    "targetDecisions": "D12 D15 D22",
+    "findings": [
+      "A48"
+    ],
+    "sourceAnchor": 776,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  },
+  {
+    "id": "F81",
+    "name": "Search-engine discovery metadata",
+    "purpose": "Crawlers and prospective members reach indexed product information.",
+    "file": "app/public/sitemap.xml",
+    "decision": "MODIFY",
+    "reason": "The sitemap should advertise real public destinations; current entries include removed routes.",
+    "chain": "robots.txt → sitemap.xml → legacy paths → SPA wildcard home.",
+    "classification": "Incorrectly implemented",
+    "targetPages": "P21",
+    "targetTransitions": "T17",
+    "targetDecisions": "D12 D15 D22",
+    "findings": [
+      "A51"
+    ],
+    "sourceAnchor": 9,
+    "verification": "Source anchors checked; prior evidence retained with its limits."
+  }
+]

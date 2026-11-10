@@ -12,73 +12,73 @@ interface CityItem {
 const POPULAR_CITIES: CityItem[] = [
   {
     name: 'Delhi',
-    count: '3,200+ Listings',
+    count: 'Explore listings',
     state: 'Delhi NCR',
     image: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=600&q=80',
   },
   {
     name: 'Mumbai',
-    count: '4,100+ Listings',
+    count: 'Explore listings',
     state: 'Maharashtra',
     image: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=600&q=80',
   },
   {
     name: 'Bengaluru',
-    count: '4,800+ Listings',
+    count: 'Explore listings',
     state: 'Karnataka',
     image: 'https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&w=600&q=80',
   },
   {
     name: 'Pune',
-    count: '2,400+ Listings',
+    count: 'Explore listings',
     state: 'Maharashtra',
     image: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=600&q=80',
   },
   {
     name: 'Gurgaon',
-    count: '2,900+ Listings',
+    count: 'Explore listings',
     state: 'Haryana',
     image: 'https://images.unsplash.com/photo-1598970434795-0c54fe7c0648?auto=format&fit=crop&w=600&q=80',
   },
   {
     name: 'Noida',
-    count: '2,100+ Listings',
+    count: 'Explore listings',
     state: 'Uttar Pradesh',
     image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=600&q=80',
   },
   {
     name: 'Hyderabad',
-    count: '2,600+ Listings',
+    count: 'Explore listings',
     state: 'Telangana',
     image: 'https://images.unsplash.com/photo-1605649487212-47bdab064df8?auto=format&fit=crop&w=600&q=80',
   },
   {
     name: 'Kolkata',
-    count: '1,500+ Listings',
+    count: 'Explore listings',
     state: 'West Bengal',
     image: 'https://images.unsplash.com/photo-1558431382-27e303142255?auto=format&fit=crop&w=600&q=80',
   },
   {
     name: 'Chennai',
-    count: '1,800+ Listings',
+    count: 'Explore listings',
     state: 'Tamil Nadu',
     image: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=600&q=80',
   },
   {
     name: 'Ahmedabad',
-    count: '1,300+ Listings',
+    count: 'Explore listings',
     state: 'Gujarat',
     image: 'https://images.unsplash.com/photo-1606293926075-69a00dbfde81?auto=format&fit=crop&w=600&q=80',
   },
   {
     name: 'Chandigarh',
-    count: '950+ Listings',
+    count: 'Explore listings',
     state: 'Punjab',
     image: 'https://images.unsplash.com/photo-1588416936097-41850ab3d86d?auto=format&fit=crop&w=600&q=80',
   },
   {
     name: 'Jaipur',
-    count: '1,100+ Listings',
+    count: 'Explore listings',
     state: 'Rajasthan',
     image: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?auto=format&fit=crop&w=600&q=80',
   },
@@ -105,7 +105,7 @@ export default function PopularCitiesSection() {
             Popular Cities for Flatmates & Shared Rooms
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            Discover verified rooms, flats, and roommates across India's top metropolitan hubs.
+            Explore rooms, flats, and roommates by city.
           </p>
         </div>
         <button
@@ -122,6 +122,8 @@ export default function PopularCitiesSection() {
         {POPULAR_CITIES.map((city) => (
           <div
             key={city.name}
+            role="link" tabIndex={0}
+            onKeyDown={(event) => { if(event.key === "Enter")handleCitySelect(city.name); }}
             onClick={() => handleCitySelect(city.name)}
             className="group relative rounded-2xl overflow-hidden aspect-[4/5] bg-gray-100 cursor-pointer shadow-xs hover:shadow-lg transition-all duration-300 border border-black/5"
           >

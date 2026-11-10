@@ -1,0 +1,72 @@
+{
+  "project": "demo-nestmate-workflows",
+  "results": [
+    {
+      "name": "Discovery outage shows a retry state and recovers without losing the page",
+      "status": "PASS"
+    },
+    {
+      "name": "Featured Saved persists after reload and opens the actual listing ID",
+      "status": "PASS"
+    },
+    {
+      "name": "Rooms Message requests listing consent; poster accepts in existing Connections UI",
+      "status": "PASS"
+    },
+    {
+      "name": "Accepted consent is Message on room cards and details after reload",
+      "status": "PASS"
+    },
+    {
+      "name": "Roommates reuses listing permission and sends a real message",
+      "status": "PASS"
+    },
+    {
+      "name": "Apply is independent; owner receives the actual questionnaire response",
+      "status": "PASS"
+    },
+    {
+      "name": "Detail navigation preserves query state through browser Back and reload",
+      "status": "PASS"
+    },
+    {
+      "name": "Account export downloads private current-user records through the callable and worker",
+      "status": "PASS"
+    },
+    {
+      "name": "Privacy and announcement settings persist and enforce discovery opt-in",
+      "status": "FAIL",
+      "error": "locator.waitFor: Timeout 90000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('article .msgb').first() to be visible\u001b[22m\n"
+    }
+  ],
+  "pageErrors": [],
+  "sourceHashes": {
+    "scripts/test-callable-server.cjs": "2b6221331ce3eaa9afb5599178dd47377b95e70409a5f5a968a9fdbae18c31b8",
+    "scripts/test-workflow-browser.cjs": "f9d7fc8795be0bb01415ada9fc57551b9218bacb2a4703981e41ffc7bcccd5b3",
+    "app/functions/accountJobs.js": "ad65b8efde5f2391bbc0e2f8ebe420843398b5307ae0136719d7d6ee695e09c8",
+    "app/src/lib/accountJobs.ts": "9db10e0626b3e558084716c3e4a3552691c00ac83581aa7cf5b38d6455b5fa8c",
+    "app/functions/package-lock.json": "257a5a4611ea2c1f25e79297eda662b83226228322f591f4ad3d459ac40cd912",
+    "app/src/lib/exploreEngine.js": "097f7b8c9edef91dd178e1b69767c11050cac39226f15d367b8415f4f24a2089",
+    "app/src/lib/exploreNavigation.ts": "cd7189f5d2594448b40020d072025026381e2e336bd058d9b17c60c4580784de",
+    "app/src/pages/ExplorePage.tsx": "d81bbbcfcdd094f4007077519f00752ec3c82bc6b93f5b67edbf0f57f58b3f93",
+    "app/src/App.tsx": "942b3631784ad3d6ee91e48264042f8d254cef7a20527e18fab3ae04d7594c81",
+    "app/src/pages/HelpPage.tsx": "fdf9ae1627a2df4899750db94b3e6b67b8468788bf5abe2a8a675b8b35b40ebb",
+    "app/src/lib/support.ts": "be780822ed84b75624dc82466e493574285ae3749a1fde0e25126db8c1ea4620",
+    "app/src/components/landing/LandingFooter.tsx": "c88e7c96e2ef1d2a42c2d451f9394284053c8f6941a92ccb1252049892a41142",
+    "app/src/lib/nestmateBackend.ts": "91c42cf901b81e5a1c221eb7c4ac9acc929be809d182854f34ce5715ba76c309",
+    "app/src/lib/listingTruth.ts": "2765ac903efc67482913293fd356b9fc864abdbc57da87ee256e8d958203568f",
+    "app/src/lib/sanitizeRenderedHtml.ts": "964a8b8bdf49a7465953aa50584baeb5f9d013516c9741ce9e31dfe748d3caf1",
+    "app/src/components/landing/FeaturedListingsSection.tsx": "592afce38a7cbfdbe6f190efb197d89345824121fea5c39a5a1809bb0d35e664",
+    "app/src/nestmate-explore.css": "821980708aec855bdd1ba4662fbbffc9923a84ab9e50daa94525387c4ba78db2",
+    "app/src/lib/discoveryGateway.ts": "44573ccac25947bd138cf2c0ea16c13fb9ecae0006b0878b92d3057c0d5a67a2",
+    "app/functions/discoveryGateway.js": "1c244446954d39dd0e596f91f32634ddf65e9f532bf56dee52334fb5043ba7d8",
+    "app/functions/sharedMatching.js": "b373c5c08925438e8fcfc82645990a86909e665f86d36a0bc50cb4cee67f83f0",
+    "app/functions/sharedUserIntent.js": "282cb6952dba747765c80811d2129bcb4cc2d47699c540acef3beaf2a3959c13",
+    "app/functions/index.js": "a2079db513442b69e44a97522ff62f1a73308b96bd8d188415ece53977a720a6",
+    "app/firestore.indexes.json": "3164e72216ec9b94c3f5586c2284ba30d14b849334182e7272036300550eddf4",
+    "app/firestore.rules": "b39dad35085d230fca27abd5bc6a087619f9e067b217f3324092a4be64bdf055",
+    "app/storage.rules": "94c0b380dbb0e4bf999e1ba549b9f72046efff5642eacb71bf5cbff16f3c6071",
+    "app/package-lock.json": "ce26736155e656d8916dadacd920dbb0a3d226a296c87a2e7c90b6d0c15232bc"
+  },
+  "sourceChangedDuringRun": false
+}

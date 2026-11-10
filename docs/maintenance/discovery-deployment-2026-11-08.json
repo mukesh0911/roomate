@@ -1,0 +1,210 @@
+{
+  "date": "2026-11-08",
+  "project": "nestmate-eb562",
+  "region": "us-central1",
+  "authorization": "User approved deployment of only readDiscovery and getInteractionContext.",
+  "deployment": {
+    "functions": [
+      "readDiscovery",
+      "getInteractionContext"
+    ],
+    "result": "deployed and reachable",
+    "cliExitCode": 1,
+    "cliMessage": "Functions successfully deployed but could not set up cleanup policy in location us-central1.",
+    "artifactCleanupPolicy": "Not changed; separate regional maintenance policy."
+  },
+  "liveChecks": [
+    {
+      "endpoint": "readDiscovery",
+      "method": "OPTIONS",
+      "origin": "http://localhost:3000",
+      "httpStatus": 204,
+      "allowOrigin": "http://localhost:3000"
+    },
+    {
+      "endpoint": "getInteractionContext",
+      "method": "OPTIONS",
+      "origin": "http://localhost:3000",
+      "httpStatus": 204,
+      "allowOrigin": "http://localhost:3000"
+    },
+    {
+      "endpoint": "readDiscovery",
+      "action": "places",
+      "authenticated": false,
+      "httpStatus": 200,
+      "returnedRecords": 1,
+      "schemaVersion": 1,
+      "anonymousPublisherIdentityExposed": false
+    },
+    {
+      "endpoint": "readDiscovery",
+      "action": "people",
+      "authenticated": false,
+      "httpStatus": 401,
+      "errorStatus": "UNAUTHENTICATED"
+    },
+    {
+      "endpoint": "getInteractionContext",
+      "authenticated": false,
+      "httpStatus": 401,
+      "errorStatus": "UNAUTHENTICATED"
+    }
+  ],
+  "scope": "No hosting, rules, storage-rule, other-function deployment or database content migration/reset performed.",
+  "browserBoundary": "Live HTTP/CORS/data/auth checks pass. Existing signed-in browser session was not operated during this deployment.",
+  "sourceHashes": {
+    "app/functions/index.js": "a2079db513442b69e44a97522ff62f1a73308b96bd8d188415ece53977a720a6",
+    "app/functions/discoveryGateway.js": "909987b55f804b7ab2a1963346fb4c7d14f83456d13e921f080ba0384a3cc4ad",
+    "app/functions/sharedMatching.js": "36172dc08b93674891c39aac17253700daad13372c4938e559a35d8cf667c856",
+    "app/functions/sharedUserIntent.js": "282cb6952dba747765c80811d2129bcb4cc2d47699c540acef3beaf2a3959c13",
+    "app/functions/package-lock.json": "257a5a4611ea2c1f25e79297eda662b83226228322f591f4ad3d459ac40cd912"
+  },
+  "fetchingContinuation": {
+    "verifiedAt": "2026-11-08T12:08:25.163Z",
+    "deployment": {
+      "functions": [
+        "readDiscovery",
+        "getInteractionContext"
+      ],
+      "cliExitCode": 1,
+      "result": "Functions successfully deployed; separate artifact cleanup policy remains unset."
+    },
+    "liveChecks": [
+      {
+        "endpoint": "readDiscovery",
+        "method": "OPTIONS",
+        "origin": "http://localhost:3000",
+        "httpStatus": 204,
+        "allowOrigin": "http://localhost:3000"
+      },
+      {
+        "endpoint": "getInteractionContext",
+        "method": "OPTIONS",
+        "origin": "http://localhost:3000",
+        "httpStatus": 204,
+        "allowOrigin": "http://localhost:3000"
+      },
+      {
+        "endpoint": "readDiscovery",
+        "action": "places",
+        "authenticated": false,
+        "httpStatus": 200,
+        "allowOrigin": "http://localhost:3000",
+        "returnedRecords": 1,
+        "schemaVersion": 1,
+        "anonymousPublisherIdentityExposed": false
+      },
+      {
+        "endpoint": "readDiscovery",
+        "action": "people",
+        "authenticated": false,
+        "httpStatus": 401,
+        "allowOrigin": "http://localhost:3000",
+        "errorStatus": "UNAUTHENTICATED"
+      },
+      {
+        "endpoint": "getInteractionContext",
+        "authenticated": false,
+        "httpStatus": 401,
+        "allowOrigin": "http://localhost:3000",
+        "errorStatus": "UNAUTHENTICATED"
+      }
+    ],
+    "passed": true,
+    "sourceHashes": {
+      "app/functions/index.js": "a2079db513442b69e44a97522ff62f1a73308b96bd8d188415ece53977a720a6",
+      "app/functions/discoveryGateway.js": "e647a9fd506cacd42d5b73c9d4d73688ecba96145bb09c23fda4b58dfa1551ad",
+      "app/functions/sharedMatching.js": "36172dc08b93674891c39aac17253700daad13372c4938e559a35d8cf667c856",
+      "app/functions/sharedUserIntent.js": "282cb6952dba747765c80811d2129bcb4cc2d47699c540acef3beaf2a3959c13",
+      "app/functions/package-lock.json": "257a5a4611ea2c1f25e79297eda662b83226228322f591f4ad3d459ac40cd912"
+    }
+  },
+  "consoleErrorFollowup": {
+    "verifiedAt": "2026-11-08T12:21:20.724Z",
+    "functions": [
+      "readDiscovery",
+      "getInteractionContext"
+    ],
+    "cliExitCode": 1,
+    "result": "Functions deployed successfully; artifact cleanup policy remains unchanged.",
+    "gatewaySourceHash": "d804f4ef0f95c3ba31fce292cd289b9af9942a5dc21bbfdd4875bf2217a3d2f1",
+    "liveChecks": [
+      {
+        "endpoint": "readDiscovery",
+        "method": "OPTIONS",
+        "httpStatus": 204,
+        "allowOrigin": "http://localhost:3000"
+      },
+      {
+        "endpoint": "getInteractionContext",
+        "method": "OPTIONS",
+        "httpStatus": 204,
+        "allowOrigin": "http://localhost:3000"
+      },
+      {
+        "endpoint": "readDiscovery",
+        "action": "places",
+        "httpStatus": 200,
+        "returnedRecords": 1
+      },
+      {
+        "endpoint": "getInteractionContext",
+        "httpStatus": 401,
+        "errorStatus": "UNAUTHENTICATED"
+      }
+    ],
+    "passed": true
+  },
+  "roomsRoommatesAudit": {
+    "verifiedAt": "2026-11-08T17:13:16.533Z",
+    "functions": [
+      "readDiscovery",
+      "getInteractionContext"
+    ],
+    "initialAttempt": "CLI discovery timed out before backend specification was determined",
+    "retry": {
+      "localDiscoveryTimeoutSeconds": 120,
+      "result": "Functions successfully deployed; regional artifact cleanup policy remains unchanged",
+      "cliExitCode": 1
+    },
+    "sourceHashes": {
+      "app/functions/index.js": "a2079db513442b69e44a97522ff62f1a73308b96bd8d188415ece53977a720a6",
+      "app/functions/discoveryGateway.js": "1c244446954d39dd0e596f91f32634ddf65e9f532bf56dee52334fb5043ba7d8",
+      "app/functions/sharedMatching.js": "b373c5c08925438e8fcfc82645990a86909e665f86d36a0bc50cb4cee67f83f0"
+    },
+    "liveChecks": [
+      {
+        "endpoint": "readDiscovery",
+        "method": "OPTIONS",
+        "httpStatus": 204,
+        "allowOrigin": "http://localhost:3000"
+      },
+      {
+        "endpoint": "getInteractionContext",
+        "method": "OPTIONS",
+        "httpStatus": 204,
+        "allowOrigin": "http://localhost:3000"
+      },
+      {
+        "endpoint": "readDiscovery",
+        "action": "places",
+        "httpStatus": 200,
+        "returnedRecords": 1,
+        "anonymousIdentityExposed": false
+      },
+      {
+        "endpoint": "readDiscovery",
+        "action": "people",
+        "httpStatus": 401,
+        "errorStatus": "UNAUTHENTICATED"
+      },
+      {
+        "endpoint": "getInteractionContext",
+        "httpStatus": 401,
+        "errorStatus": "UNAUTHENTICATED"
+      }
+    ],
+    "passed": true
+  }
+}

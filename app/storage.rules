@@ -6,10 +6,20 @@ service firebase.storage {
       return request.auth != null;
     }
 
+    function selfAccountMutable() {
+      return isAuthenticated()
+        && (!firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
+          || !(firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('status', 'active') in ['deleting', 'deleted']));
+    }
+
     function isAdmin() {
       return isAuthenticated()
         && 'email' in request.auth.token
-        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.token.email.lower()));
+        && request.auth.token.email_verified == true
+        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.token.email.lower()))
+        && firestore.get(/databases/(default)/documents/admins/$(request.auth.token.email.lower())).data.get('active', true) == true
+        && firestore.get(/databases/(default)/documents/admins/$(request.auth.token.email.lower())).data.get('enabled', true) == true
+        && firestore.get(/databases/(default)/documents/admins/$(request.auth.token.email.lower())).data.get('role', 'admin').lower() == 'admin';
     }
 
     function ownsListing(listingId) {
@@ -22,6 +32,46 @@ service firebase.storage {
       return isAuthenticated()
         && firestore.exists(/databases/(default)/documents/chatRooms/$(roomId))
         && request.auth.uid in firestore.get(/databases/(default)/documents/chatRooms/$(roomId)).data.participants;
+    }
+
+    function consentFresh(connection) {
+      let sender = firestore.get(/databases/(default)/documents/users/$(connection.fromUserId)).data;
+      let recipient = firestore.get(/databases/(default)/documents/users/$(connection.toUserId)).data;
+      let created = connection.get('createdAt', timestamp.value(0));
+      return created >= sender.get('communicationRevokedAt', {}).get(connection.toUserId, timestamp.value(0))
+        && created >= recipient.get('communicationRevokedAt', {}).get(connection.fromUserId, timestamp.value(0))
+        && (connection.get('listingId', '') != '' || (
+          created >= sender.get('personCommunicationRevokedAt', {}).get(connection.toUserId, timestamp.value(0))
+          && created >= recipient.get('personCommunicationRevokedAt', {}).get(connection.fromUserId, timestamp.value(0))));
+    }
+    function acceptedStoragePair(userA, userB) {
+      return firestore.exists(/databases/(default)/documents/acceptedPairs/$(userA + '_' + userB))
+        && firestore.get(/databases/(default)/documents/acceptedPairs/$(userA + '_' + userB)).data.user1 == userA
+        && firestore.get(/databases/(default)/documents/acceptedPairs/$(userA + '_' + userB)).data.user2 == userB
+        && firestore.get(/databases/(default)/documents/connections/$(firestore.get(/databases/(default)/documents/acceptedPairs/$(userA + '_' + userB)).data.connectionId)).data.status == 'accepted'
+        && consentFresh(firestore.get(/databases/(default)/documents/connections/$(firestore.get(/databases/(default)/documents/acceptedPairs/$(userA + '_' + userB)).data.connectionId)).data);
+    }
+
+    function acceptedListingStoragePair(a, b) {
+      return firestore.exists(/databases/(default)/documents/listingPairs/$(a + '_' + b))
+        && firestore.get(/databases/(default)/documents/connections/$(firestore.get(/databases/(default)/documents/listingPairs/$(a + '_' + b)).data.connectionId)).data.status == 'accepted'
+        && consentFresh(firestore.get(/databases/(default)/documents/connections/$(firestore.get(/databases/(default)/documents/listingPairs/$(a + '_' + b)).data.connectionId)).data);
+    }
+    function canUploadToChat(roomId) {
+      let participants = firestore.get(/databases/(default)/documents/chatRooms/$(roomId)).data.participants;
+      return isChatParticipant(roomId) && participants.size() == 2
+        && firestore.get(/databases/(default)/documents/users/$(participants[0])).data.get('status', 'active') == 'active'
+        && firestore.get(/databases/(default)/documents/users/$(participants[1])).data.get('status', 'active') == 'active'
+        && !(participants[1] in firestore.get(/databases/(default)/documents/users/$(participants[0])).data.get('blockedUserIds', []))
+        && !(participants[0] in firestore.get(/databases/(default)/documents/users/$(participants[1])).data.get('blockedUserIds', []))
+        && (acceptedStoragePair(participants[0], participants[1]) || acceptedStoragePair(participants[1], participants[0]) || acceptedListingStoragePair(participants[0], participants[1]) || acceptedListingStoragePair(participants[1], participants[0]));
+    }
+
+    function isAgreementParticipant(agreementId) {
+      return isAuthenticated()
+        && firestore.exists(/databases/(default)/documents/agreements/$(agreementId))
+        && (firestore.get(/databases/(default)/documents/agreements/$(agreementId)).data.landlordId == request.auth.uid
+          || firestore.get(/databases/(default)/documents/agreements/$(agreementId)).data.tenantId == request.auth.uid);
     }
 
     // Upload validation helpers.
@@ -38,15 +88,20 @@ service firebase.storage {
       return request.resource == null || request.resource.size < mb * 1024 * 1024;
     }
 
+    function isIdentityDocumentUpload() {
+      return isImageUpload() || (request.resource != null && request.resource.contentType == 'application/pdf');
+    }
+
     // ── Identity / Verification Documents ─────────────────────
     // Government ID uploads. OWNER-ONLY read/write.
     // Never readable by other users via Storage rules.
-    // Admin review works through the stored download URL recorded in
-    // the `verifications` or `ownerVerifications` Firestore collection.
+    // Admin review uses authenticated Storage reads of a private object path.
     match /verifications/{userId}/{allPaths=**} {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       allow create, update: if isAuthenticated()
         && request.auth.uid == userId
+        && selfAccountMutable()
+        && isIdentityDocumentUpload()
         && sizeUnderMb(10);
       allow delete: if isAuthenticated() && request.auth.uid == userId;
     }
@@ -54,6 +109,8 @@ service firebase.storage {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       allow create, update: if isAuthenticated()
         && request.auth.uid == userId
+        && selfAccountMutable()
+        && isIdentityDocumentUpload()
         && sizeUnderMb(10);
       allow delete: if isAuthenticated() && request.auth.uid == userId;
     }
@@ -64,6 +121,7 @@ service firebase.storage {
       allow read: if isAuthenticated();
       allow create, update: if isAuthenticated()
         && request.auth.uid == userId
+        && selfAccountMutable()
         && isImageUpload()
         && sizeUnderMb(10);
       allow delete: if isAuthenticated() && request.auth.uid == userId;
@@ -71,9 +129,18 @@ service firebase.storage {
 
     // ── Listing Images ────────────────────────────────────────
     // Publicly viewable (supports pre-login browsing).
-    // Authenticated users may upload images only, size-capped.
-    // NOTE: per-listing ownership enforcement requires backend
-    // integration (custom claims / Cloud Functions) — tracked P1.
+    // Existing listing ownership is checked against Firestore.
+    match /accountExports/{uid}/{generation}/{fileName} {
+      allow get: if isAuthenticated() && request.auth.uid == uid
+        && request.auth.token.auth_time is int
+        && request.time.toMillis() <= (request.auth.token.auth_time + 900) * 1000
+        && request.time.toMillis() >= (request.auth.token.auth_time - 60) * 1000
+        && firestore.get(/databases/(default)/documents/accountExports/$(uid)).data.status == 'complete'
+        && firestore.get(/databases/(default)/documents/accountExports/$(uid)).data.generation == generation
+        && firestore.get(/databases/(default)/documents/accountExports/$(uid)).data.objectName == fileName
+        && request.time < firestore.get(/databases/(default)/documents/accountExports/$(uid)).data.expiresAt;
+    }
+
     match /listings/{listingId}/{allPaths=**} {
       allow read: if true;
       allow create, update: if (ownsListing(listingId) || isAdmin()) && isImageUpload() && sizeUnderMb(10);
@@ -81,21 +148,26 @@ service firebase.storage {
     }
 
     // ── Chat Images ───────────────────────────────────────────
-    // Participant enforcement is not possible in Storage rules
-    // without custom claims; room membership is enforced at the
-    // Firestore layer for message metadata. Size/type capped here.
+    // Room membership is checked against the Firestore room document.
     match /chats/{roomId}/{allPaths=**} {
       allow read: if isChatParticipant(roomId) || isAdmin();
-      allow create, update: if (isChatParticipant(roomId) || isAdmin()) && isImageUpload() && sizeUnderMb(10);
-      allow delete: if isChatParticipant(roomId) || isAdmin();
+    }
+    match /chats/{roomId}/{uploaderId}/{fileName} {
+      // New attachments are immutable and belong to their actual uploader.
+      allow create: if resource == null && isAuthenticated() && request.auth.uid == uploaderId
+        && canUploadToChat(roomId) && isImageUpload() && sizeUnderMb(10);
+      allow delete: if isAuthenticated() && request.auth.uid == uploaderId
+        && canUploadToChat(roomId);
     }
 
     // ── Agreement Documents ───────────────────────────────────
-    // Readable by authenticated users (participant checks happen in
-    // Firestore); writes size-capped. PDFs/images allowed.
+    // Agreement files inherit the agreement's participant boundary.
     match /agreements/{agreementId}/{allPaths=**} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && sizeUnderMb(20);
+      allow read: if isAgreementParticipant(agreementId) || isAdmin();
+      allow create, update: if (isAgreementParticipant(agreementId) || isAdmin())
+        && sizeUnderMb(20)
+        && (isImageUpload() || request.resource.contentType == 'application/pdf');
+      allow delete: if isAgreementParticipant(agreementId) || isAdmin();
     }
   }
 }

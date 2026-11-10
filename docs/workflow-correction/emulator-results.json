@@ -1,0 +1,171 @@
+{
+  "project": "demo-nestmate-workflows",
+  "results": [
+    {
+      "name": "Private source reads denied; gateway returns only explicit public fields",
+      "status": "PASS"
+    },
+    {
+      "name": "New listing follows review, then appears in All and Rooms with canonical owner and score",
+      "status": "PASS"
+    },
+    {
+      "name": "New connect, duplicate reuse and exactly one quota charge",
+      "status": "PASS"
+    },
+    {
+      "name": "Pending cannot message, recipient accepts, shared room reused",
+      "status": "PASS"
+    },
+    {
+      "name": "Message retries are idempotent and unread state belongs to recipient",
+      "status": "PASS"
+    },
+    {
+      "name": "Independent applications, shortlist/select do not fill or affect other applicant",
+      "status": "PASS"
+    },
+    {
+      "name": "Applicant decline and host rejection preserve independent messaging",
+      "status": "PASS"
+    },
+    {
+      "name": "Disconnect denies new sends and preserves history",
+      "status": "PASS"
+    },
+    {
+      "name": "Listing consent is separate and reuses pair room without a person connection",
+      "status": "PASS"
+    },
+    {
+      "name": "Global block applies to listings, messages and requests; unblock restores no consent",
+      "status": "PASS"
+    },
+    {
+      "name": "Declined request stays in history and a later request gets a new ID",
+      "status": "PASS"
+    },
+    {
+      "name": "Moderator cannot grant staff or read private identity evidence",
+      "status": "PASS"
+    },
+    {
+      "name": "Direct application self-selection, foreign writes and fabricated events are denied",
+      "status": "PASS"
+    },
+    {
+      "name": "Simultaneous reverse requests serialize at the rules boundary",
+      "status": "PASS"
+    },
+    {
+      "name": "Storage attachments require current communication permission",
+      "status": "PASS"
+    },
+    {
+      "name": "Owner application query and live adapter preserve application IDs",
+      "status": "PASS"
+    },
+    {
+      "name": "Moderator can inspect and resolve reports but cannot change identity evidence",
+      "status": "PASS"
+    },
+    {
+      "name": "Identity review rejects a stale document and never publishes a listing",
+      "status": "PASS"
+    },
+    {
+      "name": "Deletion worker resumes failed pages, retains shared history and denies stale-session resurrection",
+      "status": "PASS"
+    },
+    {
+      "name": "Export privacy, expiry, retries and durable paged broadcast delivery",
+      "status": "PASS"
+    },
+    {
+      "name": "Discovery outage shows a retry state and recovers without losing the page",
+      "status": "PASS"
+    },
+    {
+      "name": "Featured Saved persists after reload and opens the actual listing ID",
+      "status": "PASS"
+    },
+    {
+      "name": "Rooms Message requests listing consent; poster accepts in existing Connections UI",
+      "status": "PASS"
+    },
+    {
+      "name": "Accepted consent is Message on room cards and details after reload",
+      "status": "PASS"
+    },
+    {
+      "name": "Roommates reuses listing permission and sends a real message",
+      "status": "PASS"
+    },
+    {
+      "name": "Apply is independent; owner receives the actual questionnaire response",
+      "status": "PASS"
+    },
+    {
+      "name": "Detail navigation preserves query state through browser Back and reload",
+      "status": "PASS"
+    },
+    {
+      "name": "Account export downloads private current-user records through the callable and worker",
+      "status": "PASS"
+    },
+    {
+      "name": "Privacy and announcement settings persist and enforce discovery opt-in",
+      "status": "PASS"
+    },
+    {
+      "name": "Help route stores a real support ticket and denies peer reads",
+      "status": "PASS"
+    },
+    {
+      "name": "Untrusted listing and profile text cannot create delegated action controls",
+      "status": "PASS"
+    },
+    {
+      "name": "Actual detail layout at 390",
+      "status": "PASS"
+    },
+    {
+      "name": "Actual detail layout at 768",
+      "status": "PASS"
+    },
+    {
+      "name": "Actual detail layout at 1440",
+      "status": "PASS"
+    }
+  ],
+  "sourceChangedDuringRun": false,
+  "sourceHashes": {
+    "app/src/lib/exploreNavigation.ts": "cd7189f5d2594448b40020d072025026381e2e336bd058d9b17c60c4580784de",
+    "app/src/App.tsx": "942b3631784ad3d6ee91e48264042f8d254cef7a20527e18fab3ae04d7594c81",
+    "app/src/pages/HelpPage.tsx": "fdf9ae1627a2df4899750db94b3e6b67b8468788bf5abe2a8a675b8b35b40ebb",
+    "app/src/lib/support.ts": "be780822ed84b75624dc82466e493574285ae3749a1fde0e25126db8c1ea4620",
+    "app/src/components/landing/LandingFooter.tsx": "e2089a569ee6023b9f80a11fcb688e3bbe2edbf9c86644f4574470c1da9e2ed7",
+    "app/src/lib/exploreEngine.js": "07962bea01cdb24a870920e2afd6f5cfdde1b13598cd7d8f5c1be2f04f11bb46",
+    "app/src/lib/nestmateBackend.ts": "91c42cf901b81e5a1c221eb7c4ac9acc929be809d182854f34ce5715ba76c309",
+    "app/src/pages/ExplorePage.tsx": "d81bbbcfcdd094f4007077519f00752ec3c82bc6b93f5b67edbf0f57f58b3f93",
+    "app/src/nestmate-explore.css": "821980708aec855bdd1ba4662fbbffc9923a84ab9e50daa94525387c4ba78db2",
+    "app/src/pages/AdminPage.tsx": "c4ec1cf414cbfa98dfa00e451d5b69861348872f144dadca327065a01626f658",
+    "app/src/components/landing/FeaturedListingsSection.tsx": "592afce38a7cbfdbe6f190efb197d89345824121fea5c39a5a1809bb0d35e664",
+    "app/src/components/landing/LivingOptionsSection.tsx": "3d20cf350b69e87582ad4152ecafd05739540bbd8aa7380897d9d3a497ef1630",
+    "app/src/components/landing/HeroSearchModule.tsx": "e4367de319e98e833fcb72dc580505141bbf4cec576ce9e31d3eafc2d533c830",
+    "app/src/lib/listingTruth.ts": "2765ac903efc67482913293fd356b9fc864abdbc57da87ee256e8d958203568f",
+    "app/src/lib/sanitizeRenderedHtml.ts": "964a8b8bdf49a7465953aa50584baeb5f9d013516c9741ce9e31dfe748d3caf1",
+    "app/functions/discoveryGateway.js": "1c244446954d39dd0e596f91f32634ddf65e9f532bf56dee52334fb5043ba7d8",
+    "app/functions/sharedUserIntent.js": "282cb6952dba747765c80811d2129bcb4cc2d47699c540acef3beaf2a3959c13",
+    "app/functions/sharedMatching.js": "b373c5c08925438e8fcfc82645990a86909e665f86d36a0bc50cb4cee67f83f0",
+    "app/src/lib/discoveryGateway.ts": "44573ccac25947bd138cf2c0ea16c13fb9ecae0006b0878b92d3057c0d5a67a2",
+    "app/src/lib/accountJobs.ts": "9db10e0626b3e558084716c3e4a3552691c00ac83581aa7cf5b38d6455b5fa8c",
+    "app/functions/accountJobs.js": "ad65b8efde5f2391bbc0e2f8ebe420843398b5307ae0136719d7d6ee695e09c8",
+    "app/functions/index.js": "a2079db513442b69e44a97522ff62f1a73308b96bd8d188415ece53977a720a6",
+    "app/functions/accountDeletion.js": "2286d1d4a610e81d60976a1c6117e8903f10f3b1afd5b13ef6336629323c53fe",
+    "app/functions/accountDeletionService.js": "ed310e36ff12b3c7c16bdcee7bddcc2adabcc6d4ccdf7b657c1d33adcdfe5a84",
+    "app/firestore.rules": "06d025412186bb944ceca09098430086c7d0070798eed0b5676e9eeddd477491",
+    "app/storage.rules": "94c0b380dbb0e4bf999e1ba549b9f72046efff5642eacb71bf5cbff16f3c6071",
+    "app/package-lock.json": "ce26736155e656d8916dadacd920dbb0a3d226a296c87a2e7c90b6d0c15232bc"
+  }
+}

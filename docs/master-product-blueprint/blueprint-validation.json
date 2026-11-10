@@ -1,0 +1,29 @@
+{
+  "checkedAt": "2026-11-05T16:34:56.438Z",
+  "scope": "Documentation structure, links, contract references, source anchors and baseline hashes; not runtime acceptance or rendered Mermaid validation.",
+  "counts": {
+    "documents": 16,
+    "pages": 22,
+    "targetTransitions": 32,
+    "existingWorkflows": 32,
+    "decisions": 22,
+    "features": 81,
+    "findings": 52,
+    "elements": 400,
+    "stateDiagrams": 14
+  },
+  "diagramKinds": {
+    "erDiagram": 1,
+    "flowchart TD": 3,
+    "flowchart LR": 2,
+    "sequenceDiagram": 2,
+    "stateDiagram-v2": 14
+  },
+  "localLinksChecked": 725,
+  "exactFindingAnchorsMatched": 52,
+  "sourceFilesChecked": 516,
+  "changedSourceFiles": [],
+  "missingSourceFiles": [],
+  "errors": [],
+  "passed": true
+}

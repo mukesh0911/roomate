@@ -20,7 +20,7 @@ popd
 
 echo === STORAGE RULES SUITE ===
 pushd app
-call npx -y firebase-tools emulators:exec --only storage --project demo-nestmate "node ../scripts/run-storage-rules-tests.cjs"
+call npx -y firebase-tools emulators:exec --only firestore,storage --project demo-nestmate "node ../scripts/run-storage-rules-tests.cjs"
 if errorlevel 1 goto :fail
 popd
 

@@ -2,14 +2,19 @@ import { describe, expect, it } from 'vitest';
 
 export const validateIndianPhone = (num: string): boolean => /^[6-9]\d{9}$/.test(num);
 export const formatE164IndianPhone = (num: string): string => `+91${num.replace(/\D/g, '')}`;
-export const validateOTPCode = (code: string): boolean => /^\d{6}$/.test(code);
-export const isWhitelistedTestPhone = (phone: string): boolean => {
-  const clean = phone.replace(/[\s-]/g, '');
-  return ['+916505553434', '+916505553435', '+916505553436', '+919999900001', '+919999900002'].includes(clean);
-};
 
-describe('Phone Authentication & OTP Verification Suite', () => {
-  describe('Indian Mobile Number Validation', () => {
+describe('Phone Authentication Decommission Status & Contact Formatting Suite', () => {
+  describe('MVP Authentication Scope Policy', () => {
+    it('Phone OTP authentication is intentionally removed / OUT OF SCOPE for MVP', () => {
+      // In accordance with NestMate MVP architectural specification:
+      // Primary authentication is Email/Password and Google OAuth.
+      // Phone OTP SMS flows are decommissioned from MVP release gates.
+      const isPhoneOtpEnabledInMvp = false;
+      expect(isPhoneOtpEnabledInMvp).toBe(false);
+    });
+  });
+
+  describe('Indian Mobile Number Format Validation (Profile Contact Info Only)', () => {
     it('accepts valid 10-digit Indian numbers starting with 6, 7, 8, or 9', () => {
       expect(validateIndianPhone('9840123456')).toBe(true);
       expect(validateIndianPhone('8765432109')).toBe(true);
@@ -33,35 +38,10 @@ describe('Phone Authentication & OTP Verification Suite', () => {
     });
   });
 
-  describe('E.164 Phone Formatting', () => {
+  describe('E.164 Phone Formatting for User Profiles', () => {
     it('formats 10-digit local number into standard E.164 format', () => {
       expect(formatE164IndianPhone('9840123456')).toBe('+919840123456');
       expect(formatE164IndianPhone('98401-23456')).toBe('+919840123456');
-    });
-  });
-
-  describe('OTP Code Format Validation', () => {
-    it('validates 6-digit numeric OTP codes', () => {
-      expect(validateOTPCode('123456')).toBe(true);
-      expect(validateOTPCode('000000')).toBe(true);
-      expect(validateOTPCode('987654')).toBe(true);
-    });
-
-    it('rejects incomplete, alphanumeric, or oversized OTP codes', () => {
-      expect(validateOTPCode('12345')).toBe(false);
-      expect(validateOTPCode('1234567')).toBe(false);
-      expect(validateOTPCode('12345a')).toBe(false);
-      expect(validateOTPCode('')).toBe(false);
-      expect(validateOTPCode('abcdef')).toBe(false);
-    });
-  });
-
-  describe('Whitelisted Test Phone Detection', () => {
-    it('recognizes test developer phone numbers for zero-quota testing', () => {
-      expect(isWhitelistedTestPhone('+91 650 555 3434')).toBe(true);
-      expect(isWhitelistedTestPhone('+91 99999 00001')).toBe(true);
-      expect(isWhitelistedTestPhone('+91 99999 00002')).toBe(true);
-      expect(isWhitelistedTestPhone('+919840123456')).toBe(false);
     });
   });
 });

@@ -9,16 +9,9 @@ export default defineConfig([
   globalIgnores([
     'dist',
     'node_modules',
-    'check_*.ts',
-    'test_*.ts',
-    'direct_seed.ts',
-    'fix_budgets.ts',
-    'clear_db.ts',
-    'src/components/ui/**',
-    'scripts/**',
   ]),
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ['**/*.{ts,tsx}', 'src/lib/exploreEngine.js'],
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,

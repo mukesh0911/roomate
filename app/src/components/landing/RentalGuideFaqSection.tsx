@@ -42,7 +42,7 @@ export default function RentalGuideFaqSection() {
   };
 
   return (
-    <section className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-[1000px] mx-auto text-left">
+    <section id="faq" className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-[1000px] mx-auto text-left">
       <div className="text-center sm:text-left mb-8">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-100 text-[#FF5A36] text-[11px] font-bold tracking-wider uppercase mb-2">
           <HelpCircle className="w-3.5 h-3.5" />

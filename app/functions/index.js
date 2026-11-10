@@ -1,119 +1,30 @@
 const { initializeApp } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
-const { getFirestore } = require('firebase-admin/firestore');
+const { getFirestore, FieldValue, FieldPath } = require('firebase-admin/firestore');
 const { getStorage } = require('firebase-admin/storage');
 const { HttpsError, onCall } = require('firebase-functions/v2/https');
 const { deriveCompatibilitySummary } = require('./privacyCompatibility');
+const { onDocumentCreated, onDocumentWritten } = require('firebase-functions/v2/firestore');
+const { createAccountDeletionService } = require('./accountDeletionService');
 
-const projectId = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT;
-initializeApp({
-  projectId,
-  storageBucket: projectId ? `${projectId}.appspot.com` : undefined,
+// Functions supplies FIREBASE_CONFIG, including the actual default bucket.
+// Deriving an appspot.com bucket from the project ID targets the wrong bucket
+// for projects provisioned with a firebasestorage.app bucket.
+initializeApp();
+
+// Founder D17 decision: retain shared history and remove account identity.
+// Coverage and deployment review remain prerequisites for availability.
+const ACCOUNT_DELETION_AVAILABLE = false;
+const deletionService = createAccountDeletionService({
+  available: ACCOUNT_DELETION_AVAILABLE,
+  getDb: getFirestore, getAuth, getBucket: () => getStorage().bucket(),
+  fieldValue: FieldValue, FieldPath, HttpsError,
 });
-
-const RECENT_LOGIN_SECONDS = 15 * 60;
-
-async function collectByField(db, collectionName, field, value, targets) {
-  const snapshot = await db.collection(collectionName).where(field, '==', value).get();
-  for (const document of snapshot.docs) targets.set(document.ref.path, document.ref);
-}
-
-async function collectAccountDocuments(db, uid, email) {
-  const targets = new Map();
-  const add = ref => targets.set(ref.path, ref);
-
-  const relationships = [
-    ['listings', 'ownerId'],
-    ['connections', 'fromUserId'], ['connections', 'toUserId'],
-    ['acceptedPairs', 'user1'], ['acceptedPairs', 'user2'],
-    ['notifications', 'userId'], ['notifications', 'actorId'],
-    ['listingViews', 'ownerId'],
-    ['ratings', 'userId'], ['ratings', 'targetUserId'], ['ratings', 'raterId'], ['ratings', 'ratedUserId'],
-    ['matches', 'userId'], ['matches', 'matchedUserId'],
-    ['reviews', 'reviewerId'], ['reviews', 'targetUserId'], ['reviews', 'authorId'], ['reviews', 'targetId'],
-    ['skippedUsers', 'userId'], ['skippedUsers', 'skippedUserId'],
-    ['agreementOTPs', 'userId'], ['agreementOTPs', 'landlordId'], ['agreementOTPs', 'tenantId'],
-    ['agreements', 'landlordId'], ['agreements', 'tenantId'],
-    ['verifications', 'userId'],
-    ['ownerVerifications', 'userId'], ['ownerVerifications', 'ownerId'],
-    ['reports', 'reporterId'], ['reports', 'targetId'],
-    ['supportTickets', 'userId'],
-    ['analyticsEvents', 'actorId'], ['analytics', 'actorId'],
-    ['broadcasts', 'sentBy'],
-  ];
-
-  await Promise.all(relationships.map(([collectionName, field]) =>
-    collectByField(db, collectionName, field, uid, targets)
-  ));
-
-  const rooms = await db.collection('chatRooms').where('participants', 'array-contains', uid).get();
-  const roomIds = rooms.docs.map(room => room.id);
-  for (const room of rooms.docs) add(room.ref);
-
-  const listingIds = [...targets.values()]
-    .filter(ref => ref.parent.id === 'listings')
-    .map(ref => ref.id);
-
-  add(db.doc(`users/${uid}`));
-  add(db.doc(`privateUserData/${uid}`));
-  add(db.doc(`userContacts/${uid}`));
-  add(db.doc(`ownerVerifications/${uid}`));
-  if (email) add(db.doc(`admins/${email.toLowerCase()}`));
-
-  return { targets, roomIds, listingIds };
-}
-
-async function deleteStoragePrefixes(uid, roomIds, listingIds) {
-  const bucket = getStorage().bucket();
-  const prefixes = [
-    `profiles/${uid}/`,
-    `verificationDocs/${uid}/`,
-    ...roomIds.map(id => `chats/${id}/`),
-    ...listingIds.map(id => `listings/${id}/`),
-  ];
-  await Promise.all(prefixes.map(prefix => bucket.deleteFiles({ prefix, force: true })));
-}
-
-exports.requestAccountDeletion = onCall({ region: 'us-central1' }, async request => {
-  if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in before deleting your account.');
-  if (request.data?.confirmation !== 'DELETE') {
-    throw new HttpsError('invalid-argument', 'Type DELETE to confirm permanent account deletion.');
-  }
-
-  const authTime = Number(request.auth.token.auth_time || 0);
-  const nowSeconds = Math.floor(Date.now() / 1000);
-  if (!authTime || nowSeconds - authTime > RECENT_LOGIN_SECONDS) {
-    throw new HttpsError('failed-precondition', 'Please sign out and sign in again before deleting your account.');
-  }
-
-  const uid = request.auth.uid;
-  const email = typeof request.auth.token.email === 'string' ? request.auth.token.email : '';
-  const db = getFirestore();
-
-  try {
-    const { targets, roomIds, listingIds } = await collectAccountDocuments(db, uid, email);
-
-    // Storage is removed first. Firestore and Auth remain available for a safe retry
-    // if a transient file deletion error occurs.
-    await deleteStoragePrefixes(uid, roomIds, listingIds);
-
-    // recursiveDelete also removes nested message documents from chat rooms.
-    await Promise.all([...targets.values()].map(ref => db.recursiveDelete(ref)));
-
-    // Delete the identity last so any prior failure remains retryable by the user.
-    try {
-      await getAuth().deleteUser(uid);
-    } catch (error) {
-      // A caller may retry with its still-valid ID token after the first call
-      // completed but its response was lost. That state is already erased.
-      if (error?.code !== 'auth/user-not-found') throw error;
-    }
-    return { deleted: true };
-  } catch (error) {
-    console.error('Account deletion failed', { uid, error });
-    throw new HttpsError('internal', 'Account deletion could not be completed. Please retry.');
-  }
-});
+exports.requestAccountDeletion = onCall({ region: 'us-central1' }, deletionService.requestDeletion);
+exports.processAccountDeletionJob = onDocumentCreated({
+  document: 'accountDeletionJobs/{uid}', region: 'us-central1',
+  timeoutSeconds: 540, retry: true,
+}, event => deletionService.processJob(event.params.uid));
 
 // Privacy Phase 5.2 prototype: the function reads private accounts with the
 // Admin SDK and releases only a reviewed score band plus fixed reason codes.
@@ -121,7 +32,7 @@ exports.requestAccountDeletion = onCall({ region: 'us-central1' }, async request
 exports.getDiscoveryCompatibility = onCall({ region: 'us-central1' }, async request => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in to compare discovery profiles.');
   const candidateId = typeof request.data?.candidateId === 'string' ? request.data.candidateId : '';
-  if (!candidateId || candidateId.length > 128 || candidateId === request.auth.uid) {
+  if (!candidateId || candidateId.includes('/') || candidateId.length > 128 || candidateId === request.auth.uid) {
     throw new HttpsError('invalid-argument', 'A different candidateId is required.');
   }
   const db = getFirestore();
@@ -138,9 +49,28 @@ exports.getDiscoveryCompatibility = onCall({ region: 'us-central1' }, async requ
   const candidate = candidateAccount.data();
   if (viewer?.onboardingComplete !== true || candidate?.onboardingComplete !== true
     || viewer?.roommateDiscoveryEnabled !== true || candidate?.roommateDiscoveryEnabled !== true
-    || viewer?.status === 'banned' || viewer?.status === 'suspended'
-    || candidate?.status === 'banned' || candidate?.status === 'suspended') {
+    || (viewer?.status || 'active') !== 'active' || (candidate?.status || 'active') !== 'active'
+    || (viewer.blockedUserIds || []).includes(candidateId) || (candidate.blockedUserIds || []).includes(request.auth.uid)) {
     throw new HttpsError('permission-denied', 'Discovery eligibility is required.');
   }
   return { candidateId, ...deriveCompatibilitySummary(viewer, candidate) };
 });
+
+// Trusted read adapter serves existing records through explicit projections.
+// No backfill, login migration, private-source client fallback or data rewrite.
+const { createDiscoveryGateway } = require('./discoveryGateway');
+const discoveryGateway = createDiscoveryGateway({ getDb: getFirestore, HttpsError });
+exports.readDiscovery = onCall({ region: 'us-central1' }, discoveryGateway.read);
+exports.getInteractionContext = onCall({ region: 'us-central1' }, discoveryGateway.interaction);
+const invalidateDiscovery = () => getFirestore().doc('discoverySignals/global').set({ updatedAt: FieldValue.serverTimestamp() });
+exports.invalidateListingDiscovery = onDocumentWritten({ document: 'listings/{id}', region: 'us-central1' }, invalidateDiscovery);
+exports.invalidateMemberDiscovery = onDocumentWritten({ document: 'users/{uid}', region: 'us-central1' }, invalidateDiscovery);
+
+const { createAccountJobs } = require('./accountJobs');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
+const accountJobs = createAccountJobs({ getDb: getFirestore, getBucket: () => getStorage().bucket(), HttpsError, fieldValue: FieldValue, documentId: FieldPath.documentId() });
+exports.requestAccountExport = onCall({ region: 'us-central1' }, accountJobs.exportRequest);
+exports.queueBroadcast = onCall({ region: 'us-central1' }, accountJobs.broadcastRequest);
+exports.processAccountExport = onDocumentWritten({document:'accountExports/{uid}',region:'us-central1',timeoutSeconds:540,retry:true}, event => event.data?.after?.data()?.status === 'queued' ? accountJobs.runExport(event.params.uid) : null);
+exports.deliverBroadcast = onDocumentWritten({document:'broadcasts/{id}',region:'us-central1',timeoutSeconds:540,retry:true}, event => event.data?.after?.data()?.status === 'queued' ? accountJobs.runBroadcast(event.params.id) : null);
+exports.cleanupAccountExports = onSchedule({schedule:'every 24 hours',region:'us-central1',timeoutSeconds:540}, accountJobs.cleanupExports);

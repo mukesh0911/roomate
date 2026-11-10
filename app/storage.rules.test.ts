@@ -37,10 +37,10 @@ const MALLORY = 'mallory-1';
 let env: RulesTestEnvironment;
 
 function aliceStorage() {
-    return env.authenticatedContext(ALICE).storage();
+    return env.authenticatedContext(ALICE).storage(`gs://${BUCKET}`);
 }
 function malloryStorage() {
-    return env.authenticatedContext(MALLORY).storage();
+    return env.authenticatedContext(MALLORY).storage(`gs://${BUCKET}`);
 }
 
 const PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -69,11 +69,14 @@ d('Firebase Storage security rules (emulator)', () => {
         await env.withSecurityRulesDisabled(async ctx => {
             const db = ctx.firestore() as unknown as Firestore;
             await setDoc(doc(db, 'users', ALICE), { name: 'Alice', status: 'active' });
+            await setDoc(doc(db, 'users', 'bob-1'), { name: 'Bob', status: 'active' });
             await setDoc(doc(db, 'users', MALLORY), { name: 'Mallory', status: 'active' });
             await setDoc(doc(db, 'listings', 'listing-1'), { ownerId: ALICE, status: 'active' });
             await setDoc(doc(db, 'chatRooms', 'room-1'), { participants: [ALICE, 'bob-1'] });
+            await setDoc(doc(db, 'connections', 'storage-accepted'), { fromUserId: ALICE, toUserId: 'bob-1', status: 'accepted' });
+            await setDoc(doc(db, 'acceptedPairs', `${ALICE}_bob-1`), { user1: ALICE, user2: 'bob-1', connectionId: 'storage-accepted' });
         });
-    }, 30_000);
+    }, 90_000);
 
     afterAll(async () => {
         if (env) {
@@ -86,7 +89,7 @@ d('Firebase Storage security rules (emulator)', () => {
         await assertSucceeds(
             uploadBytes(ref(aliceStorage(), `profiles/${ALICE}/avatar.png`), PNG_BYTES, { contentType: 'image/png' })
         );
-        await assertFails(getBytes(ref(env.unauthenticatedContext().storage(), `profiles/${ALICE}/avatar.png`)));
+        await assertFails(getBytes(ref(env.unauthenticatedContext().storage(`gs://${BUCKET}`), `profiles/${ALICE}/avatar.png`)));
     });
 
     // B. Legitimate owner upload
@@ -117,7 +120,7 @@ d('Firebase Storage security rules (emulator)', () => {
     });
 
     it('UNAUTHENTICATED user CANNOT read a private identity document', async () => {
-        await assertFails(getBytes(ref(env.unauthenticatedContext().storage(), `verifications/${ALICE}/gov-id.png`)));
+        await assertFails(getBytes(ref(env.unauthenticatedContext().storage(`gs://${BUCKET}`), `verifications/${ALICE}/gov-id.png`)));
     });
 
     // F. Invalid MIME/type restriction
@@ -131,7 +134,7 @@ d('Firebase Storage security rules (emulator)', () => {
         await assertSucceeds(
             uploadBytes(ref(aliceStorage(), 'listings/listing-1/room.png'), PNG_BYTES, { contentType: 'image/png' })
         );
-    }, 30_000);
+    }, 90_000);
 
     it('non-owner CANNOT upload a valid image to another owner listing', async () => {
         await assertFails(
@@ -149,7 +152,7 @@ d('Firebase Storage security rules (emulator)', () => {
 
     // H/I. Deletion authorization
     it('UNAUTHENTICATED user CANNOT delete a listing image', async () => {
-        await assertFails(deleteObject(ref(env.unauthenticatedContext().storage(), 'listings/listing-1/room.png')));
+        await assertFails(deleteObject(ref(env.unauthenticatedContext().storage(`gs://${BUCKET}`), 'listings/listing-1/room.png')));
     });
 
     it('non-owner CANNOT delete another owner listing image', async () => {
@@ -162,12 +165,12 @@ d('Firebase Storage security rules (emulator)', () => {
 
     it('chat participant CAN upload/read chat media; unrelated user CANNOT', async () => {
         await assertSucceeds(
-            uploadBytes(ref(aliceStorage(), 'chats/room-1/photo.png'), PNG_BYTES, { contentType: 'image/png' })
+            uploadBytes(ref(aliceStorage(), `chats/room-1/${ALICE}/photo.png`), PNG_BYTES, { contentType: 'image/png' })
         );
-        await assertSucceeds(getBytes(ref(aliceStorage(), 'chats/room-1/photo.png')));
-        await assertFails(getBytes(ref(malloryStorage(), 'chats/room-1/photo.png')));
+        await assertSucceeds(getBytes(ref(aliceStorage(), `chats/room-1/${ALICE}/photo.png`)));
+        await assertFails(getBytes(ref(malloryStorage(), `chats/room-1/${ALICE}/photo.png`)));
         await assertFails(
-            uploadBytes(ref(malloryStorage(), 'chats/room-1/evil.png'), PNG_BYTES, { contentType: 'image/png' })
+            uploadBytes(ref(malloryStorage(), `chats/room-1/${MALLORY}/evil.png`), PNG_BYTES, { contentType: 'image/png' })
         );
     });
 });

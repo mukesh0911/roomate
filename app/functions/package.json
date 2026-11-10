@@ -6,7 +6,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "check": "node --check index.js"
+    "check": "node --check index.js && node --check discoveryGateway.js && node --check accountJobs.js && node ../../scripts/build-functions-shared.cjs --check"
   },
   "dependencies": {
     "firebase-admin": "^14.0.0",

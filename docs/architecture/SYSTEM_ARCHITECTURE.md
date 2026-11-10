@@ -1,266 +1,47 @@
-# NestMate - System Architecture
-> Version: 1.0.0-rc1 | Date: 2026-08-04
+# System architecture
 
----
+Current code structure, 8 November 2026. This describes the existing application, not a replatform or production-readiness claim.
 
-## Overview
-
-NestMate is a fully client-side Firebase SPA (Single-Page Application) for roommate matching in India. There is no traditional backend server. All business logic runs in the browser, all data lives in Firebase services.
-
-```
-Browser (React SPA)
-       |
-       v
-Firebase SDK (firebase@12.x)
-  |-- Firebase Auth (Email/Password, Google OAuth)
-  |-- Cloud Firestore (database)
-  |-- Firebase Storage (images, documents)
-       |
-       v
-Firebase Hosting (CDN delivery of dist/)
+```mermaid
+flowchart TD
+  Browser[React routes and UI] --> Client[Client adapters and domain helpers]
+  Client --> Auth[Firebase Auth]
+  Client --> Rules[Firestore and Storage rules]
+  Client --> Callables[Trusted callable services]
+  Rules --> Data[Private records and assets]
+  Callables --> Data
+  Callables --> Jobs[Durable job records]
+  Jobs --> Workers[Trusted workers and cleanup scheduler]
+  Workers --> Data
 ```
 
----
+## Frontend boundaries
 
-## Technology Stack
+`app/src/main.tsx` creates the React root and browser router. `App.tsx` declares `/`, `/explore`, `/saved`, `/messages`, `/connections`, `/notifications`, `/listings`, `/profile`, `/admin` and `/help`. Landing, admin and help pages use React components. The existing Explore interface is mounted by `pages/ExplorePage.tsx` through `lib/exploreEngine.js` and its declaration file. That imperative renderer remains technical debt; it was not silently rewritten during repository cleanup.
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| Framework | React | 19.x |
-| Language | TypeScript | 5.9.x |
-| Build tool | Vite | 7.x |
-| Routing | react-router-dom | 7.x |
-| State (global) | Zustand | 5.x |
-| UI components | shadcn/ui (Radix) | latest |
-| Styling | Tailwind CSS | 3.x |
-| Maps | Leaflet + react-leaflet | 1.9.x + 5.x |
-| Geocoding | Nominatim (OpenStreetMap) | Free, no key |
-| Database | Cloud Firestore | Firebase SDK |
-| Auth | Firebase Authentication | Firebase SDK |
-| File storage | Firebase Storage | Firebase SDK |
-| Charts | Recharts | 2.x |
-| Forms | React Hook Form + Zod | 7.x + 4.x |
-| Toasts | Sonner | 2.x |
-| Testing | Vitest | 4.x |
-| Linting | ESLint 9 + typescript-eslint | latest |
-| Formatting | Prettier | 3.x |
-| Deployment | Firebase Hosting | latest |
+`components/` contains reusable/authentication and landing components. `hooks/` contains referenced stateful integrations. `store/` owns shared UI state. `lib/` contains domain contracts and Firebase client adapters. Tests beside domain modules verify their public contracts. Keep feature rules in helpers/adapters rather than duplicating them in page markup.
 
----
+`nestmateBackend.ts` handles current client-side transactions and subscriptions. `discoveryGateway.ts` calls trusted allowlisted discovery endpoints. `accountJobs.ts` handles export and broadcast callables. `support.ts` stores narrow support requests. Pure helpers such as `applicationState.ts`, `relationshipState.ts`, `userIntent.ts`, `listingTruth.ts` and `matching.ts` define shared product behavior.
 
-## Application Entry Points
+## Trusted services and authorization
 
-```
-index.html
-  -> main.tsx (React root, BrowserRouter)
-     -> App.tsx (AppRoutes, auth state, lazy routes)
-        -> Pages (code-split lazy chunks)
-```
+`app/functions/index.js` wires Firebase callable/event/scheduler exports. `discoveryGateway.js` returns allowlisted physical/member projections and pair-scoped context. `accountJobs.js` owns export preparation, private download metadata, durable broadcast pages and export expiry. `accountDeletionService.js` and `accountDeletion.js` implement the staged deletion lifecycle behind a disabled availability gate.
 
----
+Firestore and Storage rules enforce authorization at the data boundary, including negative access, account restrictions and consent. Client checks are useful feedback but do not replace these rules. Private source profiles/listings are not public discovery endpoints. Staff capabilities come from the trusted registry, not editable profile fields.
 
-## Code Splitting Strategy
+Functions use generated `sharedMatching.js` and `sharedUserIntent.js`. `scripts/build-functions-shared.cjs --check` verifies drift from client domain source. Update generated modules through that script.
 
-All pages are lazy-loaded via React.lazy() + Suspense. Vendor chunks split in vite.config.ts:
+## Domain boundaries
 
-| Chunk | Contents |
-|-------|---------|
-| vendor-firebase | firebase/app, firebase/auth, firebase/firestore, firebase/storage |
-| vendor-react | react, react-dom, react-router-dom |
-| vendor-charts | recharts |
-| vendor-map | leaflet, react-leaflet |
+- Person consent, listing-specific communication permission and applications are separate records.
+- Initial room messaging requires poster acceptance. Accepted permission may reuse the pair conversation.
+- Selection/shortlisting never reserves or fills inventory. The cumulative request allowance has no invented monthly reset.
+- Chat sends use stable retry identifiers; private attachments and per-member read state are persisted.
+- Export and broadcast jobs have trusted ownership, progress and retry state. Local HTTP/worker acceptance does not prove deployed trigger delivery.
+- Account deletion stays disabled pending collection/bucket coverage and lifecycle acceptance; the chosen policy retains shared history for peers while removing account identity.
 
----
+## Repository boundaries
 
-## Authentication Flow
+The root package contains integration tools. `app/package.json` contains browser dependencies and frontend tools. `app/functions/package.json` contains trusted runtime dependencies. There is no dependency from the application back to the root package. Production images belong in `app/public/`; temporary screenshots and reports belong in ignored output locations. Do not add one-off source-rewriting or production-reset scripts to the maintained tool directory.
 
-```
-User visits /login
-  -> AuthPage.tsx (Email/Password or Google)
-  -> useAuth.ts -> Firebase Auth
-  -> onAuthStateChanged in App.tsx -> sets authState
-  -> OnboardingGuard checks role + onboardingComplete
-  -> Redirect to /dashboard or /owner-dashboard
-```
-
-### PII Isolation Architecture
-
-Contact PII (phone, email, workEmail) is NEVER stored in the public `users/{uid}` document.
-
-```
-users/{uid}           (publicly readable)
-  - name, age, gender, role, city, localities
-  - isVerified, isPremium, verificationLevel
-  - quizAnswers, avatar, bio, profession
-  - savedProfileIds, savedRoomIds, blockedUserIds
-
-privateUserData/{uid}  (owner or admin only)
-  - phone
-  - email
-  - workEmail
-```
-
-Migration: hydrateOwnProfile() detects legacy PII on public docs and migrates it on login.
-
----
-
-## State Management
-
-| State | Location | Mechanism |
-|-------|---------|-----------|
-| Auth user + Firebase token | App.tsx | onAuthStateChanged listener |
-| User profile + private data | useAuth.ts | useState + Firestore read |
-| Global UI state | useStore.ts | Zustand |
-| Listings | useListings.ts | useState + Firestore getDocs |
-| Matches/feed | useMatches.ts | useState + Firestore getDocs |
-| Chat rooms | useChat.ts | onSnapshot subscription |
-| Notifications | useNotifications.ts | onSnapshot subscription |
-| Connections | useConnections.ts | Firestore getDocs |
-
----
-
-## Routing Architecture
-
-### Public Routes (no auth)
-- / (LandingPage)
-- /browse-rooms (BrowseDashboard)
-- /browse-seekers (BrowseSeekers)
-- /room/:id (RoomDetail)
-- /match/:id (MatchDetail)
-- /map (MapView)
-- /how-it-works, /pricing, /about, /privacy, /terms
-
-### Auth Routes (redirect to dashboard if logged in)
-- /login (AuthPage)
-- /phone-login (PhoneLogin)
-- /verify-otp (OTPVerify)
-
-### Protected Routes (PrivateRoute guard)
-- /role-select, /onboarding/seeker, /onboarding/owner
-- /dashboard (seeker only - OnboardingGuard + role check)
-- /owner-dashboard (owner only - OnboardingGuard + role check)
-- /chat, /chat/:roomId
-- /profile, /edit-profile
-- /settings, /notifications
-- /edit-listing/:id
-
-### Admin Routes (/admin/*)
-- AdminLayout (separate layout, no auth guard - relies on useAdmin hook check)
-- /admin, /admin/users, /admin/listings, /admin/reports
-- /admin/verifications, /admin/notifications, /admin/settings
-
-### Dev Routes (unguarded - KI-08)
-- /dev/seed (SeedData.tsx)
-
----
-
-## Security Model
-
-### Firestore Rules Summary
-- users: public read; owner write (no trust field changes); admin unrestricted
-- privateUserData: owner or admin only
-- listings: public read; auth create; owner or admin update/delete
-- connections: participants or admin read/write
-- chatRooms + messages: participants or admin
-- notifications: recipient or admin read/update/delete
-- verifications: submitter read; admin update/delete
-- reports: any auth create; admin manage
-- ratings/reviews: any auth read; any auth create
-- agreements/agreementOTPs: participants or admin
-
-### Admin Authentication
-- Firestore rule: email matches .*@nestmate.com$ domain
-- App-level: useAdmin checks hardcoded emails + admins collection + config/admin.adminEmails
-
-### Trust Fields (isVerified, isPremium, etc.)
-- Cannot be set by users via Firestore rules (trustFieldsUnchanged + trustFieldsSafeOnCreate)
-- Only admins can update via useAdmin.approveVerification()
-
----
-
-## Firestore Collections
-
-| Collection | Purpose |
-|-----------|---------|
-| users | Public profiles |
-| privateUserData | PII (phone, email) |
-| listings | Room listings |
-| connections | Match/connection requests |
-| chatRooms | Chat metadata + phone sharing |
-| chatRooms/{id}/messages | Chat messages |
-| notifications | In-app notifications |
-| verifications | ID verification submissions |
-| reports | User reports |
-| reviews | User reviews/vouches |
-| ratings | Numeric ratings |
-| skippedUsers | Legacy skip tracking |
-| listingViews | Daily listing analytics |
-| agreements | Rent agreements |
-| agreementOTPs | OTP tokens for agreements |
-| emailOTPs | Email verification OTPs |
-| admins | Admin user records |
-| config/admin | Admin email list config |
-
----
-
-## Firebase Storage Structure
-
-```
-profiles/{userId}/avatar.{ext}     - Profile pictures
-listings/{listingId}/image_{n}.{ext} - Listing photos
-chats/{roomId}/{timestamp}_{random}.{ext} - Chat images
-agreements/{agreementId}/**        - Agreement documents (20MB limit)
-```
-
----
-
-## Build and Deployment
-
-```
-npm run build
-  -> Vite bundles to dist/
-  -> Firebase Hosting serves dist/
-  -> All routes -> /index.html (SPA rewrite)
-
-npm run deploy
-  -> npm run build && firebase deploy --only hosting
-
-npm run deploy:all
-  -> npm run build && firebase deploy (hosting + rules + indexes)
-```
-
----
-
-## Hooks Architecture
-
-```
-useAuth.ts          - Firebase Auth + profile lifecycle (637 lines)
-useMatches.ts       - Match feed + compatibility scoring
-useListings.ts      - Listing CRUD + analytics
-useChat.ts          - Chat rooms + messages + phone sharing
-useConnections.ts   - Connect requests + blocking
-useNotifications.ts - In-app notifications
-usePushNotifications.ts - Web Push + SW registration
-useUserProfile.ts   - Profile CRUD + save/block/report
-useAdmin.ts         - Admin panel data + actions
-useStorage.ts       - Firebase Storage uploads
-useGeocoding.ts     - Nominatim geocoding with rate limiting
-useReviews.ts       - User reviews/vouches
-useTranslation.ts   - Simple key-based i18n (EN/HI/TA/TE)
-useActiveTracking.ts - lastActiveAt ping (5-min throttle)
-use-mobile.ts       - Responsive breakpoint hook
-```
-
----
-
-## Testing
-
-```
-src/lib/compatibility.test.ts   - calculateCompatibility() unit tests
-src/lib/connectionGuards.test.ts - canSendConnect(), countConnectionsSince() tests
-src/lib/phoneShare.test.ts      - assignSharedPhones() unit tests
-src/lib/sanitizeProfile.test.ts - sanitizePublicProfile() unit tests
-```
-
-Run: `npm test` (vitest run)
-
+See [database boundaries](DATABASE_SCHEMA.md), [testing](../testing/README.md), and [current acceptance](../workflow-correction/ACCEPTANCE_STATUS.md).
