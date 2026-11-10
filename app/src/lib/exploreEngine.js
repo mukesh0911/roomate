@@ -1401,6 +1401,8 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     S.as = b.dataset.as;
                     if (S.as === "edit") DR = cl2(ME);
                     else if (S.as === "prefs") DR = cl2(PR);
+                } else if (b.dataset.n === "profile") {
+                    S.as = "profile";
                 }
                 if (S.nav === "saved") {
                     const roomCnt = getSavedRoomCount();
@@ -2238,7 +2240,9 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             em: (currentProfile && currentProfile.email) || (authUser && authUser.email) || "",
             phn: (currentProfile && currentProfile.phone) || (authUser && authUser.phoneNumber) || ""
         };
-        let PR = { b: [currentProfile && currentProfile.budgetMin || 0, currentProfile && currentProfile.budget || 0], areas: currentProfile && currentProfile.localities || [], mv: currentProfile && currentProfile.moveInDate || "", types: currentProfile && currentProfile.preferredRoomTypes || [], gd: currentProfile && currentProfile.roommateGenderPreference || "Any", w: { smoke: 0, diet: 0, sleep: 0, guests: 0, clean: 0, pets: 0 } };
+        const defaultMinBudget = (currentProfile && currentProfile.budgetMin) ? Number(currentProfile.budgetMin) : 10000;
+        const defaultMaxBudget = (currentProfile && currentProfile.budget) ? Number(currentProfile.budget) : (defaultMinBudget > 25000 ? defaultMinBudget + 15000 : 35000);
+        let PR = { b: [defaultMinBudget, defaultMaxBudget], areas: currentProfile && currentProfile.localities || [], mv: currentProfile && currentProfile.moveInDate || "", types: currentProfile && currentProfile.preferredRoomTypes || [], gd: currentProfile && currentProfile.roommateGenderPreference || "Any", w: { smoke: 0, diet: 0, sleep: 0, guests: 0, clean: 0, pets: 0 } };
         const TG = { vis: currentProfile?.roommateDiscoveryEnabled === true ? "discoverable" : "hidden", bud: 1, broadcasts: currentProfile?.notificationPreferences?.broadcasts !== false };
         let DR = null, ER = {};
         S.as = "profile";
@@ -2344,10 +2348,16 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         function acR() {
             if (!DR) DR = cl2(PR);
             const d = DR || {};
-            const budgetMin = (d.b && d.b[0] != null) ? d.b[0] : 0;
-            const budgetMax = (d.b && d.b[1] != null) ? d.b[1] : 0;
+            const budgetMin = (d.b && d.b[0]) ? d.b[0] : 10000;
+            const budgetMax = (d.b && d.b[1]) ? d.b[1] : 35000;
             const dw = d.w || {};
-            return '<h1>Matching preferences</h1><div class="sub3">Tell us what you are looking for. Your match scores update to fit.</div><div class="cd"><h3>Budget</h3><div class="s2">Monthly rent you are comfortable with.</div><div class="rg2"><div><label>Minimum · <b id="pl0">₹' + budgetMin.toLocaleString("en-IN") + '</b></label><input type="range" id="pb0" min="5000" max="60000" step="1000" value="' + esc(budgetMin) + '"></div><div><label>Maximum · <b id="pl1">₹' + budgetMax.toLocaleString("en-IN") + '</b></label><input type="range" id="pb1" min="5000" max="60000" step="1000" value="' + esc(budgetMax) + '"></div></div>' + (ER.b ? '<div class="er" style="display:block;color:#d92d20;font-size:13.5px;margin-top:6px">' + ER.b + '</div>' : '') + '</div>' +
+            const isHostWithListing = MY && MY.some(function (l) { return l && (l.st === "Active" || l.st === "Pending verification"); });
+            const hostNotice = isHostWithListing
+                ? '<div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13.5px;color:var(--ink2);line-height:1.45">' +
+                  '<b style="color:var(--ink)">Hosting a room?</b> Your room rent is configured directly in your listing. This seeker budget is used when teaming up with other roommates to rent a new flat together.' +
+                  '</div>'
+                : '';
+            return '<h1>Matching preferences</h1><div class="sub3">Tell us what you are looking for. Your match scores update to fit.</div>' + hostNotice + '<div class="cd"><h3>Budget</h3><div class="s2">Monthly rent you are comfortable with.</div><div class="rg2"><div><label>Minimum · <b id="pl0">₹' + budgetMin.toLocaleString("en-IN") + '</b></label><input type="range" id="pb0" min="5000" max="60000" step="1000" value="' + esc(budgetMin) + '"></div><div><label>Maximum · <b id="pl1">₹' + budgetMax.toLocaleString("en-IN") + '</b></label><input type="range" id="pb1" min="5000" max="60000" step="1000" value="' + esc(budgetMax) + '"></div></div>' + (ER.b ? '<div class="er" style="display:block;color:#d92d20;font-size:13.5px;margin-top:6px">' + ER.b + '</div>' : '') + '</div>' +
                 '<div class="cd">' + ff("areas", "Areas", chp("areas", LOC, 1), "Pick every area you would consider.") + ff("types", "Place type", chp("types", ["Private room", "Full flat", "PG / Coliving"], 1)) + ff("mv", "Move-in", chp("mv", ["Any time", "Within 15 days", "Within 30 days", "Within 60 days"])) + ff("gd", "Roommate gender", chp("gd", ["Any", "Female", "Male"])) + '</div>' +
                 '<div class="cd"><h3>What matters to you</h3><div class="s2">Set how much each habit should count towards a match.</div>' + TR.map(function (t) { const w = dw[t[0]] != null ? dw[t[0]] : 0; return '<div class="rw"><div><b>' + t[1] + '</b></div><div class="sg3">' + ["Do not mind", "Prefer", "Must have"].map(function (l, i) { return '<button data-w="' + t[0] + '" data-v2="' + i + '" aria-pressed="' + (w == i) + '">' + l + '</button>'; }).join("") + '</div></div>'; }).join("") + '</div>' +
                 '<div class="hint" style="background:var(--bs)">' + IS.spk + '<div><b id="pmc">' + pm() + ' of ' + esc(D.length) + '</b> sample rooms fit these preferences right now.</div></div>' + sv();
@@ -2390,9 +2400,11 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         function shr() { toast("Public profile sharing is not available yet. No public link was created."); }
         addDocListener("click", function (e) {
             const b = e.target.closest("button");
-            if (!b || S.nav != "profile" && !$("cfo").classList.contains("o"))
+            if (!b)
                 return;
             const d = b.dataset;
+            if (S.nav != "profile" && !d.pvw && !$("cfo").classList.contains("o"))
+                return;
             if (d.kyc == "submit") {
                 const fileInput = $("kyc-file");
                 const docTypeSelect = $("kyc-type");
@@ -2480,6 +2492,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                         ER.bio = "Keep it under 280 characters";
                 }
                 else {
+                    if (!DR.b || !Array.isArray(DR.b)) DR.b = [10000, 35000];
                     if (DR.b[0] > DR.b[1])
                         ER.b = "Minimum cannot be above maximum";
                     if (!DR.areas.length)
@@ -2616,6 +2629,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
             else if (id == "pb0" || id == "pb1") {
                 const i = +id[2];
+                if (!DR.b || !Array.isArray(DR.b)) DR.b = [10000, 35000];
                 DR.b[i] = +t.value;
                 $("pl" + i).textContent = "₹" + DR.b[i].toLocaleString("en-IN");
                 $("pmc").textContent = pm() + " of " + D.length;
@@ -2697,7 +2711,21 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 return em("No results for \"" + esc(S.q) + "\"", "Check the spelling, or try a nearby area.", '<div class="ppc2">' + LOC.slice(0, 4).map(function (l) { return '<button class="pill" data-sq="' + l + '">' + l + '</button>'; }).join("") + '</div><button class="pill" data-sqc="1" style="margin:16px auto 0">Clear search</button>');
             if (S.cat === 2) {
                 if (RM.length === 0) {
-                    return em("No roommate candidates available right now", "Roommate discovery features verified Team-Up seekers and Live-in Hosts offering spare rooms.", (authUser ? '<div class="r" style="margin-top:16px;gap:8px;justify-content:center"><button class="pill" data-n="profile">Update your roommate preferences</button><button class="pill" data-n="post">Post a room</button></div>' : '<br><button class="pill" data-n="signin" style="margin:16px auto 0">Sign in to connect</button>'));
+                    const isSelfDiscoverable = Boolean(authUser && ME && (ME.discover || (currentProfile && currentProfile.roommateDiscoveryEnabled === true)));
+                    const hasActiveListing = MY && MY.some(function (l) { return l && (l.st === "Active" || l.st === "Pending verification"); });
+                    if (isSelfDiscoverable) {
+                        const cityName = (ME && (ME.city || ME.area)) || "Bengaluru";
+                        return '<div class="empty">' +
+                            '<svg viewBox="0 0 160 120" width="160" height="120" aria-hidden="true"><circle cx="80" cy="64" r="46" fill="var(--bs)"/><circle cx="80" cy="50" r="16" fill="#0ca678"/><path d="M56 86c0-12 11-19 24-19s24 7 24 19z" fill="#0ca678"/><circle cx="106" cy="38" r="6" fill="#ffd0b5"/></svg>' +
+                            '<div style="margin-bottom:12px"><span style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;background:#e6fcf5;color:#0ca678;font-size:13px;font-weight:700">● Your Roommate Profile is Live in ' + esc(cityName) + '</span></div>' +
+                            '<b style="font-size:18px;display:block">Waiting for new roommate candidates in your area</b>' +
+                            '<p style="max-width:520px;margin:8px auto 0;color:var(--ink2);line-height:1.55;font-size:14px">Your profile' + (hasActiveListing ? ' and room listing are' : ' is') + ' active and visible to seekers in ' + esc(cityName) + '. As other members join and search for roommates, their profiles will appear here for you to connect.</p>' +
+                            '<div class="r" style="margin-top:20px;gap:10px;justify-content:center;flex-wrap:wrap">' +
+                            '<button class="pill" data-pvw="1" style="background:var(--brand);color:#fff;border-color:var(--brand)">👁️ Preview how seekers see you</button>' +
+                            (hasActiveListing ? '<button class="pill" data-n="listings">View my listings</button>' : '<button class="pill" data-n="post">Post a room</button>') +
+                            '</div></div>';
+                    }
+                    return em("No roommate candidates available right now", "Roommate discovery features verified Team-Up seekers and Live-in Hosts offering spare rooms.", (authUser ? '<div class="r" style="margin-top:16px;gap:8px;justify-content:center"><button class="pill" data-n="profile" data-as="prefs">Set your roommate preferences</button><button class="pill" data-n="post">Post a room</button></div>' : '<br><button class="pill" data-n="signin" style="margin:16px auto 0">Sign in to connect</button>'));
                 }
                 return em("No roommates match these filters", "Try a higher budget or a wider move-in window.", '<br><button class="pill" data-rs="1" style="margin:16px auto 0">Reset filters</button>');
             }
