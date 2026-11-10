@@ -645,15 +645,26 @@ export default function AdminPage() {
       </div>
       <div style="margin-top:12px">${bd(v.status)}</div>
       <dl class="dl">
-        <dt>Method</dt><dd>${v.docType}</dd>
+        <dt>Method</dt><dd>${v.docType === 'masked_aadhaar' ? 'Masked Aadhaar (Last 4 digits visible)' : v.docType}</dd>
         <dt>Legal Name</dt><dd>${v.legalName}</dd>
         <dt>Submitted</dt><dd>${v.submitted}</dd>
-        <dt>Document</dt><dd>
-          ${
-            v.documentPath ? `<button class="ghb" data-preview-doc="${v.id}">View private document</button>` : 'No private document path recorded; resubmission required'
-          }
-        </dd>
       </dl>
+      <div style="font-size:12px;color:var(--ink2);margin:10px 0 12px;line-height:1.45;background:var(--sunk);padding:10px 12px;border-radius:8px">
+        <b>What is Masked Aadhaar?</b> Under UIDAI privacy regulations, the first 8 digits are masked (XXXX XXXX 1234) for security. Verify that the <b>photo</b> and <b>Full Legal Name (${v.legalName})</b> on the document match the applicant.
+      </div>
+      <div style="margin:12px 0 6px"><b style="font-size:13.5px;color:var(--ink)">Uploaded ID Document:</b></div>
+      ${
+        v.documentPath
+          ? `
+            <div id="doc-preview-container" style="margin:8px 0 16px">
+              <button class="btn pri" data-preview-doc="${v.id}" style="width:100%;height:42px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13.5px;cursor:pointer">
+                <svg class="i" style="width:18px;height:18px" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                View uploaded document
+              </button>
+            </div>
+          `
+          : '<div style="color:var(--err);margin:8px 0;font-size:13px">No private document path recorded; resubmission required</div>'
+      }
       <h3 style="margin-bottom:4px">Automatic checks</h3>
       <div class="ck"><i>✓</i>Declared name supplied by the user</div>
       <div class="ck"><i>✓</i>File format and 5MB size limit enforced</div>
@@ -739,12 +750,33 @@ export default function AdminPage() {
       if (d.previewDoc) {
         const record = verificationsList.find((item) => item.id === d.previewDoc);
         if (!record?.documentPath) { showToast('No private document is available.'); return; }
+        const container = document.getElementById('doc-preview-container');
+        if (container) {
+          container.innerHTML = '<div style="padding:14px;text-align:center;color:var(--ink2);font-size:13px;background:var(--sf);border-radius:8px">Loading private document...</div>';
+        }
         getVerificationDocumentBlobBackend(record.documentPath).then((blob) => {
           if (privatePreviewUrlRef.current) URL.revokeObjectURL(privatePreviewUrlRef.current);
-          const url = URL.createObjectURL(blob); privatePreviewUrlRef.current = url;
-          setDrawerBody('<p>Private identity document. Close this preview when finished.</p><img alt="Identity document submitted for review" src="' + url + '" style="width:100%;height:auto;object-fit:contain">');
-          setDrawerFooter(''); setDrawerTitle('Private document preview'); setIsDrawerOpen(true);
-        }).catch((error) => showToast(error.message || 'Could not load private document.'));
+          const url = URL.createObjectURL(blob);
+          privatePreviewUrlRef.current = url;
+          const isPdf = blob.type === 'application/pdf';
+          const mediaHtml = isPdf
+            ? '<iframe src="' + url + '" style="width:100%;height:380px;border:1px solid var(--line);border-radius:10px"></iframe>'
+            : '<div style="text-align:center;background:#00000008;padding:8px;border-radius:10px;border:1px solid var(--line)">' +
+              '<img alt="Identity document submitted for review" src="' + url + '" style="max-width:100%;max-height:360px;object-fit:contain;border-radius:6px;display:block;margin:0 auto">' +
+              '<div style="margin-top:8px"><a href="' + url + '" target="_blank" rel="noreferrer" style="font-size:12.5px;color:var(--brand);font-weight:600">Open full size in new tab ↗</a></div>' +
+              '</div>';
+          if (container) {
+            container.innerHTML = mediaHtml;
+          } else {
+            setDrawerBody('<p>Private identity document preview:</p>' + mediaHtml);
+            setIsDrawerOpen(true);
+          }
+        }).catch((error) => {
+          showToast(error.message || 'Could not load private document.');
+          if (container) {
+            container.innerHTML = '<div style="color:var(--err);font-size:13px;padding:8px">Could not load document: ' + (error?.message || 'Error') + '</div>';
+          }
+        });
         return;
       }
       // Modal Confirmation Cancel / OK
