@@ -964,7 +964,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 }
             }
         }
-        function loadDevSampleRoommates() {
+        function loadDevSampleRoommates(silent = false) {
             const samplePeople = [
                 {
                     initials: "PS",
@@ -1052,7 +1052,35 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             RX = samplePeople.map(function (p) {
                 return [p.diet, p.smoking, p.sleep, p.guests, p.cleanliness, p.raw.bio];
             });
-            toast("Loaded sample Bengaluru roommate seekers!");
+
+            // Seed realistic connection states:
+            // Rahul Verma has sent a connection request to the user (Received request)
+            LIVE_CONNS.received = (LIVE_CONNS.received || []).filter(function (c) { return !String(c.id).startsWith("demo_"); });
+            LIVE_CONNS.received.push({
+                id: "demo_conn_rahul",
+                fromUserId: "demo_rahul_verma",
+                toUserId: authUser ? authUser.uid : "current_user",
+                status: "pending"
+            });
+
+            // Demo notification for incoming request
+            if (!NT.some(function (n) { return n.id === "demo_notif_req_rahul"; })) {
+                NT.unshift({
+                    id: "demo_notif_req_rahul",
+                    ty: "req",
+                    x: "Rahul Verma sent you a roommate connection request.",
+                    t: "Just now",
+                    r: false,
+                    g: "Today",
+                    connectionId: "demo_conn_rahul",
+                    actionable: true
+                });
+            }
+
+            if (!silent) {
+                toast("Loaded sample candidates! Rahul Verma has sent you a connection request.");
+            }
+            ub();
             render();
         }
         let render = function () {
@@ -1137,8 +1165,16 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             let RMODE = (N == "explore" && S.cat == 2) || (N == "saved" && S.sub == 1) || N == "connections", sub = "";
             if (N == "saved")
                 sub = chips(["Saved rooms", "Saved roommates"]);
-            if (N == "connections")
-                sub = chips(["Accepted", "Received", "Sent"]);
+            if (N == "connections") {
+                const accCount = (LIVE_CONNS.accepted || []).filter(function (c) { return !c.listingId; }).length;
+                const recvCount = (LIVE_CONNS.received || []).length;
+                const sentCount = (LIVE_CONNS.sent || []).length;
+                sub = chips([
+                    "Accepted" + (accCount ? " (" + accCount + ")" : ""),
+                    "Received" + (recvCount ? " (" + recvCount + ")" : ""),
+                    "Sent" + (sentCount ? " (" + sentCount + ")" : "")
+                ]);
+            }
             if (RMODE) {
                 const allRm = RM.map(function (_, idx) { return idx; });
                 let ix = [];
@@ -1157,6 +1193,9 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                             ? (c.fromUserId === (authUser ? authUser.uid : '') ? c.toUserId : c.fromUserId)
                             : S.sub == 1 ? c.fromUserId : c.toUserId;
                     }).filter(Boolean);
+                    if (connUids.some(function (u) { return String(u).startsWith("demo_"); }) && !RM.some(function (m) { return m && String(m[9]).startsWith("demo_"); })) {
+                        loadDevSampleRoommates(true);
+                    }
                     const foundIndices = [];
                     connUids.forEach(function (pUid) {
                         for (let rIdx = 0; rIdx < RM.length; rIdx++) {
@@ -2125,6 +2164,52 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             if (button)
                 button.disabled = true;
             try {
+                if (c.id && c.id.startsWith("demo_chat_")) {
+                    c.m = c.m || [];
+                    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const newMsg = [
+                        "me",
+                        t || (img ? "Attached photo" : ""),
+                        img || "",
+                        "Today",
+                        nowTime,
+                        "msg_" + Date.now(),
+                        Date.now()
+                    ];
+                    c.m.push(newMsg);
+                    CHAT_DRAFTS.delete(c.id);
+                    if ($('cin')) $('cin').value = '';
+                    rth();
+
+                    setTimeout(function () {
+                        if (disposed) return;
+                        const otherFirstName = c.otherName ? c.otherName.split(" ")[0] : "Roommate";
+                        let replyText = "Sounds great! Let's definitely talk more about move-in timelines and budget.";
+                        const lower = (t || '').toLowerCase();
+                        if (lower.includes("indiranagar") || lower.includes("hsr") || lower.includes("koramangala")) {
+                            replyText = "That area works really well for my commute! When are you free to check out some flats?";
+                        } else if (lower.includes("rent") || lower.includes("budget") || lower.includes("cost") || lower.includes("price") || lower.includes("share")) {
+                            replyText = "My budget matches yours. Splitting 50-50 for a 2BHK would be ideal.";
+                        } else if (lower.includes("hi") || lower.includes("hello") || lower.includes("hey")) {
+                            replyText = "Hey there! Glad we connected. Are you planning to move within this month?";
+                        } else if (lower.includes("flat") || lower.includes("room") || lower.includes("place") || lower.includes("apartment")) {
+                            replyText = "I have shortlisted a couple of nice places in the area. Shall we plan a visit this weekend?";
+                        }
+                        const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        c.m.push([
+                            "them",
+                            replyText,
+                            "",
+                            "Today",
+                            replyTime,
+                            "reply_" + Date.now(),
+                            Date.now()
+                        ]);
+                        rth();
+                        toast("New message from " + otherFirstName);
+                    }, 1200);
+                    return;
+                }
                 if (!c.pendingMessage || c.pendingMessage.text !== t || c.pendingMessage.image !== img)
                     c.pendingMessage = { id: crypto.randomUUID(), text: t, image: img };
                 await sendMessageBackend(c.id, t || "", img || "", c.pendingMessage.id);
@@ -2286,6 +2371,46 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 const n2 = NT[+d.q], connectionId = n2.connectionId || (n2.raw && n2.raw.connectionId);
                 if (!connectionId) {
                     toast("Open Connections to respond to this request.");
+                    return;
+                }
+                if (connectionId && String(connectionId).startsWith("demo_")) {
+                    n2.done = d.na;
+                    if (d.na === "Accepted") {
+                        LIVE_CONNS.received = (LIVE_CONNS.received || []).filter(function (c) { return c.id !== connectionId; });
+                        LIVE_CONNS.accepted.push({
+                            id: connectionId,
+                            fromUserId: "demo_rahul_verma",
+                            toUserId: authUser ? authUser.uid : "current_user",
+                            status: "accepted"
+                        });
+                        const targetPerson = RM.find(function (m) { return m && m[9] === "demo_rahul_verma"; });
+                        const personName = targetPerson ? targetPerson[1] : "Rahul Verma";
+                        const personAvatar = targetPerson ? targetPerson[10] : "";
+                        const chatId = "demo_chat_demo_rahul_verma";
+                        let existingChat = CH.find(function (c) { return c.id === chatId; });
+                        if (!existingChat) {
+                            CH.unshift({
+                                id: chatId,
+                                p: "demo_rahul_verma",
+                                ctx: ["mate"],
+                                un: 1,
+                                m: [
+                                    ["them", "Hey! Loved your profile. Would love to team up for a flat in Indiranagar or nearby.", "", "Today", "10:30 AM", "demo_msg_0", Date.now() - 3600000]
+                                ],
+                                otherName: personName,
+                                otherAvatar: personAvatar,
+                                authorized: true
+                            });
+                        } else {
+                            existingChat.authorized = true;
+                        }
+                        ub();
+                        toast("Connection accepted! Chat is now unlocked with " + personName.split(" ")[0] + ".");
+                    } else {
+                        LIVE_CONNS.received = (LIVE_CONNS.received || []).filter(function (c) { return c.id !== connectionId; });
+                        toast("Request declined");
+                    }
+                    render();
                     return;
                 }
                 b.disabled = true;
@@ -3615,6 +3740,34 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 toast("This listing has no contact available.");
                 return;
             }
+            if (targetUid.startsWith("demo_")) {
+                const chatId = "demo_chat_" + targetUid;
+                let k = CH.findIndex(function (c) { return c.id === chatId; });
+                if (k < 0) {
+                    const targetPerson = RM.find(function (m) { return m && m[9] === targetUid; }) || (kind == "m" ? RM[i] : null);
+                    const personName = targetPerson ? targetPerson[1] : "Roommate";
+                    const personAvatar = targetPerson ? targetPerson[10] : "";
+                    CH.unshift({
+                        id: chatId,
+                        p: targetUid,
+                        ctx: ["mate"],
+                        un: 0,
+                        m: [
+                            ["them", "Hey! Loved your profile. Would love to team up for a flat in Indiranagar or nearby.", "", "Today", "10:30 AM", "demo_msg_0", Date.now() - 3600000]
+                        ],
+                        otherName: personName,
+                        otherAvatar: personAvatar,
+                        authorized: true
+                    });
+                    k = 0;
+                }
+                S.back = S.nav;
+                S.nav = "messages";
+                S.cid = k;
+                render();
+                scrollTo(0, 0);
+                return;
+            }
             try {
                 const chatId = await getOrCreateChatRoomBackend(targetUid, listingId);
                 let k = CH.findIndex(function (c) { return c.id === chatId; });
@@ -3727,6 +3880,12 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     toast("No active person connection. Listing permission is separate.");
                     return;
                 }
+                if (personConnection.id && String(personConnection.id).startsWith("demo_")) {
+                    LIVE_CONNS.accepted = LIVE_CONNS.accepted.filter(function (c) { return c.id !== personConnection.id; });
+                    toast("Disconnected. Existing history is preserved.");
+                    render();
+                    return;
+                }
                 disconnectConnectionBackend(personConnection.id).then(function () { toast("Disconnected. Existing history is preserved."); }).catch(function (error) { toast(error.message); });
                 return;
             }
@@ -3754,6 +3913,47 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 const act = d.connAct;
                 (connId = d.connId);
                 const rIdx2 = d.rIdx !== undefined ? +d.rIdx : -1;
+                if (connId && String(connId).startsWith("demo_")) {
+                    if (act === "accept") {
+                        const req = (LIVE_CONNS.received || []).find(function (c) { return c.id === connId; });
+                        LIVE_CONNS.received = (LIVE_CONNS.received || []).filter(function (c) { return c.id !== connId; });
+                        const fromUid = (req && req.fromUserId) || "demo_rahul_verma";
+                        LIVE_CONNS.accepted.push({
+                            id: connId,
+                            fromUserId: fromUid,
+                            toUserId: authUser ? authUser.uid : "current_user",
+                            status: "accepted"
+                        });
+                        const targetPerson = RM.find(function (m) { return m && m[9] === fromUid; });
+                        const personName = targetPerson ? targetPerson[1] : "Rahul Verma";
+                        const personAvatar = targetPerson ? targetPerson[10] : "";
+                        const chatId = "demo_chat_" + fromUid;
+                        let existingChat = CH.find(function (c) { return c.id === chatId; });
+                        if (!existingChat) {
+                            CH.unshift({
+                                id: chatId,
+                                p: fromUid,
+                                ctx: ["mate"],
+                                un: 1,
+                                m: [
+                                    ["them", "Hey! Loved your profile. Would love to team up for a flat in Indiranagar or nearby.", "", "Today", "10:30 AM", "demo_msg_0", Date.now() - 3600000]
+                                ],
+                                otherName: personName,
+                                otherAvatar: personAvatar,
+                                authorized: true
+                            });
+                        } else {
+                            existingChat.authorized = true;
+                        }
+                        ub();
+                        toast("Connection accepted! Chat is now unlocked with " + personName.split(" ")[0] + ".");
+                    } else {
+                        LIVE_CONNS.received = (LIVE_CONNS.received || []).filter(function (c) { return c.id !== connId; });
+                        toast("Connection request declined");
+                    }
+                    render();
+                    return;
+                }
                 updateConnectionStatusBackend(connId, act === "accept" ? "accepted" : "rejected").then(function () {
                     toast(act === "accept" ? "Connection request accepted!" : "Connection request declined");
                 }).catch(function (err) {
@@ -3781,7 +3981,8 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 const i = +(d.conn !== undefined ? d.conn : d.cn);
                 const targetUid = RM[i] && RM[i][9];
                 if (targetUid && targetUid.startsWith("demo_")) {
-                    toast("Connection request sent to " + RM[i][1].split(" ")[0] + "! (Test simulation)");
+                    const personName = (RM[i] && RM[i][1]) ? RM[i][1].split(" ")[0] : "Roommate";
+                    toast("Connection request sent to " + personName + "! View in Connections → Sent.");
                     LIVE_CONNS.sent.push({ id: "demo_conn_" + Date.now(), fromUserId: authUser.uid, toUserId: targetUid, status: "pending" });
                     render();
                     return;
@@ -3926,6 +4127,9 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         const postParam = searchParams.get('post') || searchParams.get('action');
         if (postParam === '1' || postParam === 'post') {
             setTimeout(openPost, 150);
+        }
+        if (searchParams.get('sample') === '1' || searchParams.get('demo') === '1') {
+            setTimeout(function () { loadDevSampleRoommates(true); }, 150);
         }
         const route = readExploreLocation(location.pathname, searchParams);
         Object.assign(S, route.filters);
