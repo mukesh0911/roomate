@@ -2226,6 +2226,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             area: (currentProfile && (currentProfile.localities?.[0] || currentProfile.locality)) || "",
             city: (currentProfile && currentProfile.city) || "",
             activeIntents: currentProfile ? resolveUserHousingIntent(currentProfile).activeIntents : [],
+            isLandlord: Boolean(currentProfile && (currentProfile.role === 'owner' || currentProfile.ownerType === 'landlord') && (!currentProfile.housingPreferences?.activeIntents || currentProfile.housingPreferences.activeIntents.length === 0)),
             discover: Boolean(currentProfile && currentProfile.roommateDiscoveryEnabled === true),
             bio: (currentProfile && currentProfile.bio) || "",
             diet: (currentProfile && (currentProfile.householdExpectations?.dietPref || currentProfile.quizAnswers?.diet)) || "",
@@ -2277,9 +2278,92 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             if (!DR) DR = cl2(ME);
             const d = DR || {};
             const intents = d.activeIntents || [];
+            const isFindRoom = intents.indexOf("find_room") > -1;
+            const isTeamUp = intents.indexOf("team_up") > -1;
+            const isHaveRoom = intents.indexOf("have_room") > -1;
+            const isLandlord = Boolean(d.isLandlord || (intents.length === 0 && (d.role === "owner" || (currentProfile && currentProfile.role === "owner"))));
+            const isDiscoverable = Boolean(d.discover);
+            const cityName = (d.city || (ME && ME.city) || "Bengaluru");
+
+            const intentCardsHtml = '<div class="cd">' +
+                '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">' +
+                '<h3 style="margin:0">Housing intent</h3>' +
+                '<span style="font-size:12.5px;color:var(--ink2)">Select your primary goal</span>' +
+                '</div>' +
+                '<p class="s2" style="margin:0 0 16px">Choose what you want to achieve on NestMate. We use this to show you the right listings, matches, and roommate candidates.</p>' +
+                '<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:12px">' +
+                '<button type="button" class="intent-card" data-intent="find_room" style="display:flex;flex-direction:column;padding:16px;border-radius:18px;border:2px solid ' + (isFindRoom ? 'var(--brand)' : 'var(--line)') + ';background:' + (isFindRoom ? 'rgba(240,84,30,0.04)' : 'var(--sf)') + ';cursor:pointer;transition:all .18s ease;text-align:left;font:inherit">' +
+                '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;width:100%">' +
+                '<div style="display:flex;align-items:center;gap:10px">' +
+                '<div style="width:38px;height:38px;border-radius:12px;background:' + (isFindRoom ? 'var(--bs)' : '#f1f3f5') + ';display:grid;place-items:center;font-size:20px">🔍</div>' +
+                '<div><b style="font-size:15px;display:block;color:var(--ink)">Find a room</b><span style="font-size:12px;color:var(--ink2)">Room Seeker</span></div>' +
+                '</div>' +
+                '<div style="width:22px;height:22px;border-radius:50%;border:2px solid ' + (isFindRoom ? 'var(--brand)' : '#ced4da') + ';background:' + (isFindRoom ? 'var(--brand)' : '#fff') + ';display:grid;place-items:center;color:#fff;font-size:12px;font-weight:700">' + (isFindRoom ? '✓' : '') + '</div>' +
+                '</div>' +
+                '<p style="margin:0 0 12px;font-size:13.5px;color:var(--ink2);line-height:1.45;flex:1">I want to move into an existing available room, flat, or PG.</p>' +
+                '<div style="display:flex;gap:6px;align-items:center"><span style="font-size:11.5px;padding:3px 8px;border-radius:6px;background:' + (isFindRoom ? '#fff' : '#f8f9fa') + ';border:1px solid ' + (isFindRoom ? 'rgba(240,84,30,0.2)' : '#e9ecef') + ';color:var(--ink);font-weight:600">Browses Rooms & Flats</span></div>' +
+                '</button>' +
+                '<button type="button" class="intent-card" data-intent="team_up" style="display:flex;flex-direction:column;padding:16px;border-radius:18px;border:2px solid ' + (isTeamUp ? 'var(--brand)' : 'var(--line)') + ';background:' + (isTeamUp ? 'rgba(240,84,30,0.04)' : 'var(--sf)') + ';cursor:pointer;transition:all .18s ease;text-align:left;font:inherit">' +
+                '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;width:100%">' +
+                '<div style="display:flex;align-items:center;gap:10px">' +
+                '<div style="width:38px;height:38px;border-radius:12px;background:' + (isTeamUp ? 'var(--bs)' : '#f1f3f5') + ';display:grid;place-items:center;font-size:20px">🤝</div>' +
+                '<div><b style="font-size:15px;display:block;color:var(--ink)">Team up</b><span style="font-size:12px;color:var(--ink2)">Flatmate Partner</span></div>' +
+                '</div>' +
+                '<div style="width:22px;height:22px;border-radius:50%;border:2px solid ' + (isTeamUp ? 'var(--brand)' : '#ced4da') + ';background:' + (isTeamUp ? 'var(--brand)' : '#fff') + ';display:grid;place-items:center;color:#fff;font-size:12px;font-weight:700">' + (isTeamUp ? '✓' : '') + '</div>' +
+                '</div>' +
+                '<p style="margin:0 0 12px;font-size:13.5px;color:var(--ink2);line-height:1.45;flex:1">I want to connect with compatible flatmates to jointly find and rent a new flat together.</p>' +
+                '<div style="display:flex;gap:6px;align-items:center"><span style="font-size:11.5px;padding:3px 8px;border-radius:6px;background:' + (isTeamUp ? '#fff' : '#f8f9fa') + ';border:1px solid ' + (isTeamUp ? 'rgba(240,84,30,0.2)' : '#e9ecef') + ';color:var(--ink);font-weight:600">Visible in Roommates Feed</span></div>' +
+                '</button>' +
+                '<button type="button" class="intent-card" data-intent="have_room" style="display:flex;flex-direction:column;padding:16px;border-radius:18px;border:2px solid ' + (isHaveRoom ? 'var(--brand)' : 'var(--line)') + ';background:' + (isHaveRoom ? 'rgba(240,84,30,0.04)' : 'var(--sf)') + ';cursor:pointer;transition:all .18s ease;text-align:left;font:inherit">' +
+                '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;width:100%">' +
+                '<div style="display:flex;align-items:center;gap:10px">' +
+                '<div style="width:38px;height:38px;border-radius:12px;background:' + (isHaveRoom ? 'var(--bs)' : '#f1f3f5') + ';display:grid;place-items:center;font-size:20px">🛋️</div>' +
+                '<div><b style="font-size:15px;display:block;color:var(--ink)">Offer a spare room</b><span style="font-size:12px;color:var(--ink2)">Live-in Host</span></div>' +
+                '</div>' +
+                '<div style="width:22px;height:22px;border-radius:50%;border:2px solid ' + (isHaveRoom ? 'var(--brand)' : '#ced4da') + ';background:' + (isHaveRoom ? 'var(--brand)' : '#fff') + ';display:grid;place-items:center;color:#fff;font-size:12px;font-weight:700">' + (isHaveRoom ? '✓' : '') + '</div>' +
+                '</div>' +
+                '<p style="margin:0 0 12px;font-size:13.5px;color:var(--ink2);line-height:1.45;flex:1">I live in a property and have an empty bedroom to share with a new flatmate.</p>' +
+                '<div style="display:flex;gap:6px;align-items:center"><span style="font-size:11.5px;padding:3px 8px;border-radius:6px;background:' + (isHaveRoom ? '#fff' : '#f8f9fa') + ';border:1px solid ' + (isHaveRoom ? 'rgba(240,84,30,0.2)' : '#e9ecef') + ';color:var(--ink);font-weight:600">Room in Listings · Host in Roommates</span></div>' +
+                '</button>' +
+                '<button type="button" class="intent-card" data-intent="landlord" style="display:flex;flex-direction:column;padding:16px;border-radius:18px;border:2px solid ' + (isLandlord ? 'var(--brand)' : 'var(--line)') + ';background:' + (isLandlord ? 'rgba(240,84,30,0.04)' : 'var(--sf)') + ';cursor:pointer;transition:all .18s ease;text-align:left;font:inherit">' +
+                '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;width:100%">' +
+                '<div style="display:flex;align-items:center;gap:10px">' +
+                '<div style="width:38px;height:38px;border-radius:12px;background:' + (isLandlord ? 'var(--bs)' : '#f1f3f5') + ';display:grid;place-items:center;font-size:20px">🏢</div>' +
+                '<div><b style="font-size:15px;display:block;color:var(--ink)">Property Landlord</b><span style="font-size:12px;color:var(--ink2)">Owner / Broker</span></div>' +
+                '</div>' +
+                '<div style="width:22px;height:22px;border-radius:50%;border:2px solid ' + (isLandlord ? 'var(--brand)' : '#ced4da') + ';background:' + (isLandlord ? 'var(--brand)' : '#fff') + ';display:grid;place-items:center;color:#fff;font-size:12px;font-weight:700">' + (isLandlord ? '✓' : '') + '</div>' +
+                '</div>' +
+                '<p style="margin:0 0 12px;font-size:13.5px;color:var(--ink2);line-height:1.45;flex:1">I own or manage properties for rent and do not live with tenants.</p>' +
+                '<div style="display:flex;gap:6px;align-items:center"><span style="font-size:11.5px;padding:3px 8px;border-radius:6px;background:' + (isLandlord ? '#fff' : '#f8f9fa') + ';border:1px solid ' + (isLandlord ? 'rgba(240,84,30,0.2)' : '#e9ecef') + ';color:var(--ink);font-weight:600">Lists Properties Only</span></div>' +
+                '</button>' +
+                '</div>' +
+                '</div>';
+
+            const discoverySectionHtml = '<div class="cd">' +
+                '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">' +
+                '<div>' +
+                '<h3 style="margin:0 0 4px">Roommate Discovery Visibility</h3>' +
+                '<p class="s2" style="margin:0">Control whether your profile appears in public roommate search results.</p>' +
+                '</div>' +
+                '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' +
+                (isDiscoverable
+                    ? '<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;background:#e6fcf5;color:#0ca678;font-size:13px;font-weight:700">● Visible in ' + esc(cityName) + ' Roommates</span><button type="button" class="ghb" data-toggle-discover="0" style="height:36px;padding:0 16px;font-size:13px">Hide from search</button>'
+                    : '<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;background:#f1f3f5;color:#495057;font-size:13px;font-weight:600">🔒 Hidden from Discovery</span><button type="button" class="msgb" data-toggle-discover="1" style="height:36px;padding:0 16px;font-size:13px;width:auto"><em>Make visible</em></button>'
+                ) +
+                '</div>' +
+                '</div>' +
+                '<p class="hp" style="margin-top:12px">' +
+                (isDiscoverable
+                    ? 'Other members searching for roommates in ' + esc(cityName) + ' can find your profile, view lifestyle compatibility, and send you connection requests.'
+                    : 'Your profile is hidden from the public Roommates feed. You can still browse places and message your active connections.'
+                ) +
+                '</p>' +
+                '</div>';
+
             return '<h1>Edit profile</h1><div class="sub3">This is what people see when they open your profile.</div><div class="cd"><div class="phd">' + avm(d) + '<div><label class="ghb" style="cursor:pointer"><input type="file" id="efile" accept="image/*" hidden>Change photo</label>' + (d.ph ? ' <button class="ghb" data-rph="1">Remove</button>' : '') + '<div class="hp" style="margin-top:8px">A clear face photo builds trust.</div></div></div></div>' +
                 '<div class="cd">' + ff("n", "Full name", '<div class="pin"><input id="ed-n" aria-label="Full name" value="' + esc(d.n || '') + '" placeholder="Your name"></div>') + ff("job", "What do you do?", '<div class="pin"><input id="ed-job" value="' + esc(d.job || '') + '" placeholder="e.g. Product manager"></div>') + ff("city", "City", '<div class="pin"><input id="ed-city" aria-label="City" value="' + esc(d.city || '') + '" placeholder="Your city" maxlength="64"></div>') + ff("area", "Locality", '<div class="pin"><input id="ed-area" aria-label="Locality" value="' + esc(d.area || '') + '" placeholder="Your locality" maxlength="128"></div>') + ff("bio", "About you", '<textarea class="tx" id="ed-bio" placeholder="A few lines about how you live">' + esc(d.bio || '') + '</textarea><div class="hp"><span id="bc">' + esc((d.bio || '').length) + '</span>/280</div>') + '</div>' +
-                '<div class="cd"><h3>Housing intent</h3><p class="s2">Choose any that apply. Leave these blank if you only list property.</p>' + [["find_room", "Find a room"], ["team_up", "Team up to rent together"], ["have_room", "I live in a property and have a spare room"]].map(function (choice) { return '<label class="rw" style="display:flex;flex-wrap:nowrap;align-items:flex-start;justify-content:flex-start;gap:10px"><input style="width:16px;flex:0 0 16px;margin-top:3px" type="checkbox" data-housing-intent="' + choice[0] + '" ' + (intents.indexOf(choice[0]) > -1 ? 'checked' : '') + '><span>' + choice[1] + '</span></label>'; }).join('') + '<label class="rw" style="display:flex;flex-wrap:nowrap;align-items:flex-start;justify-content:flex-start;gap:10px"><input style="width:16px;flex:0 0 16px;margin-top:3px" type="checkbox" id="ed-discover" ' + (d.discover ? 'checked' : '') + '><span>Show my profile in roommate discovery</span></label><p class="hp">Discovery includes Team-Up seekers and resident hosts with an eligible active listing. Finding a room alone does not make you a Team-Up candidate.</p></div>' +
+                intentCardsHtml +
+                discoverySectionHtml +
                 '<div class="cd"><h3>Lifestyle</h3><div class="s2">Used to calculate your match with rooms and roommates.</div>' + [["diet", "Diet", ["Vegetarian", "Eggetarian", "Non-vegetarian"]], ["smoke", "Smoking", ["Non-smoker", "Smoker"]], ["sleep", "Sleep", ["Early riser", "Night owl", "Flexible"]], ["guests", "Guests", ["Rarely", "Sometimes", "Often"]], ["clean", "Cleanliness", ["Very tidy", "Tidy", "Relaxed"]]].map(function (q) { return ff(q[0], q[1], chp(q[0], q[2])); }).join("") + '</div>' + sv();
         }
         function acV() {
@@ -2398,6 +2482,14 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         }
         function pvw() { const m = ME, t = [m.diet, m.smoke, m.sleep]; dlg('<div class="pvx"><div class="eb" style="color:var(--brand);font-weight:700;font-size:12px;letter-spacing:.07em;text-transform:uppercase;margin-bottom:12px">How others see you</div><div class="phd">' + avm(m) + '<div><h3 style="font-size:22px;margin:0">' + esc(m.n) + '</h3><div class="loc" style="margin:2px 0 0">' + IC.pin + esc(m.area) + ' · ' + esc(m.job) + '</div></div></div><p style="color:var(--ink2);margin:16px 0 10px">' + esc(m.bio) + '</p><div class="tg">' + t.map(function (x) { return '<span>' + x + '</span>'; }).join("") + '</div>' + (TG.bud ? '<div class="loc" style="margin-top:14px">' + IC.wal + "Budget ₹" + PR.b[0] / 1000 + "k–" + PR.b[1] / 1000 + "k</div>" : "") + '<div class="tru" style="margin-top:12px"><div><i class="' + (m.ver ? "" : "no") + '">' + (m.ver ? "✓" : "–") + '</i>' + (m.ver ? "ID verified" : "ID not verified yet") + '</div></div><div class="r" style="margin-top:20px"><button class="ghb" data-cf="no" style="height:46px">Close</button><button class="msgb" data-as="edit" data-cf="no" style="width:auto;padding:0 20px;height:46px"><em>Edit profile</em></button></div></div>', 1); }
         function shr() { toast("Public profile sharing is not available yet. No public link was created."); }
+        function syncDraftInputs() {
+            if (!DR || S.as !== "edit") return;
+            const nameEl = $("ed-n"); if (nameEl) DR.n = nameEl.value;
+            const jobEl = $("ed-job"); if (jobEl) DR.job = jobEl.value;
+            const cityEl = $("ed-city"); if (cityEl) DR.city = cityEl.value;
+            const areaEl = $("ed-area"); if (areaEl) DR.area = areaEl.value;
+            const bioEl = $("ed-bio"); if (bioEl) DR.bio = bioEl.value;
+        }
         addDocListener("click", function (e) {
             const b = e.target.closest("button");
             if (!b)
@@ -2405,6 +2497,47 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             const d = b.dataset;
             if (S.nav != "profile" && !d.pvw && !$("cfo").classList.contains("o"))
                 return;
+            if (d.intent) {
+                if (!DR) DR = cl2(ME);
+                if (!DR.activeIntents) DR.activeIntents = [];
+                syncDraftInputs();
+                const intentKey = d.intent;
+                if (intentKey === "landlord") {
+                    const isCurrentlyLandlord = DR.activeIntents.length === 0 && DR.isLandlord;
+                    if (isCurrentlyLandlord) {
+                        DR.isLandlord = false;
+                        DR.activeIntents = ["find_room"];
+                    } else {
+                        DR.isLandlord = true;
+                        DR.activeIntents = [];
+                        DR.discover = false;
+                    }
+                } else {
+                    DR.isLandlord = false;
+                    const idx = DR.activeIntents.indexOf(intentKey);
+                    if (idx > -1) {
+                        DR.activeIntents.splice(idx, 1);
+                        if (DR.activeIntents.length === 0) DR.discover = false;
+                    } else {
+                        DR.activeIntents.push(intentKey);
+                        if (intentKey === "team_up" || intentKey === "have_room") DR.discover = true;
+                    }
+                }
+                render();
+                return;
+            }
+            if (d.toggleDiscover !== undefined) {
+                if (!DR) DR = cl2(ME);
+                syncDraftInputs();
+                const turnOn = d.toggleDiscover === "1";
+                if (turnOn && (!DR.activeIntents || DR.activeIntents.length === 0)) {
+                    toast("Please select a housing intent first (such as Team Up or Offer a Spare Room).");
+                    return;
+                }
+                DR.discover = turnOn;
+                render();
+                return;
+            }
             if (d.kyc == "submit") {
                 const fileInput = $("kyc-file");
                 const docTypeSelect = $("kyc-type");
@@ -2462,6 +2595,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 return;
             }
             if (d.k2) {
+                syncDraftInputs();
                 const o = DR, k = d.k2;
                 if (d.m2) {
                     const i = o[k].indexOf(d.v2);
@@ -2485,9 +2619,14 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
             else if (d.sv) {
                 ER = {};
+                syncDraftInputs();
                 if (S.as == "edit") {
                     if (DR.n.trim().length < 2)
                         ER.n = "Enter your name";
+                    if (!DR.city || !DR.city.trim())
+                        ER.city = "Enter your city";
+                    if (!DR.area || !DR.area.trim())
+                        ER.area = "Enter your locality";
                     if (DR.bio.length > 280)
                         ER.bio = "Keep it under 280 characters";
                 }
@@ -2512,10 +2651,17 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     }
                     b.disabled = true;
                     updateUserProfileBackend(payload).then(function () {
-                        if (editing)
+                        if (editing) {
                             ME = draft;
+                            TG.vis = draft.discover ? "discoverable" : "hidden";
+                        }
                         else
-                            PR = draft; syn(); DR = cl2(editing ? ME : PR); toast(editing ? "Profile saved" : "Preferences saved"); render(); void refreshProfile();
+                            PR = draft;
+                        syn();
+                        DR = cl2(editing ? ME : PR);
+                        toast(editing ? "Profile saved" : "Preferences saved");
+                        render();
+                        void refreshProfile();
                     }).catch(function (error) { toast(error.message || "Could not save changes. Your edits are still here."); }).finally(function () { b.disabled = false; });
                 }
             }
@@ -2645,21 +2791,6 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     if (DR !== draft)
                         return; DR.ph = url; render();
                 }).catch(function (error) { toast(error.message || "Could not upload profile photo."); });
-            }
-        });
-        addDocListener("change", function (event) {
-            if (!DR)
-                return; const target = event.target, intent = target.dataset.housingIntent; if (intent) {
-                    const selected = DR.activeIntents.indexOf(intent);
-                    if (target.checked && selected < 0)
-                        DR.activeIntents.push(intent);
-                    else if (!target.checked && selected >= 0)
-                        DR.activeIntents.splice(selected, 1);
-                    sbu();
-                }
-            else if (target.id === "ed-discover") {
-                DR.discover = target.checked;
-                sbu();
             }
         });
         IC.meal = P('<path d="M6 3v8a2 2 0 0 0 2 2v8M10 3v6M6 7h4M17 3c-2 1-3 4-3 7h3v11"/>');
@@ -3643,12 +3774,16 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         if (currentProfile) {
             ME.n = currentProfile.name || ME.n;
             ME.job = currentProfile.profession || ME.job;
+            ME.city = currentProfile.city || ME.city;
             ME.area = (currentProfile.localities && currentProfile.localities[0]) || currentProfile.city || ME.area;
             ME.bio = currentProfile.bio || ME.bio;
             ME.ver = currentProfile.isVerified ? 1 : 0;
             ME.ph = currentProfile.avatar || ME.ph;
             ME.em = currentProfile.email || ME.em;
             ME.phn = currentProfile.phone || ME.phn;
+            ME.activeIntents = resolveUserHousingIntent(currentProfile).activeIntents;
+            ME.isLandlord = Boolean((currentProfile.role === 'owner' || currentProfile.ownerType === 'landlord') && (!currentProfile.housingPreferences?.activeIntents || currentProfile.housingPreferences.activeIntents.length === 0));
+            ME.discover = Boolean(currentProfile.roommateDiscoveryEnabled === true);
             if (currentProfile.budget) {
                 PR.b = [currentProfile.budgetMin || 0, currentProfile.budget];
                 PR.areas = currentProfile.localities || [];

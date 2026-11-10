@@ -68,6 +68,8 @@
 .nm-explore-root .empty .post{margin-top:18px;display:inline-block}
 .nm-explore-root .empty .r{display:flex!important;align-items:center;justify-content:center;gap:12px;margin:22px auto 0;flex-wrap:wrap}
 .nm-explore-root .empty .pill{margin:0;cursor:pointer}
+.nm-explore-root .intent-card{text-align:left;font:inherit;width:100%;transition:border-color .18s ease,box-shadow .18s ease}
+.nm-explore-root .intent-card:hover{border-color:var(--brand)!important;box-shadow:0 6px 18px rgba(240,84,30,.12)}
 .nm-explore-root .hub{grid-column:1/-1;max-width:560px;display:flex;flex-direction:column;gap:8px}
 .nm-explore-root .hub button{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:18px;text-align:left;background:var(--sf)}.nm-explore-root .hub button:hover{border-color:var(--ink2)}
 .nm-explore-root .hub .ic2{width:44px;height:44px;border-radius:14px;background:var(--sunk);display:grid;place-items:center}.nm-explore-root .hub div{flex:1;font-weight:600}.nm-explore-root .hub small{display:block;font-weight:400;color:var(--ink2);font-size:13.5px}
