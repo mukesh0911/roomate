@@ -431,6 +431,7 @@ export default function AdminPage() {
       Suspended: 'a',
       Paused: 'a',
       Pending: 'a',
+      'Pending verification': 'a',
       'In review': 'a',
       Medium: 'a',
       Open: 'r',
@@ -555,6 +556,10 @@ export default function AdminPage() {
       footerHtml = `<button class="btn pri" data-a="clear" data-q="${l.id}">Clear flag</button><button class="btn dg" data-a="rml" data-q="${l.id}">Remove listing</button>`;
     } else if (l.status === 'Active') {
       footerHtml = `<button class="btn gho" data-a="flag" data-q="${l.id}">Flag for review</button><button class="btn dg" data-a="rml" data-q="${l.id}">Remove listing</button>`;
+    } else if (l.status === 'Pending verification') {
+      footerHtml = `<button class="btn pri" data-a="act" data-q="${l.id}">Approve & Activate</button><button class="btn dg" data-a="rml" data-q="${l.id}">Remove listing</button>`;
+    } else if (l.status === 'Paused') {
+      footerHtml = `<button class="btn pri" data-a="act" data-q="${l.id}">Resume listing</button><button class="btn dg" data-a="rml" data-q="${l.id}">Remove listing</button>`;
     } else {
       footerHtml = `<button class="btn dg" data-a="rml" data-q="${l.id}">Remove listing</button>`;
     }
@@ -860,11 +865,13 @@ export default function AdminPage() {
             loadAdminData();
             closeDrawer();
           });
-        } else if (action === 'clear') {
+        } else if (action === 'clear' || action === 'act') {
           updateListingStatusBackend(qId, 'active').then(() => {
-            showToast('Flag cleared');
+            showToast(action === 'act' ? 'Listing approved & activated' : 'Flag cleared');
             loadAdminData();
             closeDrawer();
+          }).catch((err: any) => {
+            showToast(err?.message || 'Could not update listing status');
           });
         } else if (action === 'rml') {
           openConfirmation(
@@ -1455,7 +1462,7 @@ export default function AdminPage() {
             <input data-q="l" placeholder="Search title, locality or owner" defaultValue={searchQueries.l} aria-label="Search" />
           </div>
           <div className="chs">
-            {['All', 'Active', 'Paused', 'Filled', 'Flagged'].map((x) => (
+            {['All', 'Active', 'Pending verification', 'Paused', 'Filled', 'Flagged'].map((x) => (
               <button key={x} className="chip" data-fl="l" data-v={x} aria-pressed={f === x}>
                 {x}
               </button>
@@ -1683,6 +1690,7 @@ export default function AdminPage() {
 
     const healthCounts = {
       Active: listingsList.filter((l) => l.status === 'Active').length,
+      'Pending verification': listingsList.filter((l) => l.status === 'Pending verification').length,
       Paused: listingsList.filter((l) => l.status === 'Paused').length,
       Filled: listingsList.filter((l) => l.status === 'Filled').length,
       Flagged: listingsList.filter((l) => l.status === 'Flagged').length,

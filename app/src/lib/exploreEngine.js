@@ -1866,6 +1866,23 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     render();
                     scrollTo(0, 0);
                 }
+                else if (d.la == "pub") {
+                    if (!x || !x.id) {
+                        toast("Refresh this listing before publishing.");
+                        return;
+                    }
+                    b.disabled = true;
+                    updateListingStatusBackend(x.id, "active").then(function () {
+                        toast("Listing published successfully! It is now live in discovery.");
+                        x.st = "Active";
+                        if (x.f) x.f.status = "active";
+                        render();
+                    }).catch(function (error) {
+                        toast(error.message || "Could not publish listing.");
+                    }).finally(function () {
+                        b.disabled = false;
+                    });
+                }
                 else if (d.la == "pz") {
                     if (!x || !x.id) {
                         toast("Refresh this listing before changing its status.");
@@ -2985,7 +3002,15 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             const isKycRejected = (USER_KYC && (USER_KYC.status === 'rejected' || USER_KYC.status === 'resubmission_required'));
             const rejReason = (USER_KYC && USER_KYC.doc && (USER_KYC.doc.reviewNote || USER_KYC.doc.rejectionReason)) || '';
             if (hasPendingListings) {
-                if (!isUserVerified && !isKycPending && !isKycRejected) {
+                if (isUserVerified) {
+                    h += '<div class="ver-banner" style="background:#e6fcf5;border:1px solid #96f2d7;border-radius:14px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(0,0,0,0.03)">' +
+                        '<span style="display:flex;width:40px;height:40px;border-radius:50%;background:#c3fae8;align-items:center;justify-content:center;color:#0ca678;flex-shrink:0">' +
+                        '<svg style="width:22px;height:22px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>' +
+                        '</span><div>' +
+                        '<b style="font-size:14.5px;color:#0ca678;display:block">Identity verified — Ready to publish!</b>' +
+                        '<span style="font-size:13px;color:#495057">Your verification was approved. Click "Publish listing" below to make your room visible in discovery.</span>' +
+                        '</div></div>';
+                } else if (!isKycPending && !isKycRejected) {
                     h += '<div class="ver-banner" style="background:#fff4e5;border:1px solid #ffd8a8;border-radius:14px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,0.03)">' +
                         '<div style="display:flex;gap:14px;align-items:center">' +
                         '<span style="display:flex;width:40px;height:40px;border-radius:50%;background:#ffe8cc;align-items:center;justify-content:center;color:#e8590c;flex-shrink:0">' +
@@ -3025,12 +3050,14 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 if (x.st == "Draft") {
                     pri = '<button class="msgb" data-la="edit" data-q="' + k + '"><em>Continue editing</em></button>';
                 } else if (x.st == "Pending verification") {
-                    if (!isUserVerified && !isKycPending) {
-                        pri = '<button class="msgb" data-n="profile" data-as="verify" style="height:38px;padding:0 16px;font-size:13px;width:auto"><em>Verify now</em></button>';
+                    if (isUserVerified || (x.f && x.f.ownerVerified)) {
+                        pri = '<button class="msgb" data-la="pub" data-q="' + k + '" style="height:38px;padding:0 18px;font-size:13px;width:auto"><em>Publish listing</em></button>';
                     } else if (isKycPending) {
                         pri = '<span style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:8px;background:#e7f5ff;color:#1864ab;font-size:12.5px;font-weight:600">Verification in review</span>';
                     } else if (isKycRejected) {
                         pri = '<button class="msgb" data-n="profile" data-as="verify" style="height:38px;padding:0 16px;font-size:13px;width:auto;background:#e02424"><em>Re-verify now</em></button>';
+                    } else {
+                        pri = '<button class="msgb" data-n="profile" data-as="verify" style="height:38px;padding:0 16px;font-size:13px;width:auto"><em>Verify now</em></button>';
                     }
                 } else if (x.st != "Filled" && n > 0) {
                     pri = '<button class="msgb" data-la="apl" data-q="' + k + '"><em>View applicants (' + n + ')</em></button>';
