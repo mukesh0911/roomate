@@ -1356,10 +1356,33 @@ export async function getVerificationDocumentBlobBackend(documentPath: string): 
     throw new Error('This submission has no supported private document path.');
   }
   const document = await getBlob(ref(storage, documentPath), 5 * 1024 * 1024);
-  if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'].includes(document.type.toLowerCase())) {
+  const rawType = (document.type || '').split(';')[0].trim().toLowerCase();
+
+  const ext = documentPath.split('.').pop()?.toLowerCase();
+  const extToMime: Record<string, string> = {
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    webp: 'image/webp',
+    pdf: 'application/pdf',
+  };
+
+  const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+
+  let resolvedType = '';
+  if (allowedMimes.includes(rawType)) {
+    resolvedType = rawType === 'image/jpg' ? 'image/jpeg' : rawType;
+  } else if (!rawType || rawType === 'application/octet-stream') {
+    if (ext && extToMime[ext]) {
+      resolvedType = extToMime[ext];
+    }
+  }
+
+  if (!resolvedType) {
     throw new Error('Unsupported identity document format. Request a JPG, PNG, WebP or PDF resubmission.');
   }
-  return document;
+
+  return resolvedType === document.type ? document : new Blob([document], { type: resolvedType });
 }
 
 export function subscribeUserKycStatus(
