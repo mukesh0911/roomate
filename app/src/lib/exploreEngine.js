@@ -309,19 +309,20 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             const badges = [];
             const haveRoomStyle = 'background:#fff3e0;color:#e65100;border:1px solid #ffe0b2;';
             const teamUpStyle = 'background:#e3f2fd;color:#1565c0;border:1px solid #bbdefb;';
+            const dualStyle = 'background:#ede9fe;color:#6d28d9;border:1px solid #ddd6fe;';
             const findRoomStyle = 'background:#f0f4f8;color:#37474f;border:1px solid #cfd8dc;';
             // Strict check: Only show "Room available" if the user qualifies as genuine Live-in Host
             // with a valid associated active listing and required occupancy evidence
             if (isLiveInHost) {
                 badges.push({ text: 'Room available', style: haveRoomStyle });
             }
-            if (isTeamUp) {
+            if (isTeamUp && isFindRoom && !isLiveInHost) {
+                badges.push({ text: 'Open to Room or Team-Up', style: dualStyle });
+            }
+            else if (isTeamUp) {
                 badges.push({ text: 'Looking for a roommate', style: teamUpStyle });
             }
-            if (isFindRoom && !isLiveInHost && !isTeamUp) {
-                badges.push({ text: 'Looking for a room', style: findRoomStyle });
-            }
-            else if (isFindRoom && activeIntents.includes('find_room') && !badges.some(function (b) { return b.text === 'Looking for a room'; })) {
+            else if (isFindRoom) {
                 badges.push({ text: 'Looking for a room', style: findRoomStyle });
             }
             if (badges.length === 0) {
@@ -542,11 +543,15 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             // Host listing lookup for Live-in Host
             const isLiveInHost = Boolean(x[16] ? x[16].isLiveInHost : (x[14] === 'live_in_host' || (x[12] && x[12].indexOf('Room Available') > -1) || x[12] === 'have_room' || x[12] === 'Room available'));
             const isTeamUp = Boolean(x[16] ? x[16].isTeamUpSeeker : (x[14] === 'team_up' || (x[12] && x[12].indexOf('Team Up') > -1) || x[12] === 'team_up'));
+            const isFindRoom = Boolean(x[16] ? x[16].isLookingForRoom : (x[14] === 'seeker' || (x[12] && x[12].indexOf('Looking for a room') > -1) || x[12] === 'find_room'));
+            const isDual = isTeamUp && isFindRoom && !isLiveInHost;
             const rdrBadge = isLiveInHost
                 ? '<span class="tag rm-intent-badge" style="background:#fff3e0;color:#e65100;border:1px solid #ffe0b2;font-weight:600;font-size:12px;padding:3px 10px;border-radius:999px">Room available</span>'
-                : isTeamUp
-                    ? '<span class="tag rm-intent-badge" style="background:#e3f2fd;color:#1565c0;border:1px solid #bbdefb;font-weight:600;font-size:12px;padding:3px 10px;border-radius:999px">Looking for a roommate</span>'
-                    : '<span class="tag rm-intent-badge" style="background:#f0f4f8;color:#37474f;border:1px solid #cfd8dc;font-weight:600;font-size:12px;padding:3px 10px;border-radius:999px">Looking for a room</span>';
+                : isDual
+                    ? '<span class="tag rm-intent-badge" style="background:#ede9fe;color:#6d28d9;border:1px solid #ddd6fe;font-weight:600;font-size:12px;padding:3px 10px;border-radius:999px">Open to Room or Team-Up</span>'
+                    : isTeamUp
+                        ? '<span class="tag rm-intent-badge" style="background:#e3f2fd;color:#1565c0;border:1px solid #bbdefb;font-weight:600;font-size:12px;padding:3px 10px;border-radius:999px">Looking for a roommate</span>'
+                        : '<span class="tag rm-intent-badge" style="background:#f0f4f8;color:#37474f;border:1px solid #cfd8dc;font-weight:600;font-size:12px;padding:3px 10px;border-radius:999px">Looking for a room</span>';
             const assocListId = (x && x[13]) || '';
             let hostListingSection = '';
             if (isLiveInHost && assocListId) {
@@ -1034,7 +1039,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                         isLookingForRoom: true,
                         isLiveInHost: false,
                         isDiscoveryEligible: true,
-                        displayBadge: { text: "Seeking Room & Team-Up", variant: "team_up" }
+                        displayBadge: { text: "Open to Room or Team-Up", variant: "team_up" }
                     },
                     diet: "Vegetarian",
                     smoking: "Non-smoker",
