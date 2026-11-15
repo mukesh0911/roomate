@@ -47,6 +47,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   fake.context.mockResolvedValue({active:true,blocked:false,accepted:true,identity:{uid:'peer',name:'Peer'}});
   fake.gatewayPage.mockImplementation(async (_action, _cursor, size) => { const result = await fake.getDocs({constraints:[{limit:size}]}); return {...result,scanned:result.docs.length,cursor:result.docs.at(-1)?.id,hasMore:result.docs.length >= size}; });
+  fake.batch.mockReturnValue({ set: vi.fn(), commit: vi.fn().mockResolvedValue(undefined) });
 });
 
 describe('production readiness backend behavior', () => {
@@ -264,15 +265,27 @@ describe('production readiness backend behavior', () => {
     expect(fake.updateDoc).not.toHaveBeenCalled();
   });
 
-  it('new listings enter review without self-granted trust or fabricated views', async () => {
-    fake.addDoc.mockResolvedValue({ id: 'new-listing' });
+  it('new listings enter review without self-granted trust or fabricated views, batching host intent atomically without contaminating seeker profile', async () => {
+    const batch = { set: vi.fn(), commit: vi.fn().mockResolvedValue(undefined) };
+    fake.batch.mockReturnValue(batch);
     await createNewListingBackend({ title: 'Room', rent: 10000, loc: 'Central', city: 'Pune', isLiveInRoom: true, qs: ['Preferred move date?'] }, fake.auth.currentUser);
-    expect(fake.addDoc).toHaveBeenCalledWith('listings', expect.objectContaining({
+    expect(batch.set).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
       status: 'pending_verification', ownerVerified: false, isOwnerVerified: false, views: 0,
       isLiveInRoom: true, screeningQuestions: ['Preferred move date?'],
     }));
+    expect(batch.set).toHaveBeenCalledWith('users/me', expect.objectContaining({
+      isLandlord: true,
+      housingPreferences: expect.objectContaining({ activeIntents: ['have_room'] }),
+    }), { merge: true });
+    const userCall = batch.set.mock.calls.find(c => c[0] === 'users/me');
+    expect(userCall[1]).not.toHaveProperty('city');
+    expect(userCall[1]).not.toHaveProperty('localities');
+    expect(userCall[1]).not.toHaveProperty('onboardingComplete');
+    expect(batch.commit).toHaveBeenCalled();
+
+    batch.set.mockClear();
     await createNewListingBackend({ title: 'Room', rent: 10000, loc: 'Central', city: 'Pune' }, fake.auth.currentUser);
-    expect(fake.addDoc).toHaveBeenLastCalledWith('listings', expect.objectContaining({ isLiveInRoom: false }));
+    expect(batch.set).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ isLiveInRoom: false }));
   });
 
   it('reviews exactly the inspected identity and commits trust, evidence and notification together', async () => {
@@ -345,21 +358,23 @@ describe('production readiness backend behavior', () => {
   });
 
   it('reserves an owned draft before photos upload under the listing ID, then submits real URLs', async () => {
-    fake.addDoc.mockResolvedValue({ id: 'owned-listing' });
+    const batch = { set: vi.fn(), commit: vi.fn().mockResolvedValue(undefined) };
+    fake.batch.mockReturnValue(batch);
     fake.upload.mockImplementation(async reference => ({ ref: reference }));
     fake.getDownloadURL.mockImplementation(async reference => `https://storage.example/${reference.fullPath}`);
     const result = await createNewListingBackend({ title: 'Room', rent: 10000, loc: 'Central', city: 'Pune', type: 'Full flat', ph: ['data:image/png;base64,iVBORw0KGgo='] }, fake.auth.currentUser);
-    expect(fake.addDoc).toHaveBeenCalledWith('listings', expect.objectContaining({ status: 'draft', images: [], roomType: 'Full flat' }));
-    expect(fake.upload.mock.calls[0][0].fullPath).toMatch(/^listings\/owned-listing\//);
-    expect(fake.updateDoc).toHaveBeenCalledWith({ id: 'owned-listing' }, expect.objectContaining({ status: 'pending_verification', images: [expect.stringMatching(/^https:\/\/storage.example\/listings\/owned-listing\//)] }));
+    expect(batch.set).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ status: 'draft', images: [], roomType: 'Full flat' }));
+    expect(fake.upload.mock.calls[0][0].fullPath).toMatch(/^listings\/new\//);
+    expect(fake.updateDoc).toHaveBeenCalledWith({ id: 'new', path: 'listings/new' }, expect.objectContaining({ status: 'pending_verification', images: [expect.stringMatching(/^https:\/\/storage.example\/listings\/new\//)] }));
     expect(result.status).toBe('pending_verification');
   });
 
   it('failed photo upload leaves a recoverable draft and never confirms submission', async () => {
-    fake.addDoc.mockResolvedValue({ id: 'failed-photo-draft' });
+    const batch = { set: vi.fn(), commit: vi.fn().mockResolvedValue(undefined) };
+    fake.batch.mockReturnValue(batch);
     fake.upload.mockRejectedValue(new Error('storage unavailable'));
-    await expect(createNewListingBackend({ title: 'Room', rent: 10000, loc: 'Central', city: 'Pune', ph: ['data:image/png;base64,iVBORw0KGgo='] }, fake.auth.currentUser)).rejects.toMatchObject({ draftListingId: 'failed-photo-draft' });
-    expect(fake.addDoc).toHaveBeenCalledWith('listings', expect.objectContaining({ status: 'draft' }));
+    await expect(createNewListingBackend({ title: 'Room', rent: 10000, loc: 'Central', city: 'Pune', ph: ['data:image/png;base64,iVBORw0KGgo='] }, fake.auth.currentUser)).rejects.toMatchObject({ draftListingId: 'new' });
+    expect(batch.set).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ status: 'draft' }));
     expect(fake.updateDoc).not.toHaveBeenCalled();
   });
 
@@ -368,5 +383,75 @@ describe('production readiness backend behavior', () => {
     fake.getDownloadURL.mockResolvedValue('https://storage.example/replacement.png');
     await updateListingBackend('owned-listing', { ph: ['https://storage.example/kept.png', 'data:image/png;base64,iVBORw0KGgo='] });
     expect(fake.updateDoc).toHaveBeenCalledWith('listings/owned-listing', expect.objectContaining({ images: ['https://storage.example/kept.png', 'https://storage.example/replacement.png'] }));
+  });
+
+  it('surfaces chat-first application thread metadata and special message kinds in subscribeLiveUserChats', async () => {
+    let roomCb: ((snap: any) => Promise<void> | void) | null = null;
+    fake.onSnapshot.mockImplementation((_q: unknown, cb: (snap: any) => Promise<void> | void) => {
+      roomCb = cb;
+      return vi.fn();
+    });
+    fake.getDocs.mockResolvedValue({
+      docs: [
+        {
+          id: 'sys_app_1_selected',
+          data: () => ({
+            senderId: 'system',
+            kind: 'system_event',
+            content: 'Application accepted! You can now chat directly.',
+            payload: { applicationId: 'app_1', status: 'selected', text: 'Application accepted! You can now chat directly.' },
+            createdAt: { toMillis: () => 2000, toDate: () => new Date(2000) },
+          }),
+        },
+        {
+          id: 'app_app_1_card',
+          data: () => ({
+            senderId: 'me',
+            kind: 'application_card',
+            content: 'Applied for Sunny 2BHK',
+            payload: { applicationId: 'app_1', status: 'selected', moveIn: 'Immediate', answers: { Smoking: 'No' } },
+            createdAt: { toMillis: () => 1000, toDate: () => new Date(1000) },
+          }),
+        },
+      ],
+    });
+    const updates: any[][] = [];
+    const unsub = subscribeLiveUserChats('me', (rooms) => updates.push(rooms));
+    await roomCb!({
+      docs: [
+        {
+          id: 'me___peer',
+          data: () => ({
+            participants: ['me', 'peer'],
+            listingId: 'room_1',
+            threadType: 'application',
+            latestApplicationId: 'app_1',
+            latestApplicationStatus: 'selected',
+            listingSnapshot: { id: 'room_1', title: 'Sunny 2BHK', rent: 16000, ownerId: 'peer' },
+            applicantId: 'me',
+            ownerId: 'peer',
+            unlocked: true,
+            inboxBucketByUser: { me: 'chats', peer: 'chats' },
+            unreadBy: { me: 1 },
+          }),
+        },
+      ],
+    });
+    await vi.waitFor(() => expect(updates.length).toBe(1));
+    expect(updates[0][0]).toMatchObject({
+      id: 'me___peer',
+      threadType: 'application',
+      latestApplicationId: 'app_1',
+      latestApplicationStatus: 'selected',
+      unlocked: true,
+      inboxBucketByUser: { me: 'chats', peer: 'chats' },
+      listingSnapshot: { id: 'room_1', title: 'Sunny 2BHK', rent: 16000, ownerId: 'peer' },
+    });
+    expect(updates[0][0].m).toHaveLength(2);
+    expect(updates[0][0].m[0][7]).toBe('application_card');
+    expect(updates[0][0].m[0][8]).toMatchObject({ applicationId: 'app_1', status: 'selected' });
+    expect(updates[0][0].m[1][0]).toBe('sys');
+    expect(updates[0][0].m[1][7]).toBe('system_event');
+    unsub();
   });
 });

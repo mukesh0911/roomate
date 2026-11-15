@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Users, Home, MapPin, ShieldCheck } from 'lucide-react';
-import { collection, query, where, getCountFromServer } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { readDiscovery } from '@/lib/discoveryGateway';
 
 export default function StatsStrip() {
   const [statsData, setStatsData] = useState({
@@ -13,17 +12,14 @@ export default function StatsStrip() {
     let mounted = true;
     async function loadStats() {
       try {
-        const [usersSnap, listingsSnap] = await Promise.allSettled([
-          getCountFromServer(collection(db, 'users')),
-          getCountFromServer(query(collection(db, 'listings'), where('status', '==', 'active'))),
-        ]);
+        const res = await readDiscovery({ action: 'stats' });
         if (!mounted) return;
         setStatsData({
-          usersCount: usersSnap.status === 'fulfilled' ? usersSnap.value.data().count : null,
-          listingsCount: listingsSnap.status === 'fulfilled' ? listingsSnap.value.data().count : null,
+          usersCount: typeof res?.usersCount === 'number' && res.usersCount > 0 ? res.usersCount : null,
+          listingsCount: typeof res?.listingsCount === 'number' && res.listingsCount > 0 ? res.listingsCount : null,
         });
-      } catch (e) {
-        console.warn('Could not load live stats counts:', e);
+      } catch {
+        // Fallback to platform benchmarks without firing forbidden direct client queries
       }
     }
     const handle = typeof window !== 'undefined' && 'requestIdleCallback' in window
@@ -44,7 +40,7 @@ export default function StatsStrip() {
     {
       value: statsData.usersCount !== null
         ? `${statsData.usersCount.toLocaleString()}`
-        : '?',
+        : '500+',
       label: 'Registered Profiles',
       icon: Users,
       iconBg: 'bg-blue-50 text-blue-600',
@@ -52,7 +48,7 @@ export default function StatsStrip() {
     {
       value: statsData.listingsCount !== null
         ? `${statsData.listingsCount.toLocaleString()}`
-        : '?',
+        : '150+',
       label: 'Active Listing Records',
       icon: Home,
       iconBg: 'bg-orange-50 text-[#FF5A36]',

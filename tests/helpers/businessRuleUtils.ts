@@ -153,6 +153,7 @@ export class BusinessRuleUtils {
     'admin@nestmate-test.com',
     'admin@nestmate.in',
     'mukvr46@gmail.com',
+    'mrmukeshram111@gmail.com',
   ];
 
   static isAdminEmail(email?: string | null): boolean {

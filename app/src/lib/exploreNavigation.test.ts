@@ -28,4 +28,12 @@ describe('canonical discovery navigation', () => {
     const restored=readExploreLocation('/explore', new URLSearchParams('max=Infinity&min=-2&type=unknown&sort=unknown'));
     expect(restored.filters.max).toBe(100000); expect(restored.filters.min).toBe(0); expect(restored.filters.types).toEqual([]); expect(restored.filters.sort).toBe('m');
   });
+  it('round trips inboxBox and appId deep-link params without altering plain chat URLs', () => {
+    expect(buildExploreLocation({ ...filters, nav: 'messages', cat: 0, chatId: 'room-id', inboxBox: 'requests', appId: 'app-42' })).toBe('/messages?box=requests&chat=room-id&app=app-42');
+    const restored = readExploreLocation('/messages', new URLSearchParams('chat=room-id&box=requests&app=app-42'));
+    expect(restored.nav).toBe('messages');
+    expect(restored.inboxBox).toBe('requests');
+    expect(restored.appId).toBe('app-42');
+    expect(readExploreLocation('/messages', new URLSearchParams('box=invalid&app=app-1')).inboxBox).toBe('');
+  });
 });

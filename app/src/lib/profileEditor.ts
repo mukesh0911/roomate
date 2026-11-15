@@ -42,9 +42,108 @@ export function buildProfileEditorUpdate(draft: ProfileEditorDraft, existing: Ex
   };
 }
 
+export interface SeekerLifestyleDraft {
+  diet?: string;
+  smoke?: string;
+  pets?: string;
+  sleep?: string;
+}
+
+const SUPPORTED_USER_GENDERS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
+
+const DIET_TO_CANONICAL: Record<string, string> = {
+  Vegetarian: 'veg',
+  'Non-vegetarian': 'non_veg',
+  Eggetarian: 'egg',
+  Flexible: 'flexible',
+};
+
+const SMOKE_TO_CANONICAL: Record<string, string> = {
+  'Non-smoker': 'never',
+  'Outside only': 'outside',
+  Smoker: 'regular',
+};
+
+const PETS_TO_CANONICAL: Record<string, string> = {
+  'No pets / allergic': 'no',
+  'Pet-friendly': 'yes',
+  'Has pets': 'has_pets',
+};
+
+const SLEEP_TO_CANONICAL: Record<string, string> = {
+  'Early riser': 'before_10',
+  'Night owl': 'after_12',
+  Flexible: 'flexible',
+};
+
+/** Maps user-selected seeker lifestyle habits into canonical matching tokens without inventing defaults. */
+export function buildSeekerLifestyleQuizPatch(
+  draft: SeekerLifestyleDraft,
+  existingQuizAnswers: Record<string, string> = {},
+): Record<string, string> {
+  const nextQuiz: Record<string, string> = { ...existingQuizAnswers };
+
+  if (draft.diet !== undefined) {
+    if (draft.diet) {
+      nextQuiz.diet = draft.diet;
+      if (DIET_TO_CANONICAL[draft.diet]) nextQuiz.food_pref = DIET_TO_CANONICAL[draft.diet];
+      else delete nextQuiz.food_pref;
+    } else {
+      delete nextQuiz.diet;
+      delete nextQuiz.food_pref;
+    }
+  }
+
+  if (draft.smoke !== undefined) {
+    if (draft.smoke) {
+      nextQuiz.smoke = draft.smoke;
+      if (SMOKE_TO_CANONICAL[draft.smoke]) nextQuiz.smoking = SMOKE_TO_CANONICAL[draft.smoke];
+      else delete nextQuiz.smoking;
+    } else {
+      delete nextQuiz.smoke;
+      delete nextQuiz.smoking;
+    }
+  }
+
+  if (draft.pets !== undefined) {
+    if (draft.pets) {
+      nextQuiz.pets = PETS_TO_CANONICAL[draft.pets] || draft.pets;
+    } else {
+      delete nextQuiz.pets;
+    }
+  }
+
+  if (draft.sleep !== undefined) {
+    if (draft.sleep) {
+      nextQuiz.sleep = draft.sleep;
+      if (SLEEP_TO_CANONICAL[draft.sleep]) nextQuiz.sleep_time = SLEEP_TO_CANONICAL[draft.sleep];
+      else delete nextQuiz.sleep_time;
+    } else {
+      delete nextQuiz.sleep;
+      delete nextQuiz.sleep_time;
+    }
+  }
+
+  return nextQuiz;
+}
+
 export function buildMatchingPreferencesUpdate(
-  draft: { b: number[]; areas: string[]; mv: string; types: string[]; gd: string },
-  existing: ExistingProfile = {},
+  draft: {
+    b: number[];
+    areas: string[];
+    mv: string;
+    types: string[];
+    gd: string;
+    city?: string;
+    name?: string;
+    ug?: string;
+    diet?: string;
+    smoke?: string;
+    pets?: string;
+    sleep?: string;
+    teamUpDiscoverable?: boolean;
+  },
+  existing: ExistingProfile & { name?: string; onboardingComplete?: boolean; housingIntent?: string } = {},
 ) {
   const [minimum, maximum] = draft.b;
   if (!Number.isFinite(minimum) || !Number.isFinite(maximum) || minimum < 0 || maximum <= 0 || minimum > maximum) throw new Error('Enter a valid minimum and maximum budget.');
@@ -52,13 +151,60 @@ export function buildMatchingPreferencesUpdate(
   if (!areas.length || areas.length > 3) throw new Error('Choose between one and three localities.');
   if (!['Any', 'Female', 'Male'].includes(draft.gd)) throw new Error('Choose a valid roommate gender preference.');
   if (draft.types.some(type => !['Private room', 'Full flat', 'PG / Coliving'].includes(type))) throw new Error('Choose a supported place type.');
+
+  const trimmedCity = typeof draft.city === 'string' ? draft.city.trim() : '';
+  if (typeof draft.city === 'string' && !trimmedCity) throw new Error('Choose your target city.');
+  if (trimmedCity.length > 64) throw new Error('Enter a valid city name.');
+
+  let validatedName: string | undefined;
+  if (typeof draft.name === 'string') {
+    const tName = draft.name.trim();
+    if (tName.length < 2 || tName.length > 120) throw new Error('Enter your name (between 2 and 120 characters).');
+    validatedName = tName;
+  }
+
+  let validatedGender: string | undefined;
+  if (typeof draft.ug === 'string') {
+    const tGender = draft.ug.trim();
+    if (tGender && !SUPPORTED_USER_GENDERS.includes(tGender)) throw new Error('Choose a valid gender option.');
+    validatedGender = tGender;
+  }
+
+  const effectiveCity = trimmedCity || existing.city?.trim() || '';
+  const effectiveName = validatedName || existing.name?.trim() || '';
+  const canFlipComplete = Boolean(effectiveCity && effectiveName);
+
+  const quizAnswers = buildSeekerLifestyleQuizPatch(
+    { diet: draft.diet, smoke: draft.smoke, pets: draft.pets, sleep: draft.sleep },
+    { ...existing.quizAnswers, roommate_gender: draft.gd.toLowerCase() },
+  );
+
   return {
-    budget: maximum, budgetMin: minimum, localities: areas, moveInDate: draft.mv,
-    preferredRoomTypes: [...draft.types], roommateGenderPreference: draft.gd,
+    budget: maximum,
+    budgetMin: minimum,
+    localities: areas,
+    moveInDate: draft.mv,
+    preferredRoomTypes: [...draft.types],
+    roommateGenderPreference: draft.gd,
+    ...(validatedName ? { name: validatedName } : {}),
+    ...(trimmedCity ? { city: trimmedCity } : {}),
+    ...(validatedGender !== undefined && validatedGender ? { gender: validatedGender } : {}),
+    ...(canFlipComplete && draft.city !== undefined ? { onboardingComplete: true } : {}),
+    preferencesComplete: true,
     housingPreferences: {
-      ...existing.housingPreferences, activeIntents: existing.housingPreferences?.activeIntents || [],
-      budgetMin: minimum, budgetMax: maximum, preferredLocalities: areas, moveInDate: draft.mv,
+      ...existing.housingPreferences,
+      activeIntents: typeof draft.teamUpDiscoverable === 'boolean'
+        ? (draft.teamUpDiscoverable
+            ? Array.from(new Set([...(existing.housingPreferences?.activeIntents || []), ...(existing.housingIntent === 'find_room' || existing.housingIntent === 'have_room' ? [existing.housingIntent] : []), 'team_up']))
+            : (existing.housingPreferences?.activeIntents || []).filter((intent) => intent !== 'team_up'))
+        : (existing.housingPreferences?.activeIntents || (existing.housingIntent ? [existing.housingIntent] : ['find_room'])),
+      ...(effectiveCity ? { preferredCities: [effectiveCity] } : {}),
+      budgetMin: minimum,
+      budgetMax: maximum,
+      preferredLocalities: areas,
+      moveInDate: draft.mv,
     },
-    quizAnswers: { ...existing.quizAnswers, roommate_gender: draft.gd.toLowerCase() },
+    quizAnswers,
+    ...(typeof draft.teamUpDiscoverable === 'boolean' ? { roommateDiscoveryEnabled: draft.teamUpDiscoverable } : {}),
   };
 }

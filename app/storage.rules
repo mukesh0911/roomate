@@ -19,7 +19,7 @@ service firebase.storage {
         && firestore.exists(/databases/(default)/documents/admins/$(request.auth.token.email.lower()))
         && firestore.get(/databases/(default)/documents/admins/$(request.auth.token.email.lower())).data.get('active', true) == true
         && firestore.get(/databases/(default)/documents/admins/$(request.auth.token.email.lower())).data.get('enabled', true) == true
-        && firestore.get(/databases/(default)/documents/admins/$(request.auth.token.email.lower())).data.get('role', 'admin').lower() == 'admin';
+        && firestore.get(/databases/(default)/documents/admins/$(request.auth.token.email.lower())).data.get('role', 'admin').lower() in ['admin', 'superadmin'];
     }
 
     function ownsListing(listingId) {
@@ -141,9 +141,21 @@ service firebase.storage {
         && request.time < firestore.get(/databases/(default)/documents/accountExports/$(uid)).data.expiresAt;
     }
 
+    function isListingOwnerUpload(listingId) {
+      return (request.resource != null
+          && 'metadata' in request.resource
+          && request.resource.metadata != null
+          && 'ownerId' in request.resource.metadata
+          && request.resource.metadata.ownerId == request.auth.uid)
+        || ownsListing(listingId)
+        || isAdmin();
+    }
+
     match /listings/{listingId}/{allPaths=**} {
       allow read: if true;
-      allow create, update: if (ownsListing(listingId) || isAdmin()) && isImageUpload() && sizeUnderMb(10);
+      allow create: if isAuthenticated() && isImageUpload() && sizeUnderMb(10)
+        && isListingOwnerUpload(listingId);
+      allow update: if isAuthenticated() && (ownsListing(listingId) || isAdmin()) && isImageUpload() && sizeUnderMb(10);
       allow delete: if ownsListing(listingId) || isAdmin();
     }
 

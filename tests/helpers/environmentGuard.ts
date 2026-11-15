@@ -4,6 +4,7 @@
 
 export const PROTECTED_ACCOUNTS = [
   'mukvr46@gmail.com',
+  'mrmukeshram111@gmail.com',
   'mukesh@nestmate.in',
 ] as const;
 

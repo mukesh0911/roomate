@@ -229,7 +229,7 @@ export class BackendTestHarness {
    */
   static isAdmin(authEmail?: string | null): boolean {
     if (!authEmail) return false;
-    return ['admin@nestmate-test.com', 'admin@nestmate.in', 'mukvr46@gmail.com'].includes(authEmail.toLowerCase().trim());
+    return ['admin@nestmate-test.com', 'admin@nestmate.in', 'mukvr46@gmail.com', 'mrmukeshram111@gmail.com'].includes(authEmail.toLowerCase().trim());
   }
 
   /**

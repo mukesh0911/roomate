@@ -102,9 +102,9 @@ export function useConnections() {
     async (
       fromId: string,
       toId: string,
-      opts?: { listingId?: string; screeningAnswers?: Record<string, any> }
+      opts?: { listingId?: string; screeningAnswers?: Record<string, any>; matchScore?: number; note?: string; moveIn?: string }
     ): Promise<string> => {
-      return sendConnectionRequestBackend(toId, opts?.listingId, opts?.screeningAnswers);
+      return sendConnectionRequestBackend(toId, opts?.listingId, opts);
     },
     []
   );

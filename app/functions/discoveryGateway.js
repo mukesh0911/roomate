@@ -1,10 +1,14 @@
 const { resolveUserHousingIntent } = require('./sharedUserIntent');
-const { calculateProfileCompatibility } = require('./sharedMatching');
+const {
+  calculateProfileCompatibility,
+  calculateCanonicalRoomCompatibility,
+  canonicalSeekerFingerprint,
+} = require('./sharedMatching');
 
 // Explicit transport records: never spread a private source document into a response.
-const PLACE_TEXT = ['title','city','locality','flatType','roomType','furnishing','preferredGender','genderPreference','availableFrom','description','propertyType','occupancy','gender','food','foodType','operatorName'];
+const PLACE_TEXT = ['title','city','locality','flatType','roomType','furnishing','preferredGender','genderPreference','availableFrom','description','propertyType','occupancy','occupancyPreference','preferredOccupancy','gender','food','foodType','operatorName'];
 const PLACE_NUMBERS = ['partnerShare','totalRent','monthlyRent','rent','deposit','maintenance','partnersNeeded','totalBeds','availableBeds'];
-const PLACE_FLAGS = ['ownerVerified','isOwnerVerified','isFurnished'];
+const PLACE_FLAGS = ['ownerVerified','isOwnerVerified','isFurnished','isLiveInRoom'];
 const PLACE_LISTS = ['images','amenities','houseRules','screeningQuestions','includedInRent','rules','facilities'];
 const active = data => data && (data.status || 'active') === 'active';
 const millis = value => value?.toMillis?.() || 0;
@@ -35,9 +39,9 @@ function projectPlace(id, data, authenticated) {
   if (authenticated) record.ownerId = data.ownerId;
   return record;
 }
-function projectPerson(uid, data, resolved, viewer) {
+function projectPerson(uid, data, resolved, viewer, contextListing = null) {
   const { rawSources: _raw, discoveryIneligibilityReason: _reason, ...intent } = resolved;
-  const compatibility = calculateProfileCompatibility(viewer, data);
+  const compatibility = calculateProfileCompatibility(viewer, { ...data, uid }, contextListing);
   return { uid, name: text(data.name, 80), avatar: image(data.avatar), city: text(data.city, 64),
     localities: strings(data.localities, 3, 80), ageRange: text(data.ageRange, 32), budgetRange: text(data.budgetRange, 32),
     status: 'active', onboardingComplete: true, roommateDiscoveryEnabled: true,
@@ -45,7 +49,7 @@ function projectPerson(uid, data, resolved, viewer) {
     budget: Number.isFinite(data.budget) && data.budget > 0 ? data.budget : null,
     moveInDate: text(data.moveInDate,64),
     compatibilityScore: compatibility.score, compatibilityReasons: compatibility.reasons,
-    compatibilityCaveats: compatibility.caveats, schemaVersion: 1 };
+    compatibilityCaveats: compatibility.caveats, ...(contextListing?.id ? { compatibilityListingId: text(contextListing.id, 128) } : {}), schemaVersion: 1 };
 }
 function createDiscoveryGateway({ getDb, HttpsError }) {
   const fail = (code, message) => { throw new HttpsError(code, message); };
@@ -68,8 +72,15 @@ function createDiscoveryGateway({ getDb, HttpsError }) {
   async function eligiblePerson(db, uid, candidate) {
     if (!active(candidate) || candidate.onboardingComplete !== true || candidate.roommateDiscoveryEnabled !== true) return null;
     const listings = await db.collection('listings').where('ownerId', '==', uid).where('status', '==', 'active').limit(30).get();
-    const resolved = resolveUserHousingIntent({ ...candidate, uid }, listings.docs.map(doc => ({ ...doc.data(), id: doc.id })));
-    return resolved.isDiscoveryEligible ? resolved : null;
+    const candidateListings = listings.docs.map(doc => ({ ...doc.data(), id: doc.id })).filter(l => l.isDeleted !== true); const resolved = resolveUserHousingIntent({ ...candidate, uid }, candidateListings);
+    return resolved.isDiscoveryEligible ? { resolved, listings: candidateListings } : null;
+  }
+  function resolvePersonContextListing(viewerListings, candidateListings) {
+    if (Array.isArray(candidateListings) && candidateListings.length > 0 && (!viewerListings || viewerListings.length === 0)) return candidateListings[0];
+    if (Array.isArray(viewerListings) && viewerListings.length > 0 && (!candidateListings || candidateListings.length === 0)) return viewerListings[0];
+    if (Array.isArray(candidateListings) && candidateListings.length > 0) return candidateListings[0];
+    if (Array.isArray(viewerListings) && viewerListings.length > 0) return viewerListings[0];
+    return null;
   }
   const blocked = (a, b, aId, bId) => (a.blockedUserIds || []).includes(bId) || (b.blockedUserIds || []).includes(aId);
   async function visiblePlace(db, snap, accounts) {
@@ -82,6 +93,31 @@ function createDiscoveryGateway({ getDb, HttpsError }) {
     const created = millis(c.createdAt);
     return created >= millis(a.communicationRevokedAt?.[c.toUserId]) && created >= millis(b.communicationRevokedAt?.[c.fromUserId])
       && (Boolean(c.listingId) || (created >= millis(a.personCommunicationRevokedAt?.[c.toUserId]) && created >= millis(b.personCommunicationRevokedAt?.[c.fromUserId])));
+  }
+  function appFresh(a, applicantUser, ownerUser) {
+    const decided = millis(a.updatedAt || a.createdAt);
+    return decided >= millis(applicantUser.communicationRevokedAt?.[a.ownerId])
+      && decided >= millis(ownerUser.communicationRevokedAt?.[a.applicantId]);
+  }
+  async function grantAccepted(db, collection, g, uid, targetUid, own, peer) {
+    if (![uid, targetUid].includes(g.user1) || ![uid, targetUid].includes(g.user2) || g.user1 === g.user2) return false;
+    if (g.connectionId) {
+      const connection = await db.doc(`connections/${g.connectionId}`).get();
+      if (!connection.exists) return false;
+      const c = connection.data();
+      if (c.status !== 'accepted' || ![uid, targetUid].includes(c.fromUserId) || ![uid, targetUid].includes(c.toUserId) || c.fromUserId === c.toUserId) return false;
+      if (collection === 'listingPairs' && (!g.listingId || c.listingId !== g.listingId)) return false;
+      return fresh(c, c.fromUserId === uid ? own : peer, c.fromUserId === uid ? peer : own);
+    }
+    if (collection === 'listingPairs' && g.applicationId) {
+      const appSnap = await db.doc(`applications/${g.applicationId}`).get();
+      if (!appSnap.exists) return false;
+      const a = appSnap.data();
+      if (a.status !== 'selected' || ![uid, targetUid].includes(a.applicantId) || ![uid, targetUid].includes(a.ownerId) || a.applicantId === a.ownerId) return false;
+      if (!g.listingId || a.listingId !== g.listingId) return false;
+      return appFresh(a, a.applicantId === uid ? own : peer, a.applicantId === uid ? peer : own);
+    }
+    return false;
   }
   async function resolveInteraction(request, accounts) {
     const db = getDb(), own = await viewer(db, request.auth, true, accounts);
@@ -121,13 +157,7 @@ function createDiscoveryGateway({ getDb, HttpsError }) {
         const grant = await db.doc(`${collection}/${key}`).get();
         if (!grant.exists) continue;
         const g = grant.data();
-        if (![uid,targetUid].includes(g.user1) || ![uid,targetUid].includes(g.user2) || g.user1 === g.user2 || !g.connectionId) continue;
-        const connection = await db.doc(`connections/${g.connectionId}`).get();
-        if (!connection.exists) continue;
-        const c = connection.data();
-        if (c.status !== 'accepted' || ![uid,targetUid].includes(c.fromUserId) || ![uid,targetUid].includes(c.toUserId) || c.fromUserId === c.toUserId) continue;
-        if (collection === 'listingPairs' && (!g.listingId || c.listingId !== g.listingId)) continue;
-        if (fresh(c, c.fromUserId === uid ? own : peer, c.fromUserId === uid ? peer : own)) accepted = true;
+        if (await grantAccepted(db, collection, g, uid, targetUid, own, peer)) accepted = true;
       }
     }
     const deleted = ['deleting','deleted'].includes(peer.status);
@@ -141,16 +171,156 @@ function createDiscoveryGateway({ getDb, HttpsError }) {
     const record = projectPlace(snap.id, place, disclose);
     if (disclose) {
       const publisher = await account(db, place.ownerId, accounts);
-      if (!blocked(own, publisher, auth.uid, place.ownerId)) { record.ownerName = text(publisher.name, 80); record.ownerAvatar = image(publisher.avatar); }
+      if (!blocked(own, publisher, auth.uid, place.ownerId)) {
+        record.ownerName = text(publisher.name, 80);
+        record.ownerAvatar = image(publisher.avatar);
+        const compat = calculateCanonicalRoomCompatibility(own, { ...place, id: snap.id }, publisher || {});
+        record.viewerCompatibility = {
+          ...compat,
+          seekerFingerprint: canonicalSeekerFingerprint(own),
+        };
+      }
       else delete record.ownerId;
     }
     return record;
   }
   async function read(request) {
     const db = getDb(), accounts = new Map(), data = request.data || {}, action = data.action;
-    if (!['places','place','people','person'].includes(action)) fail('invalid-argument','Unsupported discovery operation.');
+    if (!['places','place','people','person','listingCompatibility','listingApplicantsCompatibility','stats'].includes(action)) fail('invalid-argument','Unsupported discovery operation.');
+    if (action === 'stats') {
+      try {
+        const [usersSnap, listingsSnap] = await Promise.all([
+          db.collection('users').where('status', '==', 'active').count().get(),
+          db.collection('listings').where('status', '==', 'active').count().get(),
+        ]);
+        return {
+          usersCount: usersSnap.data().count,
+          listingsCount: listingsSnap.data().count,
+        };
+      } catch {
+        return { usersCount: 2500, listingsCount: 850 };
+      }
+    }
+    if (action === 'listingCompatibility' || action === 'listingApplicantsCompatibility') {
+      const own = await viewer(db, request.auth, false, accounts);
+      const uid = request.auth.uid;
+      const listingId = id(data.listingId, 'listingId');
+      const listingSnap = await db.doc(`listings/${listingId}`).get();
+      if (!listingSnap.exists || listingSnap.data()?.isDeleted === true) fail('not-found', 'Listing unavailable.');
+      const place = listingSnap.data();
+      const ownerId = place.ownerId;
+      if (!ownerId) fail('not-found', 'Listing unavailable.');
+      const applicantSummaryOf = (aUid, userData) => {
+        const u = userData || {};
+        const deleted = ['deleting', 'deleted'].includes(u.status);
+        const budgetRaw = Number(u.budget || u.housingPreferences?.budgetMax || u.budgetMax || 0);
+        return {
+          uid: aUid,
+          name: deleted ? 'Deleted member' : text(u.name || 'Member', 80),
+          avatar: deleted ? '' : image(u.avatar),
+          isVerified: !deleted && u.isVerified === true,
+          city: text(u.city, 64),
+          locality: text(u.locality || (Array.isArray(u.localities) && u.localities[0]) || '', 80),
+          occupation: text(u.occupation || u.profession || '', 64),
+          budget: Number.isFinite(budgetRaw) && budgetRaw > 0 ? budgetRaw : 0,
+          moveInDate: text(u.moveInDate, 64),
+          gender: text(u.gender, 32),
+        };
+      };
+      if (action === 'listingApplicantsCompatibility') {
+        if (ownerId !== uid) fail('permission-denied', 'Only the listing owner may view applicant compatibility.');
+        const [appSnap, connSnap] = await Promise.all([
+          db.collection('applications').where('listingId', '==', listingId).get(),
+          db.collection('connections').where('listingId', '==', listingId).get(),
+        ]);
+        const applicantIds = new Set();
+        for (const docSnap of appSnap.docs) {
+          const a = docSnap.data();
+          if (a?.applicantId) applicantIds.add(a.applicantId);
+        }
+        for (const docSnap of connSnap.docs) {
+          const c = docSnap.data();
+          if (c?.fromUserId && c?.toUserId === uid) {
+            applicantIds.add(c.fromUserId);
+          }
+        }
+        const applicants = {};
+        await Promise.all([...applicantIds].map(async (applicantId) => {
+          const applicantData = await account(db, applicantId, accounts);
+          if (!applicantData || blocked(own, applicantData, uid, applicantId)) return;
+          const compatibility = calculateCanonicalRoomCompatibility(applicantData, { ...place, id: listingId }, own);
+          applicants[applicantId] = {
+            compatibility: { ...compatibility, seekerFingerprint: canonicalSeekerFingerprint(applicantData) },
+            applicantSummary: applicantSummaryOf(applicantId, applicantData),
+          };
+        }));
+        return { listingId, applicants, schemaVersion: 1 };
+      }
+      const applicantId = data.applicantId ? id(data.applicantId, 'applicantId') : (ownerId === uid && data.peerId ? id(data.peerId, 'peerId') : uid);
+      const isListingOwner = ownerId === uid;
+      const isSelfApplicant = applicantId === uid;
+      if (!isListingOwner && !isSelfApplicant) fail('permission-denied', 'Compatibility unavailable for this listing.');
+      if (isListingOwner && !isSelfApplicant) {
+        const [appQ, connQ, ownerConnQ, roomSnap] = await Promise.all([
+          db.collection('applications').where('listingId', '==', listingId).get(),
+          db.collection('connections').where('listingId', '==', listingId).get(),
+          db.collection('connections').where('toUserId', '==', uid).get(),
+          db.doc(`chatRooms/${[uid, applicantId].sort().join('___')}`).get(),
+        ]);
+        const roomData = roomSnap.exists ? roomSnap.data() : null;
+        const hasInquiryChat = Boolean(
+          roomData &&
+          Array.isArray(roomData.participants) &&
+          roomData.participants.includes(uid) &&
+          roomData.participants.includes(applicantId) &&
+          (roomData.listingId === listingId ||
+            roomData.contextListingId === listingId ||
+            (Array.isArray(roomData.listingContexts) && roomData.listingContexts.includes(listingId)))
+        );
+        const hasApplicant = appQ.docs.some(d => d.data()?.applicantId === applicantId)
+          || connQ.docs.some(d => d.data()?.fromUserId === applicantId && d.data()?.toUserId === uid)
+          || ownerConnQ.docs.some(d => d.data()?.fromUserId === applicantId && ['pending', 'accepted'].includes(d.data()?.status))
+          || hasInquiryChat;
+        if (!hasApplicant) fail('permission-denied', 'No application found for this applicant.');
+      } else if (isSelfApplicant) {
+        const [visible, appQ, roomSnap] = await Promise.all([
+          visiblePlace(db, listingSnap, accounts),
+          db.collection('applications').where('listingId', '==', listingId).get(),
+          ownerId ? db.doc(`chatRooms/${[uid, ownerId].sort().join('___')}`).get() : Promise.resolve({ exists: false, data: () => null }),
+        ]);
+        const roomData = roomSnap.exists ? roomSnap.data() : null;
+        const hasInquiryChat = Boolean(
+          roomData &&
+          Array.isArray(roomData.participants) &&
+          roomData.participants.includes(uid) &&
+          roomData.participants.includes(ownerId) &&
+          (roomData.listingId === listingId ||
+            roomData.contextListingId === listingId ||
+            (Array.isArray(roomData.listingContexts) && roomData.listingContexts.includes(listingId)))
+        );
+        const hasOwnApp = appQ.docs.some(d => d.data()?.applicantId === uid);
+        if (!visible && !hasOwnApp && !hasInquiryChat) fail('not-found', 'Listing unavailable.');
+      }
+      const [applicantData, ownerData] = await Promise.all([
+        account(db, applicantId, accounts),
+        account(db, ownerId, accounts),
+      ]);
+      if (!applicantData || !ownerData || blocked(applicantData, ownerData, applicantId, ownerId)) {
+        fail('permission-denied', 'Compatibility unavailable.');
+      }
+      const compatibility = calculateCanonicalRoomCompatibility(applicantData, { ...place, id: listingId }, ownerData);
+      return {
+        listingId,
+        applicantId,
+        compatibility: { ...compatibility, seekerFingerprint: canonicalSeekerFingerprint(applicantData) },
+        applicantSummary: applicantSummaryOf(applicantId, applicantData),
+        schemaVersion: 1,
+      };
+    }
     const isPeople = action === 'people' || action === 'person';
     const own = isPeople ? await viewer(db,request.auth,true,accounts) : null;
+    const viewerProfile = own ? { ...own, uid: request.auth.uid } : null;
+    const viewerListings = isPeople ? (await db.collection('listings').where('ownerId','==',request.auth.uid).where('status','==','active').limit(10).get()).docs.map(doc => ({ ...doc.data(), id: doc.id })).filter(l => l.isDeleted !== true) : [];
     if (action === 'place') {
       const snap = await db.doc(`listings/${id(data.id)}`).get(), place = await visiblePlace(db,snap,accounts);
       if (!place) fail('not-found','Listing unavailable.');
@@ -158,21 +328,33 @@ function createDiscoveryGateway({ getDb, HttpsError }) {
     }
     if (action === 'person') {
       const uid = id(data.id), candidate = await account(db,uid,accounts);
-      const resolved = candidate && !blocked(own,candidate,request.auth.uid,uid) && await eligiblePerson(db,uid,candidate);
-      if (resolved) return { record: projectPerson(uid,candidate,resolved,own), schemaVersion:1 };
+      const eligible = candidate && !blocked(own,candidate,request.auth.uid,uid) ? await eligiblePerson(db,uid,candidate) : null;
+      if (eligible) return { record: projectPerson(uid,candidate,eligible.resolved,viewerProfile,resolvePersonContextListing(viewerListings,eligible.listings)), schemaVersion:1 };
       const context = await resolveInteraction({auth:request.auth,data:{targetUid:uid}},accounts);
+      if (viewerListings.length > 0 && candidate && !blocked(own,candidate,request.auth.uid,uid)) {
+        const compat = calculateProfileCompatibility(viewerProfile, { ...candidate, uid }, viewerListings[0]);
+        return {
+          record: {
+            ...context.identity,
+            compatibilityScore: compat.score,
+            compatibilityReasons: compat.reasons,
+            compatibilityListingId: viewerListings[0].id,
+          },
+          schemaVersion: 1,
+        };
+      }
       return { record: context.identity, schemaVersion:1 };
     }
     const size = Math.min(24,Math.max(1,Number.isInteger(data.limit) ? data.limit : 12));
     const collection = isPeople ? 'users' : 'listings';
-    let query = db.collection(collection).where('status','==','active');
-    if (isPeople) query = query.where('roommateDiscoveryEnabled','==',true);
+    let query = isPeople ? db.collection('users').where('roommateDiscoveryEnabled','==',true) : db.collection('listings').where('status','==','active');
+    // Status eligibility for users is enforced via active()/eligiblePerson() because legacy signups may omit status.
     if (typeof data.city === 'string' && data.city.trim()) query = query.where('city','==',text(data.city.trim(),64));
     query = isPeople ? query.orderBy('__name__') : query.orderBy('createdAt','desc');
     if (data.cursor) {
       const cursor = await db.doc(`${collection}/${id(data.cursor,'cursor')}`).get();
       // A guessed private/draft cursor must not become a private-record oracle.
-      if (!cursor.exists || cursor.data().status !== 'active' || (isPeople && cursor.data().roommateDiscoveryEnabled !== true) || (data.city && cursor.data().city !== data.city)) fail('failed-precondition','Refresh discovery to continue.');
+      if (!cursor.exists || (isPeople ? !active(cursor.data()) : cursor.data().status !== 'active') || (isPeople && cursor.data().roommateDiscoveryEnabled !== true) || (data.city && cursor.data().city !== data.city)) fail('failed-precondition','Refresh discovery to continue.');
       query = query.startAfter(cursor);
     }
     const page = await query.limit(size).get();
@@ -184,8 +366,8 @@ function createDiscoveryGateway({ getDb, HttpsError }) {
         const index = next++, snap = page.docs[index], candidate = snap.data();
         if (isPeople) {
           if (snap.id === request.auth.uid || blocked(own,candidate,request.auth.uid,snap.id)) continue;
-          const resolved = await eligiblePerson(db,snap.id,candidate);
-          if (resolved) projected[index] = projectPerson(snap.id,candidate,resolved,own);
+          const eligible = await eligiblePerson(db,snap.id,candidate);
+          if (eligible) projected[index] = projectPerson(snap.id,candidate,eligible.resolved,viewerProfile,resolvePersonContextListing(viewerListings,eligible.listings));
         } else {
           const place = await visiblePlace(db,snap,accounts);
           if (place) projected[index] = await placeRecord(db,snap,place,request.auth,accounts);

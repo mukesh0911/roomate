@@ -6,6 +6,7 @@ const { HttpsError, onCall } = require('firebase-functions/v2/https');
 const { deriveCompatibilitySummary } = require('./privacyCompatibility');
 const { onDocumentCreated, onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { createAccountDeletionService } = require('./accountDeletionService');
+const { createApplicationChatService } = require('./applicationChatService');
 
 // Functions supplies FIREBASE_CONFIG, including the actual default bucket.
 // Deriving an appspot.com bucket from the project ID targets the wrong bucket
@@ -61,10 +62,33 @@ exports.getDiscoveryCompatibility = onCall({ region: 'us-central1' }, async requ
 const { createDiscoveryGateway } = require('./discoveryGateway');
 const discoveryGateway = createDiscoveryGateway({ getDb: getFirestore, HttpsError });
 exports.readDiscovery = onCall({ region: 'us-central1' }, discoveryGateway.read);
+const applicationChatService = createApplicationChatService({ getDb: getFirestore, fieldValue: FieldValue, HttpsError });
 exports.getInteractionContext = onCall({ region: 'us-central1' }, discoveryGateway.interaction);
+exports.submitRoomApplication = onCall({ region: 'us-central1' }, applicationChatService.submitRoomApplication);
+exports.decideRoomApplication = onCall({ region: 'us-central1' }, applicationChatService.decideRoomApplication);
 const invalidateDiscovery = () => getFirestore().doc('discoverySignals/global').set({ updatedAt: FieldValue.serverTimestamp() });
-exports.invalidateListingDiscovery = onDocumentWritten({ document: 'listings/{id}', region: 'us-central1' }, invalidateDiscovery);
-exports.invalidateMemberDiscovery = onDocumentWritten({ document: 'users/{uid}', region: 'us-central1' }, invalidateDiscovery);
+const COMPATIBILITY_LISTING_FIELDS = ['monthlyRent', 'partnerShare', 'totalRent', 'rent', 'city', 'locality', 'preferredGender', 'genderPreference', 'houseRules', 'roomType', 'occupancy', 'occupancyPreference', 'preferredOccupancy', 'ownerQuizAnswers', 'isLiveInRoom', 'title', 'images', 'status'];
+const COMPATIBILITY_USER_FIELDS = ['budget', 'budgetMax', 'housingPreferences', 'city', 'localities', 'locality', 'gender', 'preferredRoomTypes', 'occupancyPreference', 'preferredOccupancy', 'quizAnswers', 'householdExpectations', 'onboardingComplete'];
+const compatFieldsChanged = (before, after, keys) => {
+  if (!before || !after) return true;
+  return keys.some((k) => JSON.stringify(before[k] ?? null) !== JSON.stringify(after[k] ?? null));
+};
+exports.invalidateListingDiscovery = onDocumentWritten({ document: 'listings/{id}', region: 'us-central1' }, async (event) => {
+  await invalidateDiscovery();
+  const before = event?.data?.before?.data?.();
+  const after = event?.data?.after?.data?.();
+  if (after && compatFieldsChanged(before, after, COMPATIBILITY_LISTING_FIELDS) && typeof applicationChatService.syncCompatibilityForEntity === 'function') {
+    await applicationChatService.syncCompatibilityForEntity({ listingId: event.params.id }).catch(() => {});
+  }
+});
+exports.invalidateMemberDiscovery = onDocumentWritten({ document: 'users/{uid}', region: 'us-central1' }, async (event) => {
+  await invalidateDiscovery();
+  const before = event?.data?.before?.data?.();
+  const after = event?.data?.after?.data?.();
+  if (after && compatFieldsChanged(before, after, COMPATIBILITY_USER_FIELDS) && typeof applicationChatService.syncCompatibilityForEntity === 'function') {
+    await applicationChatService.syncCompatibilityForEntity({ userId: event.params.uid }).catch(() => {});
+  }
+});
 
 const { createAccountJobs } = require('./accountJobs');
 const { onSchedule } = require('firebase-functions/v2/scheduler');

@@ -29,6 +29,7 @@ function harness() {
     './accountJobs':require('./accountJobs'),
     './discoveryGateway': require('./discoveryGateway'),
     './accountDeletionService': require('./accountDeletionService'),
+    './applicationChatService': require('./applicationChatService'),
     './privacyCompatibility': { deriveCompatibilitySummary: () => ({ band: 'high' }) },
   };
   const exports = {};

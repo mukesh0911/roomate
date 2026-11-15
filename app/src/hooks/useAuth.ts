@@ -120,6 +120,7 @@ export interface UserProfile {
   roommateDiscoveryEnabled?: boolean;
   preferredRoomType?: string;
   state?: string;
+  status?: string;
   lastActiveAt?: any;
   createdAt: any;
   updatedAt: any;
@@ -187,7 +188,60 @@ function initSharedAuthListener() {
           // Signup may have committed and hydrated the same account while this
           // earlier missing-document read was in flight. Preserve that result.
           const createdProfile = authSingleton.profile?.uid === firebaseUser.uid ? authSingleton.profile : null;
-          setAuthSingleton({ user: firebaseUser, profile: createdProfile, isLoading: false, error: null });
+          if (createdProfile) {
+            setAuthSingleton({ user: firebaseUser, profile: createdProfile, isLoading: false, error: null });
+          } else {
+            try {
+              const defaultName = firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split('@')[0] : 'User');
+              const googlePhoto = extractGooglePhoto(firebaseUser);
+              const phone = firebaseUser.phoneNumber || '';
+              const email = firebaseUser.email || '';
+              const newProfile: UserProfile = {
+                uid: firebaseUser.uid,
+                phone: '',
+                name: defaultName,
+                email: '',
+                role: null,
+                city: '',
+                localities: [],
+                budget: 0,
+                moveInDate: '',
+                profession: '',
+                company: '',
+                bio: '',
+                age: 0,
+                gender: '',
+                avatar: googlePhoto || '',
+                quizAnswers: {},
+                onboardingComplete: false,
+                isPremium: false,
+                connectsUsed: 0,
+                connectsLimit: 5,
+                verificationLevel: 0,
+                isVerified: false,
+                status: 'active',
+                workEmailVerified: false,
+                savedProfileIds: [],
+                savedRoomIds: [],
+                skippedUserIds: [],
+                blockedUserIds: [],
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+              };
+              await persistPublicUser(
+                firebaseUser.uid,
+                newProfile as unknown as Record<string, unknown>,
+                { phone, email }
+              );
+              if (!isCurrent()) return;
+              const hydrated = await hydrateOwnProfile({ ...newProfile, phone, email });
+              setAuthSingleton({ user: firebaseUser, profile: hydrated, isLoading: false, error: null });
+            } catch (healErr) {
+              console.warn('Self-healing fallback user profile note:', healErr);
+              if (!isCurrent()) return;
+              setAuthSingleton({ user: firebaseUser, profile: null, isLoading: false, error: null });
+            }
+          }
         }
       } catch (err: any) {
         if (!isCurrent()) return;
@@ -293,6 +347,7 @@ export function useAuth() {
             savedRoomIds: [],
             skippedUserIds: [],
             blockedUserIds: [],
+            status: 'active',
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           };
@@ -328,10 +383,10 @@ export function useAuth() {
 
   /**
    * Create account with email + password.
-   * Creates a minimal Firestore profile; caller should redirect to /role-select.
+   * Creates a minimal Firestore profile; caller lands on /explore and can calibrate via Matching Preferences.
    */
   const signUpWithEmail = useCallback(
-    async (email: string, password: string): Promise<void> => {
+    async (email: string, password: string): Promise<{ isNew: boolean; role: string | null; onboardingComplete: boolean; email: string | null }> => {
       setError(null);
       try {
         const result = await createUserWithEmailAndPassword(auth, email, password);
@@ -360,6 +415,7 @@ export function useAuth() {
           connectsLimit: 5,
           verificationLevel: 0,
           isVerified: false,
+          status: 'active',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         };
@@ -370,6 +426,12 @@ export function useAuth() {
         );
         setProfile(await hydrateOwnProfile({ ...newProfile, uid: firebaseUser.uid, email: firebaseUser.email || email } as UserProfile));
         setUser(firebaseUser);
+        return {
+          isNew: true,
+          role: null,
+          onboardingComplete: false,
+          email: firebaseUser.email || email,
+        };
       } catch (err: any) {
         let msg = err.message || 'Account creation failed';
         if (err.code === 'auth/email-already-in-use') {
@@ -449,6 +511,7 @@ export function useAuth() {
           // Sprint 4A (truth): unverified by default — no implied verification.
           verificationLevel: 0,
           isVerified: false,
+          status: 'active',
           workEmailVerified: false,
           savedProfileIds: [],
           savedRoomIds: [],

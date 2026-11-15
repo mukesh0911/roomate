@@ -7,6 +7,7 @@
 
 const PROTECTED_ACCOUNTS = new Set([
   'mukvr46@gmail.com',
+  'mrmukeshram111@gmail.com',
   'mukesh@nestmate.in',
 ]);
 

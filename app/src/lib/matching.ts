@@ -175,13 +175,22 @@ export interface OwnerMatchSignal {
   };
 }
 
+export const COMPATIBILITY_ENGINE_VERSION = "canonical-v2";
+
 export interface RoomMatchBreakdown {
   score: number;
   budgetScore: number;
   locationScore: number;
   genderScore: number;
   rulesScore: number;
+  preferenceScore?: number;
   trustScore: number;
+  budgetPct?: number | null;
+  locationPct?: number | null;
+  lifestylePct?: number | null;
+  calibrated?: boolean;
+  hasProfilePreferences?: boolean;
+  engineVersion?: string;
   reasons: string[];
   caveats: string[];
 }
@@ -200,15 +209,96 @@ const norm = (v: unknown): string =>
   typeof v === "string" ? v.trim().toLowerCase() : "";
 const positive = (v: unknown): number =>
   Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : 0;
-function areas(p: any): string[] {
-  const values = p.localities || p.housingPreferences?.preferredLocalities;
+
+/**
+ * Resolves the user's maximum seeker budget from preferences, falling back to legacy profile fields.
+ */
+export function resolveSeekerBudget(user: any = {}): number {
+  const u = user || {};
+  return positive(
+    u.housingPreferences?.budgetMax ||
+    u.budgetMax ||
+    u.budget ||
+    u.housingPreferences?.budgetMin ||
+    u.budgetMin
+  );
+}
+
+/**
+ * Resolves the user's preferred search city.
+ */
+export function resolveSeekerCity(user: any = {}): string {
+  const u = user || {};
+  const preferredCities = u.housingPreferences?.preferredCities;
+  if (Array.isArray(preferredCities) && preferredCities.length > 0) {
+    const firstCity = preferredCities.find((c: any) => typeof c === 'string' && c.trim().length > 0);
+    if (firstCity) return firstCity.trim();
+  }
+  if (typeof u.city === 'string' && u.city.trim().length > 0) {
+    return u.city.trim();
+  }
+  return '';
+}
+
+/**
+ * Resolves the user's preferred localities for room matching.
+ */
+export function resolveSeekerLocalities(user: any = {}): string[] {
+  const u = user || {};
+  const values = u.housingPreferences?.preferredLocalities || u.localities;
+  const rawList = Array.isArray(values) ? values : (u.locality ? [u.locality] : []);
   return [
     ...new Set(
-      [...(Array.isArray(values) ? values : []), p.locality]
-        .map(norm)
-        .filter(Boolean)
-    ),
+      rawList
+        .filter((loc: any) => typeof loc === 'string')
+        .map((loc: string) => loc.trim())
+        .filter((loc: string) => loc.length > 0)
+    )
   ];
+}
+
+/**
+ * Checks whether the user has an active seeker intent (searching for a room or looking to team up).
+ * Pure hosts (who only have 'have_room' intent, or are landlord without seeker intent, or have posted listings) are false.
+ */
+export function hasActiveSeekerIntent(user: any = {}, myRooms: any[] = []): boolean {
+  const u = user || {};
+  const activeIntents = u.housingPreferences?.activeIntents;
+  if (Array.isArray(activeIntents) && activeIntents.length > 0) {
+    return activeIntents.includes('find_room') || activeIntents.includes('team_up');
+  }
+  if (u.housingIntent === 'find_room' || u.housingIntent === 'team_up') {
+    return true;
+  }
+  if (u.housingIntent === 'have_room') {
+    return false;
+  }
+  if (u.isLandlord === true || (Array.isArray(myRooms) && myRooms.length > 0)) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Canonical check for whether a user's matching preferences are calibrated.
+ * Requires:
+ * 1. Active seeker intent (hasActiveSeekerIntent)
+ * 2. Budget > 0 (resolveSeekerBudget)
+ * 3. City non-empty (resolveSeekerCity)
+ * 4. At least one locality (resolveSeekerLocalities)
+ */
+export function isUserMatchingCalibrated(user: any = {}, myRooms: any[] = []): boolean {
+  if (!user) return false;
+  if (user.onboardingComplete === false) return false;
+  if (!hasActiveSeekerIntent(user, myRooms)) return false;
+  if (resolveSeekerBudget(user) <= 0) return false;
+  if (!resolveSeekerCity(user)) return false;
+  if (resolveSeekerLocalities(user).length === 0) return false;
+  return true;
+}
+
+function areas(p: any): string[] {
+  return resolveSeekerLocalities(p).map(norm);
 }
 function roomTypes(p: any): string[] {
   const values = p.preferredRoomTypes || (p.roomType ? [p.roomType] : []);
@@ -251,13 +341,15 @@ export function getRoomMatchReasons(
 ): RoomMatchBreakdown {
   const reasons: string[] = [],
     caveats: string[] = [];
-  const a: any = seeker,
-    b: any = listing;
+  const a: any = seeker || {},
+    b: any = listing || {},
+    o: any = owner || {};
   const rent =
       positive(b.partnerShare) ||
       positive(b.monthlyRent) ||
-      positive(b.totalRent),
-    budget = positive(a.budget || a.housingPreferences?.budgetMax);
+      positive(b.totalRent) ||
+      positive(b.rent),
+    budget = resolveSeekerBudget(a);
   let budgetScore = 0,
     locationScore = 0,
     genderScore = 0,
@@ -275,8 +367,8 @@ export function getRoomMatchReasons(
     if (budget >= rent) reasons.push("Budget fits");
     else caveats.push("Budget below rent");
   } else caveats.push("Budget not fully specified");
-  const ac = norm(a.city),
-    bc = norm(b.city || owner.city),
+  const ac = norm(resolveSeekerCity(a)),
+    bc = norm(b.city || o.city),
     loc = norm(b.locality);
   if (ac && bc) {
     if (ac === bc) {
@@ -291,7 +383,7 @@ export function getRoomMatchReasons(
   const gender = norm(
       b.preferredGender ||
         b.genderPreference ||
-        owner.householdExpectations?.genderPref
+        o.householdExpectations?.genderPref
     ),
     mine = norm(a.gender);
   const required = gender.includes("female")
@@ -309,7 +401,7 @@ export function getRoomMatchReasons(
     reasons.push("Listing welcomes any gender");
   } else caveats.push("Gender requirement not fully specified");
   const rules = (b.houseRules || []).map(norm),
-    exp = owner.householdExpectations || {},
+    exp = o.householdExpectations || {},
     q = actualQuiz(a);
   const veg =
     rules.some(
@@ -318,7 +410,11 @@ export function getRoomMatchReasons(
     ) || exp.dietPref === "veg";
   const smoke =
     rules.some(
-      (r: string) => r.includes("no smoking") || r.includes("smoke-free")
+      (r: string) =>
+        r.includes("no smoking") ||
+        r.includes("smoke-free") ||
+        r.includes("non-smoker") ||
+        r.includes("non smoker")
     ) || exp.smokingPolicy === "no_smoking";
   const pets =
     rules.some((r: string) => r.includes("no pets")) ||
@@ -342,7 +438,7 @@ export function getRoomMatchReasons(
     } else caveats.push("Pet preference conflicts with no-pets rule");
   }
   const host = actualQuiz({
-      quizAnswers: b.ownerQuizAnswers || owner.quizAnswers || {},
+      quizAnswers: b.ownerQuizAnswers || o.quizAnswers || {},
     }),
     keys = Object.keys(q).filter(k => host[k]);
   if (keys.length) {
@@ -352,6 +448,13 @@ export function getRoomMatchReasons(
       Math.max(5, new Set([...Object.keys(q), ...Object.keys(host)]).size);
     if (same) reasons.push("Shared lifestyle preferences with host");
   }
+  const hasLifestyleContext = Boolean(
+    rules.length ||
+      Object.keys(host).length ||
+      exp.dietPref ||
+      exp.smokingPolicy ||
+      exp.petPolicy
+  );
   if (!rules.length && !Object.keys(host).length)
     caveats.push("Household preferences not provided");
   const types = roomTypes(a),
@@ -370,30 +473,130 @@ export function getRoomMatchReasons(
     budgetScore + locationScore + genderScore + rulesScore + preferenceScore;
   if (genderMismatch) score = Math.min(40, score);
   if (ac && bc && ac !== bc) score = Math.min(60, score * 0.6);
-  if (
-    a.onboardingComplete === false ||
-    !(
-      budget ||
+  const hasSeekerSignals = Boolean(
+    budget ||
       ac ||
       mine ||
       Object.keys(q).length ||
       types.length ||
       occupancy(a)
-    )
-  ) {
+  );
+  const calibrated = isUserMatchingCalibrated(a);
+  if (!calibrated) {
     score = 0;
-    caveats.push("Complete your profile for a match");
+    caveats.push("Complete your matching preferences to see compatibility");
   }
+  const clampedScore = Number.isFinite(score)
+    ? Math.max(0, Math.min(100, Math.round(score)))
+    : 0;
   return {
-    score: Math.round(score),
+    score: clampedScore,
     budgetScore,
     locationScore,
     genderScore,
     rulesScore,
+    preferenceScore,
     trustScore: 0,
+    budgetPct: budget && rent ? Math.round((budgetScore / 25) * 100) : null,
+    locationPct: ac && bc ? Math.round((locationScore / 20) * 100) : null,
+    lifestylePct:
+      Object.keys(q).length && hasLifestyleContext
+        ? Math.round((rulesScore / 20) * 100)
+        : null,
+    calibrated,
+    hasProfilePreferences: Boolean(
+      budget ||
+        ac ||
+        Object.keys(q).length ||
+        Object.keys(a.lifestyle || {}).length ||
+        a.housingPreferences?.budgetMin
+    ),
+    engineVersion: COMPATIBILITY_ENGINE_VERSION,
     reasons,
     caveats,
   };
+}
+
+/**
+ * Deterministic normalized fingerprint of a seeker's compatibility-relevant inputs.
+ * Used to verify cached/server-computed room scores remain live when profile settings change.
+ */
+export function canonicalSeekerFingerprint(seeker: any = {}): string {
+  const s = seeker || {};
+  const q = actualQuiz(s);
+  const sortedQuiz = Object.keys(q)
+    .sort()
+    .map(k => `${k}:${q[k]}`);
+  return JSON.stringify([
+    isUserMatchingCalibrated(s) ? 1 : 0,
+    resolveSeekerBudget(s),
+    norm(resolveSeekerCity(s)),
+    resolveSeekerLocalities(s).map(norm).sort(),
+    norm(s.gender),
+    roomTypes(s).sort(),
+    occupancy(s),
+    sortedQuiz,
+  ]);
+}
+
+/**
+ * Authoritative compatibility calculation for a (seeker, listing, owner?) relationship.
+ */
+export function calculateCanonicalRoomCompatibility(
+  seeker: SeekerMatchSignal = {},
+  listing: ListingMatchSignal = {},
+  owner: OwnerMatchSignal = {}
+): RoomMatchBreakdown {
+  return getRoomMatchReasons(seeker, listing, owner);
+}
+
+/**
+ * Resolves the authoritative compatibility for (seeker, listing, owner?),
+ * preferring a valid fresh server-computed `listing.viewerCompatibility` when the
+ * seeker's inputs match its fingerprint (preserving owner-side signals without
+ * exposing raw owner quiz answers to clients).
+ */
+export function resolveCanonicalRoomCompatibility(
+  seeker: any = {},
+  listing: any = {},
+  owner: any = {}
+): RoomMatchBreakdown {
+  const precomputed = listing?.viewerCompatibility;
+  if (
+    precomputed &&
+    typeof precomputed === "object" &&
+    precomputed.engineVersion === COMPATIBILITY_ENGINE_VERSION &&
+    typeof precomputed.score === "number" &&
+    Number.isFinite(precomputed.score) &&
+    (!precomputed.seekerFingerprint ||
+      precomputed.seekerFingerprint === canonicalSeekerFingerprint(seeker))
+  ) {
+    return {
+      score: Math.max(0, Math.min(100, Math.round(precomputed.score))),
+      budgetScore: Number(precomputed.budgetScore) || 0,
+      locationScore: Number(precomputed.locationScore) || 0,
+      genderScore: Number(precomputed.genderScore) || 0,
+      rulesScore: Number(precomputed.rulesScore) || 0,
+      preferenceScore: Number(precomputed.preferenceScore) || 0,
+      trustScore: 0,
+      budgetPct:
+        typeof precomputed.budgetPct === "number" ? precomputed.budgetPct : null,
+      locationPct:
+        typeof precomputed.locationPct === "number"
+          ? precomputed.locationPct
+          : null,
+      lifestylePct:
+        typeof precomputed.lifestylePct === "number"
+          ? precomputed.lifestylePct
+          : null,
+      calibrated: precomputed.calibrated !== false,
+      hasProfilePreferences: Boolean(precomputed.hasProfilePreferences),
+      engineVersion: COMPATIBILITY_ENGINE_VERSION,
+      reasons: Array.isArray(precomputed.reasons) ? precomputed.reasons : [],
+      caveats: Array.isArray(precomputed.caveats) ? precomputed.caveats : [],
+    };
+  }
+  return getRoomMatchReasons(seeker, listing, owner);
 }
 
 /**
@@ -447,7 +650,11 @@ export function synthesizeQuizFromProfile(
       if (
         !result.smoking &&
         rules.some(
-          (r: string) => r.includes("no smoking") || r.includes("smoke-free")
+          (r: string) =>
+            r.includes("no smoking") ||
+            r.includes("smoke-free") ||
+            r.includes("non-smoker") ||
+            r.includes("non smoker")
         )
       ) {
         result.smoking = "never";
@@ -507,18 +714,37 @@ export function calculateProfileCompatibility(
 
   const roleA = (userA.role || "").toLowerCase();
   const roleB = (userB.role || "").toLowerCase();
+  const ownerIdFromListing = String(listing?.ownerId || "");
+  const aUid = String(userA.uid || userA.id || "");
+  const bUid = String(userB.uid || userB.id || "");
+  const aOwnsListing = Boolean(
+    listing && ((ownerIdFromListing && aUid && aUid === ownerIdFromListing) || roleA === "owner")
+  );
+  const bOwnsListing = Boolean(
+    listing && ((ownerIdFromListing && bUid && bUid === ownerIdFromListing) || roleB === "owner")
+  );
 
   // Scenario 1: One user is Seeker and the other has a Listing (or listing provided)
-  const isSeekerAndOwnerWithListing =
-    listing &&
-    ((roleA === "seeker" && roleB === "owner") ||
-      (roleA === "owner" && roleB === "seeker") ||
-      roleB === "owner" ||
-      roleA === "owner");
-
-  if (isSeekerAndOwnerWithListing) {
-    const seeker = roleA === "owner" ? userB : userA;
-    const owner = roleA === "owner" ? userA : userB;
+  if (listing) {
+    let owner = userA;
+    let seeker = userB;
+    if ((bOwnsListing && !aOwnsListing) || (bUid && ownerIdFromListing && bUid === ownerIdFromListing) || roleB === "owner") {
+      owner = userB;
+      seeker = userA;
+    } else if ((aOwnsListing && !bOwnsListing) || (aUid && ownerIdFromListing && aUid === ownerIdFromListing) || roleA === "owner") {
+      owner = userA;
+      seeker = userB;
+    } else {
+      const intentA = String(userA.housingIntent || userA.serverResolvedIntent?.intent || '').toLowerCase();
+      const intentB = String(userB.housingIntent || userB.serverResolvedIntent?.intent || '').toLowerCase();
+      if (intentB.includes('room') || intentB.includes('seeker') || intentB.includes('find')) {
+        owner = userA;
+        seeker = userB;
+      } else if (intentA.includes('room') || intentA.includes('seeker') || intentA.includes('find')) {
+        owner = userB;
+        seeker = userA;
+      }
+    }
     const breakdown = getRoomMatchReasons(seeker, listing, owner);
     return {
       score: breakdown.score,

@@ -162,7 +162,7 @@ export default function AdminPage() {
 
         if (adminSnap && adminSnap.exists()) {
           const data = adminSnap.data();
-          if (!['admin', 'moderator'].includes(String(data?.role || '').toLowerCase()) || data?.active === false || data?.enabled === false) { setIsAdmin(false); return; }
+          if (!['admin', 'moderator', 'superadmin'].includes(String(data?.role || '').toLowerCase()) || data?.active === false || data?.enabled === false) { setIsAdmin(false); return; }
           setIsAdmin(true);
           const role = (data?.role || '').toLowerCase() === 'moderator' ? 'Moderator' : 'Admin';
           setAdminRole(role);

@@ -40,6 +40,7 @@ import {
 } from 'firebase/firestore';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { buildMatchingPreferencesUpdate } from './src/lib/profileEditor';
 
 const runRules = process.env.RUN_RULES_TESTS === '1';
 const d = runRules ? describe : describe.skip;
@@ -501,6 +502,207 @@ d('Firestore security rules (emulator)', () => {
         }, { merge: true }));
     });
 
+    it('fresh Google sign-in account CAN save Matching Preferences via updateDoc', async () => {
+        const uid = 'google-fresh-seeker';
+        await seedDisabled(async (db) => {
+            await setDoc(doc(db, 'users', uid), {
+                uid,
+                phone: '',
+                name: 'Asha Rao',
+                email: '',
+                workEmail: '',
+                role: null,
+                city: '',
+                localities: [],
+                budget: 0,
+                moveInDate: '',
+                profession: '',
+                company: '',
+                bio: '',
+                age: 0,
+                gender: '',
+                avatar: '',
+                quizAnswers: {},
+                onboardingComplete: false,
+                isPremium: false,
+                connectsUsed: 0,
+                connectsLimit: 5,
+                verificationLevel: 0,
+                isVerified: false,
+                workEmailVerified: false,
+                savedProfileIds: [],
+                savedRoomIds: [],
+                skippedUserIds: [],
+                blockedUserIds: [],
+            });
+        });
+
+        const payload = buildMatchingPreferencesUpdate({
+            city: 'Bengaluru',
+            areas: ['Koramangala'],
+            b: [8000, 18000],
+            mv: 'Immediate',
+            types: ['Private room'],
+            gd: 'Any',
+            ug: 'Female',
+            diet: 'Veg',
+            smoke: 'Non-smoker',
+            pets: 'Pet-friendly',
+            sleep: 'Flexible',
+        }, { name: 'Asha Rao', city: '' });
+        expect(payload.onboardingComplete).toBe(true);
+
+        const googleDb = fsOf(env.authenticatedContext(uid));
+        await assertSucceeds(updateDoc(doc(googleDb, 'users', uid), {
+            ...payload,
+            updatedAt: serverTimestamp(),
+        }));
+    });
+
+    it('fresh Email sign-up account without a name CAN save Matching Preferences when inline name is provided', async () => {
+        const uid = 'email-fresh-seeker';
+        await seedDisabled(async (db) => {
+            await setDoc(doc(db, 'users', uid), {
+                uid,
+                phone: '',
+                name: '',
+                email: '',
+                workEmail: '',
+                role: null,
+                city: '',
+                localities: [],
+                budget: 0,
+                onboardingComplete: false,
+                isPremium: false,
+                connectsUsed: 0,
+                connectsLimit: 5,
+                verificationLevel: 0,
+                isVerified: false,
+                workEmailVerified: false,
+                blockedUserIds: [],
+                quizAnswers: {},
+            });
+        });
+
+        const payload = buildMatchingPreferencesUpdate({
+            name: 'Rohan Mehta',
+            city: 'Bengaluru',
+            areas: ['Indiranagar'],
+            b: [10000, 20000],
+            mv: 'This month',
+            types: ['Full flat'],
+            gd: 'Any',
+            sleep: 'Flexible',
+        }, { name: '', city: '' });
+        expect(payload.onboardingComplete).toBe(true);
+
+        const emailDb = fsOf(env.authenticatedContext(uid));
+        await assertSucceeds(updateDoc(doc(emailDb, 'users', uid), {
+            ...payload,
+            updatedAt: serverTimestamp(),
+        }));
+    });
+
+    it('authenticated account missing a users/{uid} doc CAN recover via setDoc with safe initial fields', async () => {
+        const uid = 'missing-doc-seeker';
+        const payload = buildMatchingPreferencesUpdate({
+            name: 'Kavya Nair',
+            city: 'Bengaluru',
+            areas: ['HSR Layout'],
+            b: [9000, 16000],
+            mv: 'Flexible',
+            types: ['Private room'],
+            gd: 'Female',
+            sleep: 'Early riser',
+        });
+        expect(payload.onboardingComplete).toBe(true);
+
+        const missingDb = fsOf(env.authenticatedContext(uid));
+        await assertSucceeds(setDoc(doc(missingDb, 'users', uid), {
+            uid,
+            phone: '',
+            email: '',
+            workEmail: '',
+            role: null,
+            city: '',
+            localities: [],
+            budget: 0,
+            moveInDate: '',
+            profession: '',
+            company: '',
+            bio: '',
+            age: 0,
+            gender: '',
+            avatar: '',
+            quizAnswers: {},
+            onboardingComplete: false,
+            isPremium: false,
+            connectsUsed: 0,
+            connectsLimit: 5,
+            verificationLevel: 0,
+            isVerified: false,
+            workEmailVerified: false,
+            savedProfileIds: [],
+            savedRoomIds: [],
+            skippedUserIds: [],
+            blockedUserIds: [],
+            ...payload,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        }));
+    });
+
+    it('authenticated signup CAN create users/{uid} with status: active and explicit Team-Up opt-in', async () => {
+        const uid = 'active-signup-seeker';
+        const payload = buildMatchingPreferencesUpdate({
+            name: 'Rohan Mehta',
+            city: 'Bengaluru',
+            areas: ['Indiranagar'],
+            b: [11000, 19000],
+            mv: 'Next month',
+            types: ['Private room'],
+            gd: 'Any',
+            teamUpDiscoverable: true,
+        });
+        expect(payload.roommateDiscoveryEnabled).toBe(true);
+        expect(payload.housingPreferences.activeIntents).toEqual(['team_up']);
+
+        const signupDb = fsOf(env.authenticatedContext(uid));
+        await assertSucceeds(setDoc(doc(signupDb, 'users', uid), {
+            uid,
+            phone: '',
+            email: '',
+            workEmail: '',
+            role: null,
+            city: '',
+            localities: [],
+            budget: 0,
+            moveInDate: '',
+            profession: '',
+            company: '',
+            bio: '',
+            age: 0,
+            gender: '',
+            avatar: '',
+            quizAnswers: {},
+            onboardingComplete: false,
+            isPremium: false,
+            connectsUsed: 0,
+            connectsLimit: 5,
+            verificationLevel: 0,
+            isVerified: false,
+            workEmailVerified: false,
+            savedProfileIds: [],
+            savedRoomIds: [],
+            skippedUserIds: [],
+            blockedUserIds: [],
+            status: 'active',
+            ...payload,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        }));
+    });
+
     // ── Chat ───────────────────────────────────────────────────────
     it('non-participant CANNOT read a chat room', async () => {
         await seedDisabled(async (db) => {
@@ -562,6 +764,51 @@ d('Firestore security rules (emulator)', () => {
         });
         batch.update(doc(database, 'chatRooms', 'message-room'), {
             lastMessageId: message.id, lastMessage: 'authentic', lastMessageAt: serverTimestamp(), unreadBy: { [OWNER]: 1 },
+        });
+        await assertSucceeds(batch.commit());
+    });
+
+    it('application-backed listingPairs unlock chat messaging only when application status is selected', async () => {
+        await seedDisabled(async (db) => {
+            await setDoc(doc(db, 'chatRooms', 'app-room-unlock'), {
+                participants: [SEEKER, OWNER],
+                listingId: 'listing-owned-by-owner',
+                threadType: 'application',
+                latestApplicationId: 'app-chat-unlock-1',
+                latestApplicationStatus: 'pending',
+                unlocked: false,
+            });
+            await setDoc(doc(db, 'applications', 'app-chat-unlock-1'), {
+                listingId: 'listing-owned-by-owner',
+                ownerId: OWNER,
+                applicantId: SEEKER,
+                status: 'pending',
+            });
+        });
+
+        await assertSucceeds(getDoc(doc(seekerDb(), 'chatRooms', 'app-room-unlock')));
+        await assertFails(addDoc(collection(seekerDb(), 'chatRooms', 'app-room-unlock', 'messages'), {
+            senderId: SEEKER, content: 'Pre-acceptance message', read: false, createdAt: serverTimestamp(),
+        }));
+        await assertFails(setDoc(doc(seekerDb(), 'listingPairs', `${SEEKER}_${OWNER}`), {
+            user1: SEEKER, user2: OWNER, listingId: 'listing-owned-by-owner', applicationId: 'app-chat-unlock-1', createdAt: Date.now(),
+        }));
+
+        await seedDisabled(async (db) => {
+            await updateDoc(doc(db, 'applications', 'app-chat-unlock-1'), { status: 'selected' });
+            await setDoc(doc(db, 'listingPairs', `${SEEKER}_${OWNER}`), {
+                user1: SEEKER, user2: OWNER, listingId: 'listing-owned-by-owner', applicationId: 'app-chat-unlock-1', createdAt: Date.now(),
+            });
+        });
+
+        const database = seekerDb();
+        const unlockedMsg = doc(collection(database, 'chatRooms', 'app-room-unlock', 'messages'));
+        const batch = writeBatch(database);
+        batch.set(unlockedMsg, {
+            senderId: SEEKER, content: 'Unlocked after acceptance!', read: false, createdAt: serverTimestamp(),
+        });
+        batch.update(doc(database, 'chatRooms', 'app-room-unlock'), {
+            lastMessageId: unlockedMsg.id, lastMessage: 'Unlocked after acceptance!', lastMessageAt: serverTimestamp(), unreadBy: { [OWNER]: 1 },
         });
         await assertSucceeds(batch.commit());
     });

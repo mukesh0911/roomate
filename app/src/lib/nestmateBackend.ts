@@ -1,4 +1,4 @@
-import { gatewayPage, gatewayDocument, readDiscovery, getInteractionContext, subscribeDiscovery } from './discoveryGateway';
+import { gatewayPage, gatewayDocument, readDiscovery, getInteractionContext, subscribeDiscovery, submitRoomApplicationCallable, decideRoomApplicationCallable } from './discoveryGateway';
 import { listingRent, listingStatusLabel, pairIsBlocked, consentIsCurrent } from './listingTruth';
 import { assertApplicationTransition, applicationLabels, type ApplicationStatus } from './applicationState';
 import {
@@ -7,6 +7,7 @@ import {
   getDocs,
   getDoc,
   addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -28,7 +29,12 @@ import {
 import { ref, uploadBytesResumable, getDownloadURL, getBlob } from 'firebase/storage';
 import { db, auth, storage } from './firebase';
 import { FREE_CONNECT_LIMIT } from './connectionGuards';
-import { calculateProfileCompatibility, calculateRoomCompatibility } from './matching';
+import {
+  calculateProfileCompatibility,
+  calculateRoomCompatibility,
+  calculateCanonicalRoomCompatibility,
+  resolveCanonicalRoomCompatibility,
+} from './matching';
 import {
   resolveUserHousingIntent,
   type HousingIntent,
@@ -135,7 +141,7 @@ export function mapFirestoreListing(d: any, currentUserProfile?: any): RoomItem 
   const isFurnished = furn.includes('full') || furn.includes('semi') ? 1 : 0;
   const isOwnerVerified = data.ownerVerified || data.isOwnerVerified ? 1 : 0;
 
-  // Truthful dynamic multi-factor compatibility calculation
+  // Truthful dynamic multi-factor canonical compatibility calculation
   let matchPct = 0;
   try {
     if (currentUserProfile) {
@@ -148,7 +154,7 @@ export function mapFirestoreListing(d: any, currentUserProfile?: any): RoomItem 
         genderPreference: data.preferredGender || data.genderPreference,
         houseRules: Array.isArray(data.houseRules) ? data.houseRules : [],
       };
-      const res = calculateRoomCompatibility(currentUserProfile, listingSignal);
+      const res = resolveCanonicalRoomCompatibility(currentUserProfile, listingSignal).score;
       if (typeof res === 'number' && Number.isFinite(res) && res >= 0) matchPct = res;
     }
   } catch {
@@ -272,7 +278,7 @@ export function mapFirestorePG(docSnap: any, currentUserProfile?: any): PGItem {
   let matchPct = 0;
   try {
     if (currentUserProfile) {
-      const res = calculateRoomCompatibility(currentUserProfile, data);
+      const res = resolveCanonicalRoomCompatibility(currentUserProfile, { ...data, monthlyRent: rent, partnerShare: rent }).score;
       if (typeof res === 'number' && Number.isFinite(res) && res >= 0) matchPct = res;
     }
   } catch {
@@ -547,6 +553,104 @@ async function mapConcurrent<T, U>(items: readonly T[], concurrency: number, pro
   return result;
 }
 
+export function deterministicChatRoomId(uidA: string, uidB: string): string {
+  return [uidA, uidB].sort().join('___');
+}
+
+async function mapLiveChatMessage(
+  docSnap: any,
+  userId: string,
+  imageCache: Map<string, string>,
+  objectUrls: Set<string>
+): Promise<any[]> {
+  const md = docSnap.data() || {};
+  const isSystem = md.kind === 'system_event' || md.senderId === 'system';
+  const isMe = !isSystem && md.senderId === userId;
+  const date = md.createdAt?.toDate?.();
+  const dateStr = date ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now';
+  const day = date ? (date.toDateString() === new Date().toDateString() ? 'Today' : date.toLocaleDateString()) : 'Sending';
+  let image = md.imageUrl || '';
+  if (md.imagePath) {
+    image = imageCache.get(md.imagePath) || '';
+    if (!image) {
+      try {
+        const blob = await getBlob(ref(storage, md.imagePath), 10 * 1024 * 1024);
+        if (['image/jpeg', 'image/png', 'image/webp'].includes(blob.type)) {
+          image = URL.createObjectURL(blob);
+          objectUrls.add(image);
+          imageCache.set(md.imagePath, image);
+        } else {
+          image = '';
+        }
+      } catch {
+        image = '';
+      }
+    }
+  }
+  const who = isSystem ? 'sys' : isMe ? 'me' : 't';
+  return [
+    who,
+    md.content || (md.imagePath && !image ? 'Attachment unavailable' : ''),
+    image,
+    day,
+    dateStr,
+    docSnap.id,
+    md.createdAt?.toMillis?.() || 0,
+    md.kind || 'text',
+    md.payload || null,
+  ];
+}
+
+export function subscribeActiveChatMessages(
+  roomId: string,
+  userId: string,
+  onUpdate: (result: { messages: any[]; historyCursor: any; hasOlder: boolean }) => void,
+  onError: (error: unknown) => void = () => {}
+): () => void {
+  let disposed = false;
+  let generation = 0;
+  const objectUrls = new Set<string>();
+  const imageCache = new Map<string, string>();
+  try {
+    const q = query(
+      collection(db, 'chatRooms', roomId, 'messages'),
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    );
+    const unsubscribe = onSnapshot(
+      q,
+      async (msgSnap) => {
+        const version = ++generation;
+        try {
+          const historyCursor = msgSnap.docs[msgSnap.docs.length - 1] || null;
+          const hasOlder = msgSnap.docs.length === 50;
+          const messages = await mapConcurrent([...msgSnap.docs].reverse(), 3, (m) =>
+            mapLiveChatMessage(m, userId, imageCache, objectUrls)
+          );
+          if (!disposed && version === generation) {
+            onUpdate({ messages, historyCursor, hasOlder });
+          }
+        } catch (err) {
+          if (!disposed && version === generation) onError(err);
+        }
+      },
+      (err) => {
+        generation++;
+        if (!disposed) onError(err);
+      }
+    );
+    return () => {
+      disposed = true;
+      generation++;
+      unsubscribe();
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  } catch (err) {
+    onError(err);
+    return () => {};
+  }
+}
+
 export function subscribeLiveUserChats(
   userId: string,
   onUpdate: (chats: any[]) => void,
@@ -593,6 +697,35 @@ export function subscribeLiveUserChats(
           }
 
           if (disposed || snapshotGeneration !== generation) return null;
+          // Resolve live canonical (seeker vs listing) compatibility for application threads
+          let liveMatchScore: number | null = null;
+          let liveMatchReasons: string[] = [];
+          let liveMatchBreakdown: any = null;
+          let liveApplicantBudget = 0;
+          const contextListingId = data.listingSnapshot?.id || data.listingId || data.contextListingId || (Array.isArray(data.listingContexts) ? data.listingContexts[0] : '') || '';
+          const contextApplicantId = data.applicantId || (data.ownerId && data.ownerId !== userId ? userId : (data.ownerId === userId ? otherUserId : ''));
+          if (contextListingId && (contextApplicantId || otherUserId)) {
+            try {
+              const compatRes = await readDiscovery({
+                action: 'listingCompatibility',
+                listingId: contextListingId,
+                ...(contextApplicantId ? { applicantId: contextApplicantId } : { peerId: otherUserId }),
+              });
+              const c = compatRes?.compatibility;
+              if (c && typeof c.score === 'number' && Number.isFinite(c.score)) {
+                liveMatchScore = Math.max(0, Math.min(100, Math.round(c.score)));
+                liveMatchReasons = Array.isArray(c.reasons) ? c.reasons : [];
+                liveMatchBreakdown = c;
+              }
+              if (typeof compatRes?.applicantSummary?.budget === 'number' && compatRes.applicantSummary.budget > 0) {
+                liveApplicantBudget = compatRes.applicantSummary.budget;
+              }
+            } catch {
+              // Fall back cleanly if discovery endpoint isn't available yet
+            }
+          }
+
+          if (disposed || snapshotGeneration !== generation) return null;
           // Fetch messages subcollection
           let msgs: any[] = [], historyCursor: any = null, hasOlder = false, historyError = false;
           try {
@@ -601,22 +734,25 @@ export function subscribeLiveUserChats(
             );
             if (disposed || snapshotGeneration !== generation) return null;
             historyCursor = msgSnap.docs[msgSnap.docs.length-1] || null; hasOlder = msgSnap.docs.length === 50;
-            msgs = await mapConcurrent([...msgSnap.docs].reverse(), 3, async m => {
-              const md = m.data();
-              const isMe = md.senderId === userId;
-              const dateStr = md.createdAt?.toDate ? md.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now';
-              const date = md.createdAt?.toDate?.();
-              const day = date ? (date.toDateString() === new Date().toDateString() ? 'Today' : date.toLocaleDateString()) : 'Sending';
-              let image = md.imageUrl || '';
-              if (md.imagePath) {
-                image = imageCache.get(md.imagePath) || '';
-                if (!image) try {
-                  const blob = await getBlob(ref(storage, md.imagePath), 10 * 1024 * 1024);
-                  if (['image/jpeg','image/png','image/webp'].includes(blob.type)) { image = URL.createObjectURL(blob); objectUrls.add(image); imageCache.set(md.imagePath,image); }
-                } catch { image = ''; }
-              }
-              return [isMe ? 'me' : 't', md.content || (md.imagePath && !image ? 'Attachment unavailable' : ''), image, day, dateStr, m.id, md.createdAt?.toMillis?.() || 0];
-            });
+            msgs = await mapConcurrent([...msgSnap.docs].reverse(), 3, m =>
+              mapLiveChatMessage(m, userId, imageCache, objectUrls)
+            );
+            if (liveMatchScore !== null) {
+              msgs = msgs.map((m) => {
+                if (m && m[7] === 'application_card' && m[8] && typeof m[8] === 'object') {
+                  return [
+                    ...m.slice(0, 8),
+                    {
+                      ...m[8],
+                      matchScore: liveMatchScore,
+                      matchReasons: liveMatchReasons.length ? liveMatchReasons : (m[8].matchReasons || []),
+                      ...(liveApplicantBudget > 0 ? { applicantBudget: liveApplicantBudget } : {}),
+                    },
+                  ];
+                }
+                return m;
+              });
+            }
           } catch {
             historyError = true;
           }
@@ -634,6 +770,20 @@ export function subscribeLiveUserChats(
             otherName,
             otherAvatar,
             otherVerified,
+            threadType: data.threadType || (data.latestApplicationId ? 'application' : 'direct'),
+            latestApplicationId: data.latestApplicationId || '',
+            latestApplicationStatus: data.latestApplicationStatus || '',
+            listingSnapshot: data.listingSnapshot || null,
+            applicantId: data.applicantId || '',
+            ownerId: data.ownerId || '',
+            liveMatchScore,
+            liveMatchReasons,
+            liveMatchBreakdown,
+            liveApplicantBudget,
+            unlocked: data.unlocked === true || authorized,
+            inboxBucketByUser: data.inboxBucketByUser || null,
+            lastMessageText: data.lastMessage || '',
+            lastMessageAtMs: data.lastMessageAt?.toMillis?.() || 0,
             raw: data,
           };
         });
@@ -680,6 +830,7 @@ export function subscribeLiveNotifications(
             r: data.read ? 1 : 0,
             g: data.createdAt?.toDate?.().toDateString() === new Date().toDateString() ? 'Today' : 'Earlier',
             roomId: data.roomId || '', listingId: data.listingId || '',
+            applicationId: data.applicationId || '', inboxBox: data.inboxBox || '',
             actionable: data.type === 'connect' && Boolean(data.connectionId) && (String(data.title || '').includes('Request') || String(data.description || '').toLowerCase().includes('requested')),
             connectionId: data.connectionId || '',
             actionUrl: data.actionUrl || '',
@@ -710,13 +861,107 @@ export function subscribeOwnerListings(ownerId: string, onUpdate: (items: any[])
       const data = d.data();
       const related = applications.filter(a => a.listingId === d.id).map(a => ({ ...a, fromUserId: a.applicantId, applicationId: a.id }));
       const old = legacy.filter(c => c.listingId === d.id
-        && (c.applicantStage || (c.screeningAnswers && Object.keys(c.screeningAnswers).length > 0))
         && !related.some(a => a.fromUserId === c.fromUserId));
       const all = [...related, ...old].sort((a,b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0));
       const latest = new Map(all.map(a => [a.fromUserId, a]));
+      let compatByApplicant: Record<string, any> = {};
+      if (latest.size > 0) {
+        try {
+          const compatRes = await readDiscovery({ action: 'listingApplicantsCompatibility', listingId: d.id });
+          if (compatRes?.applicants && typeof compatRes.applicants === 'object') {
+            compatByApplicant = compatRes.applicants;
+          }
+        } catch {
+          // Graceful fallback when running against mocks or prior backend revision
+        }
+      }
       const ap = await Promise.all([...latest.values()].map(async a => {
-        const snap = gatewayDocument((await readDiscovery({action:'person',id:a.fromUserId})).record);
-        return { ...a, applicantStage: a.applicationId ? a.status : a.applicantStage || 'pending', user: snap.exists() ? mapFirestoreUser(snap) : null };
+        let user: any = null;
+        try {
+          const snap = gatewayDocument((await readDiscovery({action:'person',id:a.fromUserId})).record);
+          user = snap.exists() ? mapFirestoreUser(snap) : null;
+        } catch {
+          user = null;
+        }
+        const entry = compatByApplicant[a.fromUserId];
+        const summary = entry?.applicantSummary;
+        const canonicalCompat = entry?.compatibility;
+        let calculatedRoomScore: number | null = null;
+        let calculatedRoomReasons: string[] = [];
+        let calculatedRoomCompat: any = null;
+        if (canonicalCompat?.score == null) {
+          try {
+            const rawSeeker = (user && user.raw) || (user ? {
+              name: user.name,
+              city: user.city || 'Bengaluru',
+              locality: user.locality || '',
+              localities: user.locality ? [user.locality] : [],
+              budget: Number(user.budget || (user.budgetStr ? parseInt(user.budgetStr.replace(/\D/g, ''), 10) : 0)),
+              gender: user.gender || (user.raw && user.raw.gender) || 'Any',
+              onboardingComplete: true,
+            } : {});
+            const placeData = d.data() || {};
+            const rentVal = Number(placeData.rent || placeData.monthlyRent || placeData.partnerShare || 0);
+            const roomSignal = {
+              ...placeData,
+              id: d.id,
+              monthlyRent: rentVal,
+              partnerShare: rentVal,
+              rent: rentVal,
+              locality: placeData.locality || placeData.loc || '',
+              city: placeData.city || 'Bengaluru',
+              roomType: placeData.roomType || placeData.type || 'Full flat',
+              preferredGender: placeData.preferredGender || placeData.genderPreference || 'Any',
+            };
+            const fit = calculateCanonicalRoomCompatibility(rawSeeker, roomSignal, placeData.ownerProfile || {});
+            if (typeof fit.score === 'number' && Number.isFinite(fit.score) && fit.score > 0) {
+              calculatedRoomScore = fit.score;
+              calculatedRoomReasons = Array.isArray(fit.reasons) ? fit.reasons : [];
+              calculatedRoomCompat = fit;
+            }
+          } catch {
+            // ignore
+          }
+        }
+        const canonicalScore = typeof canonicalCompat?.score === 'number' && Number.isFinite(canonicalCompat.score)
+          ? Math.max(0, Math.min(100, Math.round(canonicalCompat.score)))
+          : (typeof calculatedRoomScore === 'number' && calculatedRoomScore > 0
+            ? calculatedRoomScore
+            : (typeof a.matchScore === 'number' && Number.isFinite(a.matchScore) && a.matchScore > 0
+              ? Math.max(0, Math.min(100, Math.round(a.matchScore)))
+              : (typeof user?.matchPct === 'number' && Number.isFinite(user.matchPct) ? user.matchPct : 0)));
+        if (!user && summary) {
+          user = mapFirestoreUser({ id: a.fromUserId, data: () => ({ ...summary, uid: a.fromUserId, compatibilityScore: canonicalScore }) });
+        } else if (user) {
+          const nextBudgetStr = (!user.budgetStr || user.budgetStr === 'Flexible') && summary?.budget > 0
+            ? `₹${Number(summary.budget).toLocaleString('en-IN')}`
+            : user.budgetStr;
+          const nextLocality = user.locality || summary?.locality || summary?.city || '';
+          const nextProfession = user.profession || summary?.occupation || '';
+          const nextMoveIn = (a.moveIn && (!user.moveInStr || user.moveInStr === 'Flexible'))
+            ? a.moveIn
+            : ((!user.moveInStr || user.moveInStr === 'Flexible') && summary?.moveInDate ? summary.moveInDate : user.moveInStr);
+          user = {
+            ...user,
+            locality: nextLocality,
+            city: user.city || summary?.city || '',
+            profession: nextProfession,
+            budgetStr: nextBudgetStr,
+            moveInStr: nextMoveIn || 'Flexible',
+            matchPct: canonicalScore,
+          };
+        }
+        return {
+          ...a,
+          matchScore: canonicalScore,
+          matchReasons: Array.isArray(canonicalCompat?.reasons) ? canonicalCompat.reasons : (calculatedRoomReasons.length ? calculatedRoomReasons : (Array.isArray(a.matchReasons) ? a.matchReasons : [])),
+          matchBreakdown: canonicalCompat || calculatedRoomCompat || null,
+          note: typeof a.note === 'string' ? a.note : '',
+          moveIn: typeof a.moveIn === 'string' ? a.moveIn : '',
+          roomId: a.roomId || (a.fromUserId && ownerId ? deterministicChatRoomId(a.fromUserId, ownerId) : ''),
+          applicantStage: a.applicationId ? a.status : a.applicantStage || 'pending',
+          user,
+        };
       }));
       return { id: d.id, t: data.title || 'Untitled listing', loc: data.locality || '', rent: listingRent(data) ?? 0, photo: data.images?.[0] || '', pct: 0, st: listingStatusLabel(data.status), ap, f: data };
     }));
@@ -755,13 +1000,52 @@ export function subscribeLiveConnections(
 
     let sentConns: any[] = [];
     let recvConns: any[] = [];
+    let disposed = false;
+    const scoreCache = new Map<string, number>();
+    const inflightScores = new Set<string>();
 
-    const updateAll = () => {
-      const accepted = [...sentConns, ...recvConns].filter((c) => c.status === 'accepted');
-      const received = recvConns.filter((c) => c.status === 'pending');
-      const sent = sentConns.filter((c) => c.status === 'pending');
+    const enrichWithScores = (list: any[]) =>
+      list.map((c) => {
+        if (typeof c.matchScore === 'number' && Number.isFinite(c.matchScore) && c.matchScore > 0 && c.matchScore !== 34) return c;
+        if (!c?.listingId) return c;
+        const applicantId = c.fromUserId || userId;
+        const cached = scoreCache.get(`${c.listingId}:${applicantId}`);
+        return cached !== undefined ? { ...c, matchScore: cached } : c;
+      });
+
+    const emit = () => {
+      if (disposed) return;
+      const accepted = enrichWithScores([...sentConns, ...recvConns].filter((c) => c.status === 'accepted'));
+      const received = enrichWithScores(recvConns.filter((c) => c.status === 'pending'));
+      const sent = enrichWithScores(sentConns.filter((c) => c.status === 'pending'));
       const restricted = [...sentConns, ...recvConns].filter((c) => ['blocked', 'rejected', 'superseded', 'withdrawn', 'disconnected'].includes(c.status));
       onUpdate({ accepted, received, sent, restricted });
+    };
+
+    const resolvePendingListingScores = (conns: any[]) => {
+      for (const c of conns) {
+        if (!c?.listingId) continue;
+        if (typeof c.matchScore === 'number' && Number.isFinite(c.matchScore) && c.matchScore > 0 && c.matchScore !== 34) continue;
+        const applicantId = c.fromUserId || userId;
+        const key = `${c.listingId}:${applicantId}`;
+        if (scoreCache.has(key) || inflightScores.has(key)) continue;
+        inflightScores.add(key);
+        void readDiscovery({ action: 'listingCompatibility', listingId: c.listingId, applicantId })
+          .then((res: any) => {
+            if (disposed) return;
+            const score = res?.compatibility?.score;
+            if (typeof score === 'number' && Number.isFinite(score)) {
+              scoreCache.set(key, score);
+              emit();
+            }
+          })
+          .catch(() => null);
+      }
+    };
+
+    const updateAll = () => {
+      emit();
+      resolvePendingListingScores([...sentConns, ...recvConns]);
     };
 
     const unsub1 = onSnapshot(q, (snap) => {
@@ -775,6 +1059,7 @@ export function subscribeLiveConnections(
     });
 
     return () => {
+      disposed = true;
       unsub1();
       unsub2();
     };
@@ -789,31 +1074,82 @@ export function subscribeLiveConnections(
  */
 export async function fetchListingApplicantsBackend(listingId: string): Promise<any[]> {
   try {
-    const [appSnap, connSnap] = await Promise.all([
+    const [appSnap, connSnap, placeSnap] = await Promise.all([
       getDocs(query(collection(db, 'applications'), where('listingId', '==', listingId))),
       getDocs(query(collection(db, 'connections'), where('listingId', '==', listingId))),
+      readDiscovery({ action: 'place', id: listingId }).then(r => gatewayDocument(r.record)).catch(() => null),
     ]);
 
     const related = appSnap.docs.map(d => ({ id: d.id, ...d.data(), fromUserId: d.data().applicantId, applicationId: d.id }));
     const old = connSnap.docs
       .map(d => ({ id: d.id, ...d.data() }))
-      .filter((c: any) => (c.applicantStage || (c.screeningAnswers && Object.keys(c.screeningAnswers).length > 0))
-        && !related.some(a => a.fromUserId === c.fromUserId));
+      .filter((c: any) => !related.some(a => a.fromUserId === c.fromUserId));
     const all = [...related, ...old].sort((a: any, b: any) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0));
     const latest = new Map(all.map((a: any) => [a.fromUserId, a]));
 
+    let compatByApplicant: Record<string, any> = {};
+    if (latest.size > 0) {
+      try {
+        const compatRes = await readDiscovery({ action: 'listingApplicantsCompatibility', listingId });
+        if (compatRes?.applicants && typeof compatRes.applicants === 'object') {
+          compatByApplicant = compatRes.applicants;
+        }
+      } catch {
+        // Graceful fallback
+      }
+    }
+
+    const listingData = placeSnap?.exists() ? placeSnap.data() : null;
     const applicants: any[] = [];
     for (const item of latest.values()) {
       const userSnap = gatewayDocument((await readDiscovery({action:'person',id:item.fromUserId})).record);
-      if (userSnap.exists()) {
+      const entry = compatByApplicant[item.fromUserId];
+      const canonicalCompat = entry?.compatibility;
+      const summary = entry?.applicantSummary;
+
+      let dynamicRoomScore: number | undefined;
+      let dynamicRoomReasons: string[] = [];
+      if (listingData && userSnap.exists()) {
+        try {
+          const fit = calculateCanonicalRoomCompatibility(userSnap.data(), { ...listingData, id: listingId }, auth.currentUser || {});
+          if (typeof fit?.score === 'number' && Number.isFinite(fit.score) && fit.score > 0) {
+            dynamicRoomScore = fit.score;
+            dynamicRoomReasons = fit.reasons || [];
+          }
+        } catch {
+          // Graceful fallback
+        }
+      }
+
+      const canonicalScore = typeof canonicalCompat?.score === 'number' && Number.isFinite(canonicalCompat.score) && canonicalCompat.score > 0
+        ? Math.max(0, Math.min(100, Math.round(canonicalCompat.score)))
+        : (dynamicRoomScore !== undefined
+          ? dynamicRoomScore
+          : (typeof item.matchScore === 'number' && Number.isFinite(item.matchScore) && item.matchScore > 0
+            ? Math.max(0, Math.min(100, Math.round(item.matchScore)))
+            : undefined));
+
+      if (userSnap.exists() || summary) {
+        const mappedUser = userSnap.exists()
+          ? mapFirestoreUser(userSnap)
+          : mapFirestoreUser({ id: item.fromUserId, data: () => ({ ...summary, uid: item.fromUserId }) });
+        if (canonicalScore !== undefined) mappedUser.matchPct = canonicalScore;
         const stage = item.applicationId ? item.status : item.applicantStage || 'pending';
         applicants.push({
           applicationId: item.applicationId,
           connectionId: item.id,
           status: stage === 'shortlisted' ? 'Shortlisted' : (stage === 'selected' ? 'Selected' : (stage === 'rejected' ? 'Declined' : 'New')),
           connectionStatus: item.status,
-          user: mapFirestoreUser(userSnap),
+          matchScore: canonicalScore !== undefined ? canonicalScore : mappedUser.matchPct,
+          matchReasons: Array.isArray(canonicalCompat?.reasons) && canonicalCompat.reasons.length > 0
+            ? canonicalCompat.reasons
+            : (dynamicRoomReasons.length > 0
+              ? dynamicRoomReasons
+              : (Array.isArray(item.matchReasons) ? item.matchReasons : [])),
+          user: mappedUser,
           screeningAnswers: item.screeningAnswers || {},
+          note: item.note || '',
+          moveIn: item.moveIn || '',
         });
       }
     }
@@ -878,7 +1214,13 @@ async function uploadListingPhotos(listingId: string, photos: unknown[]): Promis
       ? crypto.randomUUID()
       : Math.random().toString(36).slice(2) + Date.now().toString(36);
     const storageRef = ref(storage, `listings/${listingId}/${Date.now()}_${index}_${uniqueId}.jpg`);
-    const snapshot = await uploadBytesResumable(storageRef, upload, { contentType });
+    const metadata = {
+      contentType,
+      customMetadata: {
+        ownerId: auth.currentUser?.uid || '',
+      },
+    };
+    const snapshot = await uploadBytesResumable(storageRef, upload, metadata);
     urls.push(await getDownloadURL(snapshot.ref));
   }
   return urls;
@@ -891,21 +1233,53 @@ export async function createNewListingBackend(listingData: any, currentUser: any
   if (photos.length > 10) throw new Error('Choose up to 10 listing photos.');
   const uploadedUrls: string[] = [];
 
+  const rentNum = Number(listingData.rent || 0);
+  if (rentNum <= 0) {
+    throw new Error('Please enter a monthly rent greater than ₹0 before posting.');
+  }
+
+  const userRef = doc(db, 'users', user.uid);
+  let existingUserData: any = {};
+  try {
+    const userSnap = await getDoc(userRef);
+    if (userSnap && typeof userSnap.data === 'function') {
+      existingUserData = userSnap.data() || {};
+    }
+  } catch (readErr) {
+    console.warn('Could not read existing user document before listing create:', readErr);
+  }
+
+  const existingHousingPrefs = existingUserData?.housingPreferences || {};
+  const currentIntents: string[] = Array.isArray(existingHousingPrefs.activeIntents)
+    ? [...existingHousingPrefs.activeIntents]
+    : (existingUserData?.housingIntent ? [existingUserData.housingIntent] : []);
+  const nextIntents = Array.from(new Set([...currentIntents, 'have_room']));
+
+  const localityVal = String(listingData.loc || 'Bengaluru').trim() || 'Bengaluru';
+  const cityVal = String(listingData.city || 'Bengaluru').trim() || 'Bengaluru';
+  const flatTypeVal = String(listingData.bhk || listingData.type || 'Room').trim() || 'Room';
+  const titleVal = String(listingData.title || (listingData.loc ? `${flatTypeVal} in ${localityVal}` : `${flatTypeVal} in ${cityVal}`)).trim().slice(0, 160);
+  const cleanTitle = titleVal.length >= 3 ? titleVal : `${flatTypeVal} in ${localityVal}`;
+
+  const listingRef = doc(collection(db, 'listings'));
+  const initialStatus = (photos.length > 0 || listingData.status === 'draft') ? 'draft' : 'pending_verification';
+
   const newDoc = {
+    id: listingRef.id,
     ownerId: user.uid,
-    ownerName: user.displayName || user.name || '',
-    ownerAvatar: user.photoURL || user.avatar || '',
-    title: listingData.title || (listingData.loc ? `Room in ${listingData.loc}` : 'Room'),
-    description: listingData.desc || '',
-    flatType: listingData.bhk || listingData.type || 'Room',
-    ...(listingData.type ? { roomType: listingData.type } : {}),
-    furnishing: listingData.furn || 'Unfurnished',
-    city: listingData.city || 'Bengaluru',
-    locality: listingData.loc || 'Bengaluru',
-    address: `${listingData.loc || 'Bengaluru'}, ${listingData.city || 'Bengaluru'}`,
-    totalRent: Number(listingData.rent || 0),
-    monthlyRent: Number(listingData.rent || 0),
-    partnerShare: Number(listingData.rent || 0),
+    ownerName: user.displayName || user.name || (existingUserData?.name || 'Host'),
+    ownerAvatar: user.photoURL || user.avatar || (existingUserData?.avatar || ''),
+    title: cleanTitle,
+    description: String(listingData.desc || '').trim(),
+    flatType: flatTypeVal,
+    ...(listingData.type ? { roomType: listingData.type } : { roomType: flatTypeVal }),
+    furnishing: listingData.furn || 'Furnished',
+    city: cityVal,
+    locality: localityVal,
+    address: `${localityVal}, ${cityVal}`,
+    totalRent: rentNum,
+    monthlyRent: rentNum,
+    partnerShare: rentNum,
     partnersNeeded: 1,
     isLiveInRoom: listingData.isLiveInRoom === true,
     deposit: Number(listingData.dep || 0),
@@ -914,7 +1288,7 @@ export async function createNewListingBackend(listingData: any, currentUser: any
     screeningQuestions: Array.isArray(listingData.qs) ? listingData.qs : [],
     images: uploadedUrls,
     availableFrom: listingData.av || 'Now',
-    status: listingData.status === 'draft' ? 'draft' : 'pending_verification',
+    status: initialStatus,
     applicants: 0,
     views: 0,
     isOwnerVerified: false,
@@ -925,22 +1299,33 @@ export async function createNewListingBackend(listingData: any, currentUser: any
     updatedAt: serverTimestamp(),
   };
 
-  // Storage authorization is based on an existing owned listing ID. Reserve
-  // a nonpublic draft before uploading, then submit only after every upload.
-  const docRef = await addDoc(collection(db, 'listings'), {
-    ...newDoc, status: photos.length ? 'draft' : newDoc.status,
-  });
+  // Atomically commit listing document and host intent on user profile
+  const batch = writeBatch(db);
+  batch.set(listingRef, { ...newDoc });
+  batch.set(userRef, {
+    isLandlord: true,
+    housingPreferences: {
+      ...existingHousingPrefs,
+      activeIntents: nextIntents,
+    },
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+
+  await batch.commit();
+
   if (photos.length) {
     try {
-      newDoc.images = await uploadListingPhotos(docRef.id, photos);
-      await updateDoc(docRef, { images: newDoc.images, status: newDoc.status, updatedAt: serverTimestamp() });
+      newDoc.images = await uploadListingPhotos(listingRef.id, photos);
+      const finalStatus = listingData.status === 'draft' ? 'draft' : 'pending_verification';
+      await updateDoc(listingRef, { images: newDoc.images, status: finalStatus, updatedAt: serverTimestamp() });
+      newDoc.status = finalStatus;
     } catch (cause) {
       const failure = new Error('Photo upload or submission failed. Your draft is in My listings; no publication was confirmed.', { cause });
-      Object.assign(failure, { draftListingId: docRef.id });
+      Object.assign(failure, { draftListingId: listingRef.id });
       throw failure;
     }
   }
-  return { id: docRef.id, ...newDoc };
+  return { id: listingRef.id, ...newDoc };
 }
 
 export async function updateListingStatusBackend(listingId: string, newStatus: string): Promise<void> {
@@ -998,18 +1383,52 @@ function interactionPeer(context: any, ownUid: string): any {
 
 const inFlightConnectionRequests = new Set<string>();
 
+export interface SendConnectionRequestOptions {
+  note?: string;
+  moveIn?: string;
+  answers?: Record<string, string>;
+  screeningAnswers?: Record<string, string>;
+  matchScore?: number;
+  matchReasons?: string[];
+}
+
 /**
  * Send a connection request from authenticated user to target user.
  * Prevents self-connection, duplicate forward/reverse pending, duplicate accepted,
  * and rapid double-clicks/concurrent attempts via deterministic document key transaction.
  */
-export async function sendConnectionRequestBackend(toUserId: string, listingId?: string, _legacyAnswers?: Record<string, unknown>): Promise<string> {
+export async function sendConnectionRequestBackend(
+  toUserId: string,
+  listingId?: string,
+  options?: SendConnectionRequestOptions | Record<string, unknown>
+): Promise<string> {
   const user = auth.currentUser;
   if (!user || !toUserId || user.uid === toUserId) throw new Error('Choose another member to connect with.');
   const key = [user.uid, toUserId].sort().join('___');
   if (inFlightConnectionRequests.has(key)) throw new Error('Request in progress.');
   inFlightConnectionRequests.add(key);
   try {
+    const rawOptions = (typeof options === 'object' && options !== null) ? options : {};
+    const cleanNote = typeof (rawOptions as any).note === 'string' ? (rawOptions as any).note.trim().slice(0, 2000) : '';
+    const cleanMoveIn = typeof (rawOptions as any).moveIn === 'string' ? (rawOptions as any).moveIn.trim().slice(0, 64) : '';
+    const rawAnswers = (rawOptions as any).screeningAnswers || (rawOptions as any).answers || rawOptions;
+    const cleanAnswers: Record<string, string> = {};
+    if (typeof rawAnswers === 'object' && rawAnswers !== null) {
+      for (const [k, v] of Object.entries(rawAnswers)) {
+        if (['note', 'moveIn', 'matchScore', 'matchReasons', 'answers', 'screeningAnswers'].includes(k)) continue;
+        const valStr = typeof v === 'string' ? v.trim().slice(0, 2000) : '';
+        if (valStr) cleanAnswers[k.slice(0, 300)] = valStr;
+      }
+    }
+    const rawScore = (rawOptions as any).matchScore;
+    const cleanScore = typeof rawScore === 'number' && Number.isFinite(rawScore) && rawScore > 0
+      ? Math.max(0, Math.min(100, Math.round(rawScore)))
+      : undefined;
+    const rawReasons = (rawOptions as any).matchReasons;
+    const cleanReasons = Array.isArray(rawReasons)
+      ? rawReasons.slice(0, 4).map(r => String(r || '').trim().slice(0, 120)).filter(Boolean)
+      : undefined;
+
     const [forward, reverse] = await Promise.all([
       getDocs(query(collection(db, 'connections'), where('fromUserId', '==', user.uid), where('toUserId', '==', toUserId))),
       getDocs(query(collection(db, 'connections'), where('fromUserId', '==', toUserId), where('toUserId', '==', user.uid))),
@@ -1033,7 +1452,29 @@ export async function sendConnectionRequestBackend(toUserId: string, listingId?:
         const accepted = history.find(d => d.data().status === 'accepted' && fresh(d.data()));
         if (accepted) return accepted.id;
       }
-      if (existing && fresh(existing.data()) && (existing.data().listingId || null) === (listingId || null)) return existing.id;
+      let scoreToSave = cleanScore;
+      let reasonsToSave = cleanReasons;
+      if (scoreToSave === undefined) {
+        if (listingId && publicListing?.exists()) {
+          const compat = calculateCanonicalRoomCompatibility(a, { ...publicListing.data(), id: listingId }, b);
+          if (typeof compat?.score === 'number' && Number.isFinite(compat.score) && compat.score > 0) {
+            scoreToSave = Math.max(0, Math.min(100, Math.round(compat.score)));
+            reasonsToSave = Array.isArray(compat.reasons) ? compat.reasons.slice(0, 4) : [];
+          }
+        } else {
+          const compat = calculateProfileCompatibility(a, b);
+          if (typeof compat?.score === 'number' && Number.isFinite(compat.score) && compat.score > 0) {
+            scoreToSave = Math.max(0, Math.min(100, Math.round(compat.score)));
+            reasonsToSave = Array.isArray(compat.reasons) ? compat.reasons.slice(0, 4) : [];
+          }
+        }
+      }
+      if (existing && fresh(existing.data()) && (existing.data().listingId || null) === (listingId || null)) {
+        if (scoreToSave !== undefined && (existing.data().matchScore === undefined || existing.data().matchScore === 34)) {
+          tx.update(doc(db, 'connections', existing.id), { matchScore: scoreToSave, ...(reasonsToSave ? { matchReasons: reasonsToSave } : {}) });
+        }
+        return existing.id;
+      }
       // One outstanding request per pair, even when another entry point is used.
       if (previous?.exists() && previous.data().status === 'pending' && fresh(previous.data())) return previous.id;
       if (listingId) {
@@ -1042,10 +1483,37 @@ export async function sendConnectionRequestBackend(toUserId: string, listingId?:
       }
       if (a.isPremium !== true && (a.connectsUsed || 0) >= FREE_CONNECT_LIMIT) throw new Error('Connection request allowance reached.');
       if (a.isPremium !== true) tx.update(doc(db, 'users', user.uid), { connectsUsed: (a.connectsUsed || 0) + 1, lastConnectionId: requestRef.id, updatedAt: serverTimestamp() });
-      tx.set(requestRef, { fromUserId: user.uid, toUserId, status: 'pending', ...(listingId ? { listingId } : {}), createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+      tx.set(requestRef, {
+        fromUserId: user.uid,
+        toUserId,
+        status: 'pending',
+        ...(listingId ? { listingId } : {}),
+        ...(cleanNote ? { note: cleanNote } : {}),
+        ...(cleanMoveIn ? { moveIn: cleanMoveIn } : {}),
+        ...(Object.keys(cleanAnswers).length > 0 ? { screeningAnswers: cleanAnswers } : {}),
+        ...(scoreToSave !== undefined ? { matchScore: scoreToSave } : {}),
+        ...(reasonsToSave && reasonsToSave.length > 0 ? { matchReasons: reasonsToSave } : {}),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
       const lockValue = { participants: [user.uid, toUserId], connectionId: requestRef.id };
       tx.set(ownLock, lockValue); tx.set(reverseLock, lockValue);
-      tx.set(doc(db, 'notifications', requestRef.id + '_pending'), { userId: toUserId, actorId: user.uid, type: 'connect', title: 'New Connection Request', description: (user.displayName || 'A member') + ' requested permission to communicate.', connectionId: requestRef.id, read: false, createdAt: serverTimestamp() });
+      const notifDesc = [
+        cleanMoveIn ? 'Move-in: ' + cleanMoveIn : '',
+        cleanNote ? (cleanNote.length > 120 ? cleanNote.slice(0, 117) + '...' : cleanNote) : '',
+      ].filter(Boolean).join(' · ') || ((user.displayName || 'A member') + ' requested permission to communicate.');
+      tx.set(doc(db, 'notifications', requestRef.id + '_pending'), {
+        userId: toUserId,
+        actorId: user.uid,
+        type: 'connect',
+        title: 'New Connection Request',
+        description: notifDesc,
+        connectionId: requestRef.id,
+        ...(listingId ? { listingId } : {}),
+        ...(scoreToSave !== undefined ? { matchScore: scoreToSave } : {}),
+        read: false,
+        createdAt: serverTimestamp(),
+      });
       return requestRef.id;
     });
     try { return await attempt(); }
@@ -1065,20 +1533,22 @@ export async function sendConnectionRequestBackend(toUserId: string, listingId?:
  * When rejecting: updates connections/{id} and removes any stale acceptedPairs.
  * When blocking: updates connections/{id} and removes any stale acceptedPairs.
  */
-export async function updateConnectionStatusBackend(connectionId: string, newStatus: string): Promise<void> {
+export async function updateConnectionStatusBackend(connectionId: string, newStatus: string): Promise<{ status: string; roomId: string }> {
   const user = auth.currentUser;
   if (!user) throw new Error('Sign in required.');
   const status = newStatus.toLowerCase();
   if (status === 'blocked') {
     const snap = await getDoc(doc(db, 'connections', connectionId));
     if (!snap.exists() || ![snap.data().fromUserId, snap.data().toUserId].includes(user.uid)) throw new Error('Not authorized.');
-    return blockUserBackend(snap.data().fromUserId === user.uid ? snap.data().toUserId : snap.data().fromUserId);
+    await blockUserBackend(snap.data().fromUserId === user.uid ? snap.data().toUserId : snap.data().fromUserId);
+    return { status: 'blocked', roomId: '' };
   }
   if (!['accepted', 'rejected'].includes(status)) throw new Error('Unsupported decision.');
   const initial = await getDoc(doc(db, 'connections', connectionId));
   if (!initial.exists()) throw new Error('Request not found.');
   if (initial.data().toUserId !== user.uid) throw new Error('Only the recipient can decide this request.');
   const context = await getInteractionContext(initial.data().fromUserId, initial.data().listingId);
+  const acceptRoomId = deterministicChatRoomId(initial.data().fromUserId, initial.data().toUserId);
   await runTransaction(db, async tx => {
     const connRef = doc(db, 'connections', connectionId), snap = await tx.get(connRef);
     if (!snap.exists()) throw new Error('Request not found.');
@@ -1095,9 +1565,24 @@ export async function updateConnectionStatusBackend(connectionId: string, newSta
       const collectionName = c.listingId ? 'listingPairs' : 'acceptedPairs';
       tx.set(doc(db, collectionName, c.fromUserId + '_' + c.toUserId), { user1: c.fromUserId, user2: c.toUserId, connectionId, ...(c.listingId ? { listingId: c.listingId } : {}), createdAt: serverTimestamp() });
       tx.set(doc(db, collectionName, c.toUserId + '_' + c.fromUserId), { user1: c.toUserId, user2: c.fromUserId, connectionId, ...(c.listingId ? { listingId: c.listingId } : {}), createdAt: serverTimestamp() });
+      if (c.listingId) {
+        tx.set(doc(db, 'acceptedPairs', c.fromUserId + '_' + c.toUserId), { user1: c.fromUserId, user2: c.toUserId, connectionId, createdAt: serverTimestamp() });
+        tx.set(doc(db, 'acceptedPairs', c.toUserId + '_' + c.fromUserId), { user1: c.toUserId, user2: c.fromUserId, connectionId, createdAt: serverTimestamp() });
+      }
+      const roomRef = doc(db, 'chatRooms', acceptRoomId);
+      tx.set(roomRef, {
+        participants: [c.fromUserId, c.toUserId],
+        unlocked: true,
+        inboxBucketByUser: {
+          [c.fromUserId]: 'chats',
+          [c.toUserId]: 'chats',
+        },
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
     }
-    tx.set(doc(db, 'notifications', connectionId + '_' + status), { userId: c.fromUserId, actorId: user.uid, type: 'connect', title: status === 'accepted' ? 'Communication accepted' : 'Request declined', description: status === 'accepted' ? 'You can now message each other.' : 'Your request was declined.', connectionId, read: false, createdAt: serverTimestamp() });
+    tx.set(doc(db, 'notifications', connectionId + '_' + status), { userId: c.fromUserId, actorId: user.uid, type: 'connect', title: status === 'accepted' ? 'Communication accepted' : 'Request declined', description: status === 'accepted' ? 'You can now message each other.' : 'Your request was declined.', connectionId, ...(status === 'accepted' ? { roomId: acceptRoomId, inboxBox: 'chats', actionUrl: '/messages?box=chats&chat=' + encodeURIComponent(acceptRoomId) } : {}), read: false, createdAt: serverTimestamp() });
   });
+  return { status, roomId: acceptRoomId };
 }
 
 /**
@@ -1229,15 +1714,106 @@ export async function saveUserBookmarkBackend(id: string, isRoom: boolean, isSav
   });
 }
 
+const PROTECTED_USER_DOC_KEYS = new Set([
+  'uid',
+  'phone',
+  'email',
+  'workEmail',
+  'whatsappNumber',
+  'isVerified',
+  'isPremium',
+  'workEmailVerified',
+  'verificationLevel',
+  'verificationDetails',
+  'premiumSince',
+  'isAadhaarVerified',
+  'isWorkIdVerified',
+  'isStudentIdVerified',
+  'connectsUsed',
+  'connectsLimit',
+  'status',
+  'createdAt',
+]);
+
+/**
+ * Persist owner/seeker profile & matching preference updates to `users/{uid}`.
+ * Recovers via `setDoc` when an authenticated account is missing its initial user doc,
+ * and fills a safe display name before flipping `onboardingComplete` to `true`.
+ */
 export async function updateUserProfileBackend(profileData: Record<string, any>): Promise<void> {
   const user = auth.currentUser;
   if (!user) throw new Error('Sign in required to save changes.');
 
   const userRef = doc(db, 'users', user.uid);
-  await updateDoc(userRef, {
-    ...profileData,
-    updatedAt: serverTimestamp(),
-  });
+  const incomingName = typeof profileData?.name === 'string' ? profileData.name.trim() : '';
+  const fallbackName =
+    incomingName || user.displayName?.trim() || user.email?.split('@')[0] || 'NestMate Member';
+
+  let docExists: boolean | null = null;
+  try {
+    const snap = await getDoc(userRef);
+    docExists = snap.exists();
+
+    if (!docExists) {
+      const safeProfileData = Object.fromEntries(
+        Object.entries(profileData || {}).filter(([key]) => !PROTECTED_USER_DOC_KEYS.has(key))
+      );
+      await setDoc(userRef, {
+        uid: user.uid,
+        phone: '',
+        email: '',
+        workEmail: '',
+        role: null,
+        city: '',
+        localities: [],
+        budget: 0,
+        moveInDate: '',
+        profession: '',
+        company: '',
+        bio: '',
+        age: 0,
+        gender: '',
+        avatar: user.photoURL || '',
+        quizAnswers: {},
+        onboardingComplete: false,
+        isPremium: false,
+        connectsUsed: 0,
+        connectsLimit: 5,
+        verificationLevel: 0,
+        isVerified: false,
+        workEmailVerified: false,
+        savedProfileIds: [],
+        savedRoomIds: [],
+        skippedUserIds: [],
+        blockedUserIds: [],
+        status: 'active',
+        ...safeProfileData,
+        name: fallbackName,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      return;
+    }
+
+    const existingName = typeof snap.data()?.name === 'string' ? snap.data()!.name.trim() : '';
+    const payload: Record<string, any> = {
+      ...profileData,
+      updatedAt: serverTimestamp(),
+    };
+    if (payload.onboardingComplete === true && !incomingName && !existingName) {
+      payload.name = fallbackName;
+    }
+
+    await updateDoc(userRef, payload);
+  } catch (err: any) {
+    console.error('updateUserProfileBackend failed:', {
+      code: err?.code,
+      message: err?.message,
+      docExists,
+      payloadKeys: Object.keys(profileData || {}),
+    });
+    throw err;
+  }
 }
 
 export async function uploadProfileAvatarBackend(file: File): Promise<string> {
@@ -1548,15 +2124,75 @@ export async function adminResolveReportBackend(reportId: string, action: string
   await updateDoc(ref, { status: action, ...(outcome ? { outcome } : {}), resolvedAt: serverTimestamp() });
 }
 
-export async function submitApplicationBackend(listingId: string, answers: Record<string, string> = {}): Promise<string> {
+async function hasFirebaseFunctions(): Promise<boolean> {
+  const fb = (await import('./firebase')) as Record<string, unknown>;
+  return Boolean(fb && Object.keys(fb).includes('functions') && fb.functions);
+}
+
+const submittedApplicationRooms = new Map<string, { applicationId: string; roomId: string; unlocked: boolean; inboxBox: string }>();
+
+export function getSubmittedApplicationRoom(applicationId: string) {
+  return submittedApplicationRooms.get(applicationId) || null;
+}
+
+export async function submitApplicationChatBackend(
+  listingId: string,
+  answers: Record<string, string> = {},
+  options?: { note?: string; moveIn?: string }
+): Promise<{ applicationId: string; roomId: string; status: string; unlocked: boolean; inboxBox: string; alreadyExists?: boolean }> {
   const user = auth.currentUser;
   if (!user) throw new Error('Sign in to apply.');
+  if (!listingId) throw new Error('Listing unavailable.');
+  const res = await submitRoomApplicationCallable({
+    listingId,
+    answers,
+    note: options?.note || '',
+    moveIn: options?.moveIn || '',
+  });
+  if (res?.applicationId && res?.roomId) {
+    submittedApplicationRooms.set(res.applicationId, {
+      applicationId: res.applicationId,
+      roomId: res.roomId,
+      unlocked: Boolean(res.unlocked),
+      inboxBox: res.inboxBox || (res.unlocked ? 'chats' : 'requests'),
+    });
+  }
+  return res;
+}
+
+export async function decideApplicationChatBackend(
+  applicationId: string,
+  next: ApplicationStatus,
+  reason = ''
+): Promise<{ applicationId: string; roomId: string; status: string; unlocked: boolean; inboxBox: string; alreadyInState?: boolean }> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Sign in required.');
+  const res = await decideRoomApplicationCallable({ applicationId, nextStatus: next, reason });
+  if (res?.applicationId && res?.roomId) {
+    submittedApplicationRooms.set(res.applicationId, {
+      applicationId: res.applicationId,
+      roomId: res.roomId,
+      unlocked: Boolean(res.unlocked),
+      inboxBox: res.inboxBox || (res.unlocked ? 'chats' : 'requests'),
+    });
+  }
+  return res;
+}
+
+export async function submitApplicationBackend(listingId: string, answers: Record<string, string> = {}, options?: { note?: string; moveIn?: string }): Promise<string> {
+  if (await hasFirebaseFunctions()) {
+    const res = await submitApplicationChatBackend(listingId, answers, options);
+    return res.applicationId;
+  }
+  const user = auth.currentUser;
+  if (!user) throw new Error('Sign in to apply.');
+  if (!listingId) throw new Error('Listing unavailable.');
   const placeSnapshot = gatewayDocument((await readDiscovery({action:'place',id:listingId})).record);
+  if (!placeSnapshot.exists() || !placeSnapshot.data()?.ownerId) throw new Error('Listing unavailable.');
   const context = await getInteractionContext(placeSnapshot.data().ownerId, listingId);
   const application = doc(collection(db, 'applications'));
   const lockRef = doc(db, 'applicationLocks', listingId + '___' + user.uid);
   return runTransaction(db, async tx => {
-    const listingRef = doc(db, 'listings', listingId);
     const listing = placeSnapshot;
     const [applicant, lock] = await Promise.all([tx.get(doc(db, 'users', user.uid)), tx.get(lockRef)]);
     if (!listing.exists()) throw new Error('Listing unavailable.');
@@ -1568,14 +2204,126 @@ export async function submitApplicationBackend(listingId: string, answers: Recor
     const questions: string[] = place.screeningQuestions || [];
     const submittedAnswers = Object.fromEntries(questions.map(q => [q, String(answers[q] || '').trim()]));
     if (questions.some(q => !submittedAnswers[q] || submittedAnswers[q].length > 2000)) throw new Error('Answer every screening question (up to 2000 characters each).');
-    tx.set(application, { listingId, applicantId: user.uid, ownerId: place.ownerId, status: 'pending', listingVersion: place.updatedAt || place.createdAt || null, screeningAnswers: submittedAnswers, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    const cleanNote = String(options?.note || '').trim().slice(0, 2000);
+    const cleanMoveIn = String(options?.moveIn || '').trim().slice(0, 64);
+    const canonicalMatch = calculateCanonicalRoomCompatibility(applicant.data(), { ...place, id: listingId }, owner.data());
+    tx.set(application, {
+      listingId,
+      applicantId: user.uid,
+      ownerId: place.ownerId,
+      status: 'pending',
+      listingVersion: place.updatedAt || place.createdAt || null,
+      screeningAnswers: submittedAnswers,
+      matchScore: canonicalMatch.score,
+      matchReasons: canonicalMatch.reasons.slice(0, 4),
+      ...(cleanNote ? { note: cleanNote } : {}),
+      ...(cleanMoveIn ? { moveIn: cleanMoveIn } : {}),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
     tx.set(lockRef, { listingId, applicantId: user.uid, applicationId: application.id });
-    tx.set(doc(db, 'notifications', application.id + '_pending'), { userId: place.ownerId, actorId: user.uid, type: 'application', title: 'Application received', description: 'A member applied to your listing.', applicationId: application.id, listingId, read: false, createdAt: serverTimestamp() });
+    const applicantLabel = String(applicant.data().name || user.displayName || 'A member').trim();
+    const noteSnippet = cleanNote ? (cleanNote.length > 140 ? cleanNote.slice(0, 137) + '...' : cleanNote) : '';
+    const notifDesc = [cleanMoveIn ? 'Move-in: ' + cleanMoveIn : '', noteSnippet].filter(Boolean).join(' · ')
+      || `${applicantLabel} applied to ${place.title || 'your listing'}.`;
+    tx.set(doc(db, 'notifications', application.id + '_pending'), { userId: place.ownerId, actorId: user.uid, type: 'application', title: 'Application received', description: notifDesc.slice(0, 500), applicationId: application.id, listingId, read: false, createdAt: serverTimestamp() });
     return application.id;
   });
 }
 
-export async function updateApplicationStatusBackend(applicationId: string, next: ApplicationStatus): Promise<void> {
+export function subscribeUserApplications(applicantId: string, onUpdate: (items: any[]) => void): () => void {
+  let disposed = false, generation = 0;
+  const placeCache = new Map<string, any>();
+  const q = query(collection(db, 'applications'), where('applicantId', '==', applicantId));
+  const unsub = onSnapshot(q, async snap => {
+    try {
+      const version = ++generation;
+      const items = await Promise.all(snap.docs.map(async d => {
+        const data = d.data();
+        let listing = data.listingId ? placeCache.get(data.listingId) : null;
+        if (!listing && data.listingId) {
+          try {
+            const placeSnap = gatewayDocument((await readDiscovery({ action: 'place', id: data.listingId })).record);
+            if (placeSnap.exists()) {
+              const p = placeSnap.data();
+              listing = {
+                title: p.title || 'Room Listing',
+                loc: p.locality || p.city || '',
+                rent: listingRent(p) ?? 0,
+                photo: p.images?.[0] || '',
+                ownerId: p.ownerId || data.ownerId || '',
+                ownerName: p.ownerName || 'Host',
+                ownerAvatar: p.ownerAvatar || p.ownerPhoto || '',
+                ownerVerified: p.isOwnerVerified === true,
+                viewerCompatibility: p.viewerCompatibility || null,
+              };
+            }
+          } catch {
+            listing = null;
+          }
+          placeCache.set(data.listingId, listing || {
+            title: 'Room Listing',
+            loc: '',
+            rent: 0,
+            photo: '',
+            ownerId: data.ownerId || '',
+            ownerName: 'Host',
+            ownerAvatar: '',
+            ownerVerified: false,
+          });
+          listing = placeCache.get(data.listingId);
+        }
+        const createdMs = data.createdAt?.toMillis?.() || (data.createdAt?.seconds ? data.createdAt.seconds * 1000 : 0);
+        const updatedMs = data.updatedAt?.toMillis?.() || (data.updatedAt?.seconds ? data.updatedAt.seconds * 1000 : createdMs);
+        const dateLabel = createdMs ? new Date(createdMs).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }) : 'Recently';
+        return {
+          id: d.id,
+          listingId: data.listingId || '',
+          ownerId: data.ownerId || listing?.ownerId || '',
+          hostUid: data.ownerId || listing?.ownerId || '',
+          ownerName: listing?.ownerName || 'Host',
+          hostName: listing?.ownerName || 'Host',
+          ownerAvatar: listing?.ownerAvatar || '',
+          ownerVerified: !!listing?.ownerVerified,
+          listingTitle: listing?.title || 'Room Listing',
+          listingLocality: listing?.loc || '',
+          listingLoc: listing?.loc || '',
+          listingRent: listing?.rent || 0,
+          listingPhoto: listing?.photo || '',
+          status: data.status || 'pending',
+          roomId: data.roomId || (applicantId && (data.ownerId || listing?.ownerId) ? deterministicChatRoomId(applicantId, data.ownerId || listing?.ownerId) : ''),
+          decisionReason: typeof data.decisionReason === 'string' ? data.decisionReason : '',
+          moveIn: typeof data.moveIn === 'string' ? data.moveIn : '',
+          note: typeof data.note === 'string' ? data.note : '',
+          screeningAnswers: data.screeningAnswers || {},
+          matchScore: typeof listing?.viewerCompatibility?.score === 'number'
+            ? listing.viewerCompatibility.score
+            : (typeof data.matchScore === 'number' && Number.isFinite(data.matchScore) ? data.matchScore : undefined),
+          matchReasons: Array.isArray(listing?.viewerCompatibility?.reasons)
+            ? listing.viewerCompatibility.reasons
+            : (Array.isArray(data.matchReasons) ? data.matchReasons : []),
+          updatedAtMs: updatedMs,
+          appliedAt: dateLabel,
+          createdAt: dateLabel,
+        };
+      }));
+      items.sort((a, b) => (b.updatedAtMs || 0) - (a.updatedAtMs || 0));
+      if (!disposed && version === generation) onUpdate(items);
+    } catch {
+      // keep existing state on transient error
+    }
+  }, () => {});
+  return () => {
+    disposed = true;
+    unsub();
+  };
+}
+
+export async function updateApplicationStatusBackend(applicationId: string, next: ApplicationStatus, reason = ''): Promise<void> {
+  if (await hasFirebaseFunctions()) {
+    await decideApplicationChatBackend(applicationId, next, reason);
+    return;
+  }
   const user = auth.currentUser;
   if (!user) throw new Error('Sign in required.');
   await runTransaction(db, async tx => {
@@ -1679,11 +2427,7 @@ export async function loadOlderMessagesBackend(roomId: string, cursor: QueryDocu
   const user=auth.currentUser;
   if(!user)throw new Error('Sign in required.');
   const page=await getDocs(query(collection(db,'chatRooms',roomId,'messages'),orderBy('createdAt','desc'),startAfter(cursor),limit(50)));
-  const objectUrls:string[]=[];
-  const messages=await Promise.all([...page.docs].reverse().map(async snap=>{
-    const data=snap.data(),date=data.createdAt?.toDate?.();let image=data.imageUrl||'';
-    if(data.imagePath)try{const blob=await getBlob(ref(storage,data.imagePath),10*1024*1024);if(['image/jpeg','image/png','image/webp'].includes(blob.type)){image=URL.createObjectURL(blob);objectUrls.push(image);}else image='';}catch{image='';}
-    return [data.senderId===user.uid?'me':'t',data.content||(data.imagePath&&!image?'Attachment unavailable':''),image,date?date.toLocaleDateString():'Unknown date',date?date.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'',snap.id,data.createdAt?.toMillis?.()||0];
-  }));
-  return {messages,cursor:page.docs[page.docs.length-1]||null,hasOlder:page.docs.length===50,objectUrls};
+  const objectUrls = new Set<string>(), imageCache = new Map<string, string>();
+  const messages = await mapConcurrent([...page.docs].reverse(), 3, snap => mapLiveChatMessage(snap, user.uid, imageCache, objectUrls));
+  return {messages,cursor:page.docs[page.docs.length-1]||null,hasOlder:page.docs.length===50,objectUrls:[...objectUrls]};
 }

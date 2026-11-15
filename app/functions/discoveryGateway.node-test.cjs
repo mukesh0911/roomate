@@ -7,7 +7,7 @@ function harness(extra={}) {
  const member={name:'Member',status:'active',onboardingComplete:true,roommateDiscoveryEnabled:true,housingPreferences:{activeIntents:['team_up']}};
  const records={'users/a':{...member},'users/b':{...member,email:'private',quiz:{secret:'private'},unknown:{private:true}},'listings/room':{ownerId:'b',title:'Room',status:'active',monthlyRent:12000,ownerName:'legacy identity',contact:'private',unknown:'private'},...extra};
  const snap=path=>({id:path.split('/').at(-1),exists:!!records[path],data:()=>records[path]});
- const query=(collection,filters=[])=>({where:(key,_op,value)=>query(collection,[...filters,[key,value]]),orderBy:()=>query(collection,filters),limit:()=>query(collection,filters),get:async()=>{const docs=Object.keys(records).filter(path=>path.startsWith(collection+'/')&&filters.every(([key,value])=>records[path][key]===value)).map(snap);return{docs,empty:!docs.length,size:docs.length};}});
+ const query=(collection,filters=[],after=null,cap=null)=>({where:(key,_op,value)=>query(collection,[...filters,[key,value]],after,cap),orderBy:()=>query(collection,filters,after,cap),startAfter:(cursor)=>query(collection,filters,cursor.id,cap),limit:(n)=>query(collection,filters,after,n),get:async()=>{let keys=Object.keys(records).filter(path=>path.startsWith(collection+'/')&&filters.every(([key,value])=>records[path][key]===value));if(after){const idx=keys.indexOf(collection+'/'+after);keys=idx>=0?keys.slice(idx+1):keys;}if(cap!=null)keys=keys.slice(0,cap);const docs=keys.map(snap);return{docs,empty:!docs.length,size:docs.length};}});
  return {records,reads,...createDiscoveryGateway({getDb:()=>({doc:path=>({get:async()=>{reads[path]=(reads[path]||0)+1;return snap(path);}}),collection:name=>query(name)}),HttpsError})};
 }
 test('physical projection excludes identity anonymously and all unknown private fields',()=>{
@@ -79,4 +79,34 @@ test('historical room members resolve opted-out peers without gaining send permi
 test('foreign, mismatched and fabricated rooms never disclose private peer identity',async()=>{
  const h=harness({'chatRooms/foreign':{participants:['b','c']},'chatRooms/mismatch':{participants:['a','c']},'chatRooms/group':{participants:['a','b','c']}});h.records['users/b'].roommateDiscoveryEnabled=false;
  for(const roomId of ['foreign','mismatch','group','absent'])await assert.rejects(h.interaction({auth:{uid:'a'},data:{targetUid:'b',roomId}}),{code:'permission-denied'});
+});
+
+test('people discovery includes active accounts that omit status and excludes suspended accounts across cursor pages',async()=>{
+ const h=harness({
+  'users/a':{name:'Viewer',status:'active',onboardingComplete:true,roommateDiscoveryEnabled:true,city:'Bengaluru'},
+  'users/b':{name:'Neha',onboardingComplete:true,roommateDiscoveryEnabled:true,city:'Bengaluru',housingPreferences:{activeIntents:['team_up']}},
+  'users/c':{name:'Rohan',onboardingComplete:true,roommateDiscoveryEnabled:true,city:'Bengaluru',housingPreferences:{activeIntents:['team_up']}},
+  'users/d':{name:'Blocked',status:'suspended',onboardingComplete:true,roommateDiscoveryEnabled:true,city:'Bengaluru',housingPreferences:{activeIntents:['team_up']}},
+ });
+ const page1=await h.read({auth:{uid:'a'},data:{action:'people',city:'Bengaluru',limit:2}});
+ assert.deepEqual(page1.records.map(r=>r.uid),['b']);
+ assert.equal(page1.cursor,'b');
+ const page2=await h.read({auth:{uid:'a'},data:{action:'people',city:'Bengaluru',cursor:page1.cursor,limit:5}});
+ assert.deepEqual(page2.records.map(r=>r.uid),['c']);
+});
+
+test('application-backed listingPairs unlock interaction when selected and respect revocation',async()=>{
+ const h=harness({
+  'applications/app1':{listingId:'room',applicantId:'a',ownerId:'b',status:'selected',updatedAt:{toMillis:()=>5000}},
+  'listingPairs/a_b':{user1:'a',user2:'b',listingId:'room',applicationId:'app1'},
+ });
+ const ok=await h.interaction({auth:{uid:'a'},data:{targetUid:'b',listingId:'room'}});
+ assert.equal(ok.accepted,true);
+ h.records['applications/app1'].status='shortlisted';
+ const locked=await h.interaction({auth:{uid:'a'},data:{targetUid:'b',listingId:'room'}});
+ assert.equal(locked.accepted,false);
+ h.records['applications/app1'].status='selected';
+ h.records['users/b'].communicationRevokedAt={a:{toMillis:()=>9000}};
+ const revoked=await h.interaction({auth:{uid:'a'},data:{targetUid:'b',listingId:'room'}});
+ assert.equal(revoked.accepted,false);
 });

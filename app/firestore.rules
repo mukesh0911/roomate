@@ -32,11 +32,11 @@ service cloud.firestore {
         : (exists(/databases/$(database)/documents/admins/$(request.auth.token.get('email', '').lower()))
           && get(/databases/$(database)/documents/admins/$(request.auth.token.get('email', '').lower())).data.get('active', true) == true
           && get(/databases/$(database)/documents/admins/$(request.auth.token.get('email', '').lower())).data.get('enabled', true) == true
-          && get(/databases/$(database)/documents/admins/$(request.auth.token.get('email', '').lower())).data.get('role', 'admin').lower() in ['admin', 'moderator']);
+          && get(/databases/$(database)/documents/admins/$(request.auth.token.get('email', '').lower())).data.get('role', 'admin').lower() in ['admin', 'moderator', 'superadmin']);
     }
 
     function isAdmin() {
-      return isStaff() && get(/databases/$(database)/documents/admins/$(request.auth.token.get('email', '').lower())).data.get('role', 'admin').lower() == 'admin';
+      return isStaff() && get(/databases/$(database)/documents/admins/$(request.auth.token.get('email', '').lower())).data.get('role', 'admin').lower() in ['admin', 'superadmin'];
     }
     function isModerator() { return isStaff(); }
     function myUserDoc() {
@@ -409,7 +409,9 @@ service cloud.firestore {
 
     function completedProfileCanCreateListing() {
       return exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && myUserDoc().get('onboardingComplete', false) == true;
+        && myUserDoc().get('status', 'active') == 'active'
+        && myUserDoc().get('name', '') is string
+        && myUserDoc().get('name', '').size() >= 2;
     }
 
     // A new listing MUST start with ownerVerified=false and status=pending_verification.
@@ -547,6 +549,27 @@ service cloud.firestore {
     // Chat rooms: only participants or admin can read/write.
     // Creation requires exactly two participants including the caller,
     // and an active (non-suspended) creator.
+    function pairConsentFresh(uA, uB, dA, dB, ts, includePersonRevoke) {
+      return ts >= dA.get('communicationRevokedAt', {}).get(uB, timestamp.value(0))
+        && ts >= dB.get('communicationRevokedAt', {}).get(uA, timestamp.value(0))
+        && (!includePersonRevoke || (
+          ts >= dA.get('personCommunicationRevokedAt', {}).get(uB, timestamp.value(0))
+          && ts >= dB.get('personCommunicationRevokedAt', {}).get(uA, timestamp.value(0))
+        ));
+    }
+
+    function acceptedPairActiveWithUsers(userA, userB, dataA, dataB) {
+      let pair = get(/databases/$(database)/documents/acceptedPairs/$(userA + '_' + userB));
+      let connDoc = pair != null && pair.data.user1 == userA && pair.data.user2 == userB
+        ? get(/databases/$(database)/documents/connections/$(pair.data.connectionId))
+        : null;
+      return connDoc != null
+        && connDoc.data.status == 'accepted'
+        && connDoc.data.fromUserId in [userA, userB]
+        && connDoc.data.toUserId in [userA, userB]
+        && pairConsentFresh(userA, userB, dataA, dataB, connDoc.data.get('createdAt', timestamp.value(0)), connDoc.data.get('listingId', '') == '');
+    }
+
     function acceptedPairActive(userA, userB) {
       let pair = get(/databases/$(database)/documents/acceptedPairs/$(userA + '_' + userB));
       let connection = pair == null ? null : get(/databases/$(database)/documents/connections/$(pair.data.connectionId));
@@ -554,12 +577,30 @@ service cloud.firestore {
         && connection != null && connection.data.status == 'accepted' && consentFresh(connection.data);
     }
 
-    function listingPairActive(userA, userB) {
+    function listingPairActiveWithUsers(userA, userB, dataA, dataB) {
       let pair = get(/databases/$(database)/documents/listingPairs/$(userA + '_' + userB));
-      let connection = pair == null ? null : get(/databases/$(database)/documents/connections/$(pair.data.connectionId));
-      return pair != null && pair.data.user1 == userA && pair.data.user2 == userB
-        && connection != null && connection.data.status == 'accepted'
-        && connection.data.get('listingId', '') == pair.data.listingId && consentFresh(connection.data);
+      let hasPair = pair != null && pair.data.user1 == userA && pair.data.user2 == userB;
+      let connId = hasPair ? pair.data.get('connectionId', '') : '';
+      let appId = hasPair && connId == '' ? pair.data.get('applicationId', '') : '';
+      let connDoc = connId != '' ? get(/databases/$(database)/documents/connections/$(connId)) : null;
+      let appDoc = appId != '' ? get(/databases/$(database)/documents/applications/$(appId)) : null;
+      let pairListingId = hasPair ? pair.data.get('listingId', '') : '';
+      return (
+        connDoc != null
+        && connDoc.data.status == 'accepted'
+        && connDoc.data.fromUserId in [userA, userB]
+        && connDoc.data.toUserId in [userA, userB]
+        && connDoc.data.get('listingId', '') == pairListingId
+        && pairConsentFresh(userA, userB, dataA, dataB, connDoc.data.get('createdAt', timestamp.value(0)), false)
+      ) || (
+        appDoc != null
+        && appDoc.data.status == 'selected'
+        && pairListingId != ''
+        && appDoc.data.get('listingId', '') == pairListingId
+        && appDoc.data.applicantId in [userA, userB]
+        && appDoc.data.ownerId in [userA, userB]
+        && pairConsentFresh(userA, userB, dataA, dataB, appDoc.data.get('updatedAt', appDoc.data.get('createdAt', timestamp.value(0))), false)
+      );
     }
 
     match /listingPairs/{pairId} {
@@ -595,8 +636,9 @@ service cloud.firestore {
           || !consentFresh(get(/databases/$(database)/documents/connections/$(resource.data.connectionId)).data));
     }
 
-    function acceptedPairExists(userA, userB) {
-      return acceptedPairActive(userA, userB) || acceptedPairActive(userB, userA);
+    function acceptedPairExistsWithUsers(userA, userB, dataA, dataB) {
+      return acceptedPairActiveWithUsers(userA, userB, dataA, dataB)
+        || acceptedPairActiveWithUsers(userB, userA, dataB, dataA);
     }
 
     function chatParticipantsUnchanged() {
@@ -604,13 +646,39 @@ service cloud.firestore {
     }
 
     function activeChatParticipants(participants) {
-      let sender = get(/databases/$(database)/documents/users/$(participants[0]));
-      let recipient = get(/databases/$(database)/documents/users/$(participants[1]));
-      return participants is list && participants.size() == 2 && sender != null && recipient != null
-        && sender.data.get('status', 'active') == 'active' && recipient.data.get('status', 'active') == 'active'
-        && !(participants[1] in sender.data.get('blockedUserIds', []))
-        && !(participants[0] in recipient.data.get('blockedUserIds', []))
-        && (listingPairActive(participants[0], participants[1]) || listingPairActive(participants[1], participants[0]) || acceptedPairExists(participants[0], participants[1]));
+      let validPair = participants is list && participants.size() == 2 && participants[0] != participants[1];
+      let p0 = validPair ? participants[0] : '';
+      let p1 = validPair ? participants[1] : '';
+      let sender = validPair ? get(/databases/$(database)/documents/users/$(p0)) : null;
+      let recipient = validPair ? get(/databases/$(database)/documents/users/$(p1)) : null;
+      return validPair && sender != null && recipient != null
+        && sender.data.get('status', 'active') == 'active'
+        && recipient.data.get('status', 'active') == 'active'
+        && !(p1 in sender.data.get('blockedUserIds', []))
+        && !(p0 in recipient.data.get('blockedUserIds', []))
+        && (
+          listingPairActiveWithUsers(p0, p1, sender.data, recipient.data)
+          || listingPairActiveWithUsers(p1, p0, recipient.data, sender.data)
+          || acceptedPairExistsWithUsers(p0, p1, sender.data, recipient.data)
+        );
+    }
+
+    function chatRoomMessageUpdateValid(roomId, roomData) {
+      let msgData = getAfter(/databases/$(database)/documents/chatRooms/$(roomId)/messages/$(request.resource.data.lastMessageId)).data;
+      let otherUid = roomData.participants[0] == request.auth.uid ? roomData.participants[1] : roomData.participants[0];
+      return request.resource.data.lastMessageAt == request.time
+        && msgData.senderId == request.auth.uid
+        && request.resource.data.lastMessage == (msgData.content == '' ? 'Photo' : msgData.content)
+        && request.resource.data.unreadBy.diff(roomData.get('unreadBy', {})).affectedKeys().hasOnly([otherUid])
+        && !exists(/databases/$(database)/documents/chatRooms/$(roomId)/messages/$(request.resource.data.lastMessageId))
+        && request.resource.data.unreadBy[otherUid] == roomData.get('unreadBy', {}).get(otherUid, 0) + 1;
+    }
+
+    function activeRoomAccess(roomId) {
+      let room = get(/databases/$(database)/documents/chatRooms/$(roomId));
+      return room != null
+        && request.auth.uid in room.data.participants
+        && activeChatParticipants(room.data.participants);
     }
 
     match /conversationPairs/{key} {
@@ -624,39 +692,59 @@ service cloud.firestore {
     match /chatRooms/{roomId} {
       allow get: if isAuthenticated() && resource == null;
       allow read: if isAuthenticated() && (request.auth.uid in resource.data.participants || isAdmin());
-      allow create: if isAdmin() || (
-        isAuthenticated()
-        && isActiveUser()
-        && request.resource.data.participants is list
-        && request.resource.data.participants.size() == 2
-        && request.resource.data.participants[0] != request.resource.data.participants[1]
-        && request.auth.uid in request.resource.data.participants
-        && activeChatParticipants(request.resource.data.participants)
-        && getAfter(/databases/$(database)/documents/conversationPairs/$(request.resource.data.participants[0] + '___' + request.resource.data.participants[1])).data.roomId == roomId
-        && getAfter(/databases/$(database)/documents/conversationPairs/$(request.resource.data.participants[1] + '___' + request.resource.data.participants[0])).data.roomId == roomId
-      );
+      allow create: if isAdmin()
+        // Path 1: Normal chat creation with existing activeChatParticipants + conversationPairs
+        || (
+          isAuthenticated()
+          && isActiveUser()
+          && request.resource.data.participants is list
+          && request.resource.data.participants.size() == 2
+          && request.resource.data.participants[0] != request.resource.data.participants[1]
+          && request.auth.uid in request.resource.data.participants
+          && activeChatParticipants(request.resource.data.participants)
+          && getAfter(/databases/$(database)/documents/conversationPairs/$(request.resource.data.participants[0] + '___' + request.resource.data.participants[1])).data.roomId == roomId
+          && getAfter(/databases/$(database)/documents/conversationPairs/$(request.resource.data.participants[1] + '___' + request.resource.data.participants[0])).data.roomId == roomId
+        )
+        // Path 2: Connection-acceptance — toUserId (owner) atomically accepts connection and
+        // creates chatRoom in the same transaction; listingPairs/acceptedPairs are written
+        // atomically so existsAfter() verifies the whole transaction is consistent.
+        || (
+          isAuthenticated()
+          && isActiveUser()
+          && request.resource.data.participants is list
+          && request.resource.data.participants.size() == 2
+          && request.resource.data.participants[0] != request.resource.data.participants[1]
+          && request.auth.uid in request.resource.data.participants
+          && request.resource.data.get('unlocked', false) == true
+          && exists(/databases/$(database)/documents/users/$(request.resource.data.participants[0]))
+          && exists(/databases/$(database)/documents/users/$(request.resource.data.participants[1]))
+          && (
+            existsAfter(/databases/$(database)/documents/listingPairs/$(request.resource.data.participants[0] + '_' + request.resource.data.participants[1]))
+            || existsAfter(/databases/$(database)/documents/listingPairs/$(request.resource.data.participants[1] + '_' + request.resource.data.participants[0]))
+            || existsAfter(/databases/$(database)/documents/acceptedPairs/$(request.resource.data.participants[0] + '_' + request.resource.data.participants[1]))
+            || existsAfter(/databases/$(database)/documents/acceptedPairs/$(request.resource.data.participants[1] + '_' + request.resource.data.participants[0]))
+          )
+        );
       allow update: if isAdmin() || (
         isAuthenticated()
         && request.auth.uid in resource.data.participants
         && chatParticipantsUnchanged()
         && (
-          (activeChatParticipants(resource.data.participants)
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['listingContexts','contextListingId'])
-            && request.resource.data.listingContexts.toSet().difference(resource.data.get('listingContexts', []).toSet()).hasOnly([request.resource.data.contextListingId])
-            && resource.data.get('listingContexts', []).toSet().difference(request.resource.data.listingContexts.toSet()).size() == 0
-            && get(/databases/$(database)/documents/listings/$(request.resource.data.contextListingId)).data.ownerId in resource.data.participants
-            && get(/databases/$(database)/documents/listings/$(request.resource.data.contextListingId)).data.ownerId != request.auth.uid)
-          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unreadBy'])
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unreadBy'])
             && request.resource.data.unreadBy.diff(resource.data.get('unreadBy', {})).affectedKeys().hasOnly([request.auth.uid])
             && request.resource.data.unreadBy[request.auth.uid] == 0)
-          || (activeChatParticipants(resource.data.participants)
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'lastMessageAt', 'lastMessageId', 'unreadBy'])
-            && request.resource.data.lastMessageAt == request.time
-            && getAfter(/databases/$(database)/documents/chatRooms/$(roomId)/messages/$(request.resource.data.lastMessageId)).data.senderId == request.auth.uid
-            && request.resource.data.lastMessage == (getAfter(/databases/$(database)/documents/chatRooms/$(roomId)/messages/$(request.resource.data.lastMessageId)).data.content == '' ? 'Photo' : getAfter(/databases/$(database)/documents/chatRooms/$(roomId)/messages/$(request.resource.data.lastMessageId)).data.content)
-            && request.resource.data.unreadBy.diff(resource.data.get('unreadBy', {})).affectedKeys().hasOnly([resource.data.participants[0] == request.auth.uid ? resource.data.participants[1] : resource.data.participants[0]])
-            && !exists(/databases/$(database)/documents/chatRooms/$(roomId)/messages/$(request.resource.data.lastMessageId))
-            && request.resource.data.unreadBy[resource.data.participants[0] == request.auth.uid ? resource.data.participants[1] : resource.data.participants[0]] == resource.data.get('unreadBy', {}).get(resource.data.participants[0] == request.auth.uid ? resource.data.participants[1] : resource.data.participants[0], 0) + 1)
+          || (
+            (
+              (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['listingContexts','contextListingId'])
+                && request.resource.data.listingContexts.toSet().difference(resource.data.get('listingContexts', []).toSet()).hasOnly([request.resource.data.contextListingId])
+                && resource.data.get('listingContexts', []).toSet().difference(request.resource.data.listingContexts.toSet()).size() == 0
+                && get(/databases/$(database)/documents/listings/$(request.resource.data.contextListingId)).data.ownerId in resource.data.participants
+                && get(/databases/$(database)/documents/listings/$(request.resource.data.contextListingId)).data.ownerId != request.auth.uid)
+              || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'lastMessageAt', 'lastMessageId', 'unreadBy'])
+                && chatRoomMessageUpdateValid(roomId, resource.data))
+            )
+            && activeChatParticipants(resource.data.participants)
+          )
         )
       );
       allow delete: if isAuthenticated() && (request.auth.uid in resource.data.participants || isAdmin());
@@ -665,26 +753,25 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read: if isAuthenticated() && (request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(roomId)).data.participants || isAdmin());
         allow create: if isAuthenticated()
-          && isActiveUser()
-          && (request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(roomId)).data.participants || isAdmin())
-          && activeChatParticipants(get(/databases/$(database)/documents/chatRooms/$(roomId)).data.participants)
           && request.resource.data.senderId == request.auth.uid
-          && getAfter(/databases/$(database)/documents/chatRooms/$(roomId)).data.lastMessageId == messageId
           && request.resource.data.content is string && request.resource.data.content.size() <= 10000
           && request.resource.data.get('imageUrl', '') == ''
           && (request.resource.data.get('imagePath', '') == '' || request.resource.data.imagePath.matches('chats/' + roomId + '/' + request.auth.uid + '/[a-zA-Z0-9-]+'))
           && (request.resource.data.content.size() > 0 || request.resource.data.get('imagePath', '') != '')
-          && request.resource.data.createdAt == request.time;
+          && request.resource.data.createdAt == request.time
+          && isActiveUser()
+          && getAfter(/databases/$(database)/documents/chatRooms/$(roomId)).data.lastMessageId == messageId
+          && activeRoomAccess(roomId);
         // Participants may mark read; sender may edit own message content; admins unrestricted
         allow update: if isAdmin() || (
           isAuthenticated()
-          && request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(roomId)).data.participants
           && (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+              && request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(roomId)).data.participants)
             || (
               request.auth.uid == resource.data.senderId
-              && activeChatParticipants(get(/databases/$(database)/documents/chatRooms/$(roomId)).data.participants)
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['content', 'editedAt'])
+              && activeRoomAccess(roomId)
             )
           )
         );

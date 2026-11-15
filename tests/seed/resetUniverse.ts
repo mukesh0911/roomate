@@ -24,6 +24,7 @@ export async function resetTestUniverse(): Promise<ResetResult> {
 
   const protectedAccounts = [
     'mukvr46@gmail.com',
+    'mrmukeshram111@gmail.com',
     'seeker@example.com',
   ];
 

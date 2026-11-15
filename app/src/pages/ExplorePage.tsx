@@ -119,12 +119,16 @@ export default function ExplorePage({ initialNav = 'explore' }: ExplorePageProps
             <div className="ctl" id="ctl">
               <select className="pill" id="sort" aria-label="Sort">
                 <option value="m">Best match</option>
+                <option value="recent">Active recently</option>
                 <option value="a">Price: low to high</option>
                 <option value="d">Price: high to low</option>
               </select>
               <button className="pill" id="fb">
                 <svg className="i" style={{ width: '18px', height: '18px' }} viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
                 Filters<span className="cnt" id="cnt">0</span>
+              </button>
+              <button className="pill" id="hm" type="button" aria-pressed="false" title="Filter to 70%+ compatibility matches">
+                70%+ Best matches
               </button>
               <div className="vt">
                 <button aria-pressed="true" data-v="grid" aria-label="Grid view">
@@ -177,6 +181,144 @@ export default function ExplorePage({ initialNav = 'explore' }: ExplorePageProps
           <aside className="pfp" id="pfp"></aside>
         </div>
         <div className="pfbar" id="pfbar"></div>
+      </div>
+      {/* Quick 2-Option Chooser for the + Button */}
+      <div className="ov" id="nm-chooser-ov" role="dialog" aria-modal="true" aria-label="Choose posting option">
+        <div className="nm-chooser-card">
+          <div className="nm-chooser-header">
+            <div>
+              <h3>What would you like to post?</h3>
+              <p>Choose your marketplace goal on NestMate</p>
+            </div>
+            <button type="button" className="nm-chooser-close" data-close-chooser="1" aria-label="Close dialog">&times;</button>
+          </div>
+          <div className="nm-chooser-options">
+            <button type="button" className="nm-option-card" data-chooser-action="post-room">
+              <div className="nm-option-icon" style={{ background: '#fff3e0', color: '#e65100' }}>🏠</div>
+              <div className="nm-option-text">
+                <b>Post a Room</b>
+                <span>I have an available flat, room or PG to rent out or share with flatmates</span>
+              </div>
+              <span className="nm-option-arrow">→</span>
+            </button>
+            <button type="button" className="nm-option-card" data-chooser-action="post-pref">
+              <div className="nm-option-icon" style={{ background: '#e3f2fd', color: '#1565c0' }}>🔍</div>
+              <div className="nm-option-text">
+                <b>Post Requirement / Match Preferences</b>
+                <span>I am looking for a room, flat, or flatmates to team up with</span>
+              </div>
+              <span className="nm-option-arrow">→</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      {/* Fast 2-Step Budget & Locality Drawer */}
+      <div className="ov" id="nm-fast-prefs-ov" role="dialog" aria-modal="true" aria-label="Quick Matching Preferences">
+        <div className="nm-drawer-card">
+          <div className="nm-chooser-header">
+            <div>
+              <span className="nm-drawer-badge">Quick 30-Sec Setup</span>
+              <h3>Personalized Match Settings</h3>
+              <p>Set your budget &amp; localities to see live compatibility % on every room</p>
+            </div>
+            <button type="button" className="nm-chooser-close" data-close-fast-drawer="1" aria-label="Close drawer">&times;</button>
+          </div>
+          <div className="nm-drawer-body">
+            <div style={{ marginBottom: '16px' }}>
+              <label className="nm-field-label">Target City</label>
+              <select id="nm-fast-city" className="pill" style={{ width: '100%', height: '44px' }}></select>
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label className="nm-field-label">Maximum Monthly Budget</label>
+              <div className="nm-budget-pills" id="nm-fast-budget-pills">
+                <button type="button" className="nm-budget-pill" data-fast-budget="12000">₹12,000</button>
+                <button type="button" className="nm-budget-pill" data-fast-budget="18000">₹18,000</button>
+                <button type="button" className="nm-budget-pill active" data-fast-budget="25000">₹25,000</button>
+                <button type="button" className="nm-budget-pill" data-fast-budget="35000">₹35,000</button>
+                <button type="button" className="nm-budget-pill" data-fast-budget="50000">₹50,000+</button>
+              </div>
+              <div className="pin" style={{ marginTop: '8px' }}>
+                <input type="number" id="nm-fast-budget-input" defaultValue="25000" placeholder="Custom max budget in ₹" />
+              </div>
+            </div>
+            <div>
+              <label className="nm-field-label">Preferred Localities (Pick 1 to 3)</label>
+              <div className="nm-locality-chips" id="nm-fast-loc-chips"></div>
+              <div className="pin" style={{ marginTop: '8px' }}>
+                <input type="text" id="nm-fast-custom-loc" placeholder="Add custom area &amp; press enter" />
+              </div>
+            </div>
+          </div>
+          <div className="nm-drawer-footer">
+            <button type="button" className="ghb" data-close-fast-drawer="1">Cancel</button>
+            <button type="button" className="ob-banner-btn" id="nm-fast-prefs-submit">Save &amp; Unlock Matches →</button>
+          </div>
+        </div>
+      </div>
+      {/* 5-Factor Match Breakdown Modal ("Why this %?") */}
+      <div className="ov" id="nm-breakdown-ov" role="dialog" aria-modal="true" aria-label="Match Compatibility Breakdown">
+        <div className="nm-breakdown-card">
+          <div className="nm-breakdown-header">
+            <div className="nm-breakdown-score-badge">
+              <span className="nm-breakdown-score-num" id="nm-modal-score">0%</span>
+              <span>Match</span>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h3 id="nm-modal-title">Compatibility Breakdown</h3>
+              <p id="nm-modal-subtitle">How your preferences align with this room</p>
+            </div>
+            <button type="button" className="nm-chooser-close" data-close-breakdown="1" aria-label="Close dialog">&times;</button>
+          </div>
+          <div className="nm-breakdown-body">
+            <div className="nm-factor-row">
+              <div className="nm-factor-info">
+                <b>Budget Fit</b>
+                <span id="nm-score-budget-text">0 / 25 pts</span>
+              </div>
+              <div className="nm-bar-track"><div className="nm-bar-fill" id="nm-bar-budget" style={{ width: '0%' }}></div></div>
+            </div>
+            <div className="nm-factor-row">
+              <div className="nm-factor-info">
+                <b>Location &amp; Locality</b>
+                <span id="nm-score-location-text">0 / 20 pts</span>
+              </div>
+              <div className="nm-bar-track"><div className="nm-bar-fill" id="nm-bar-location" style={{ width: '0%' }}></div></div>
+            </div>
+            <div className="nm-factor-row">
+              <div className="nm-factor-info">
+                <b>Gender Requirement</b>
+                <span id="nm-score-gender-text">0 / 20 pts</span>
+              </div>
+              <div className="nm-bar-track"><div className="nm-bar-fill" id="nm-bar-gender" style={{ width: '0%' }}></div></div>
+            </div>
+            <div className="nm-factor-row">
+              <div className="nm-factor-info">
+                <b>House Rules &amp; Lifestyle Habits</b>
+                <span id="nm-score-rules-text">0 / 20 pts</span>
+              </div>
+              <div className="nm-bar-track"><div className="nm-bar-fill" id="nm-bar-rules" style={{ width: '0%' }}></div></div>
+            </div>
+            <div className="nm-factor-row">
+              <div className="nm-factor-info">
+                <b>Room &amp; Occupancy Preferences</b>
+                <span id="nm-score-pref-text">0 / 15 pts</span>
+              </div>
+              <div className="nm-bar-track"><div className="nm-bar-fill" id="nm-bar-pref" style={{ width: '0%' }}></div></div>
+            </div>
+            <div className="nm-reasons-box" id="nm-reasons-box" style={{ display: 'none' }}>
+              <h4>Positive Match Highlights</h4>
+              <ul id="nm-reasons-list"></ul>
+            </div>
+            <div className="nm-caveats-box" id="nm-caveats-box" style={{ display: 'none' }}>
+              <h4>Things to Keep in Mind</h4>
+              <ul id="nm-caveats-list"></ul>
+            </div>
+          </div>
+          <div className="nm-breakdown-footer">
+            <button type="button" className="ghb" data-action="fast-prefs">Refine my preferences</button>
+            <button type="button" className="msgb" data-close-breakdown="1" style={{ width: 'auto', padding: '0 24px' }}><em>Done</em></button>
+          </div>
+        </div>
       </div>
     </div>
   );

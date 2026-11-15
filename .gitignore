@@ -33,6 +33,7 @@ roomate/
 playwright-report/
 test-results/
 tests/.auth/
+playwright-screenshots/
 
 # Local audits and generated verification output (not application assets)
 /.capture-runtime/

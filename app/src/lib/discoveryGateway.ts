@@ -37,9 +37,24 @@ async function call(name: string, data: Record<string, unknown>): Promise<any> {
   try { return await request; }
   finally { if (reads.get(key) === request) reads.delete(key); }
 }
+async function callMutation(name: string, data: Record<string, unknown>): Promise<any> {
+  transport ??= Promise.all([import('./firebase'), import('firebase/functions')]);
+  const [{ functions, auth }, { httpsCallable }] = await transport;
+  const member = auth.currentUser;
+  if (!member) throw new Error('Sign in required.');
+  const invoke = httpsCallable(functions, name, { timeout: 20000 });
+  const response = await invoke(data);
+  if (auth.currentUser !== member) throw Object.assign(new Error('Your account changed. Please try again.'), { code: 'functions/cancelled' });
+  return revive(response.data);
+}
+export const submitRoomApplicationCallable = (data: Record<string, unknown>) => callMutation('submitRoomApplication', data);
+export const decideRoomApplicationCallable = (data: Record<string, unknown>) => callMutation('decideRoomApplication', data);
 export const readDiscovery = (data: Record<string, unknown>) => call('readDiscovery', data);
 export const getInteractionContext = (targetUid: string, listingId?: string, roomId?: string) => call('getInteractionContext', { targetUid, ...(listingId ? { listingId } : {}), ...(roomId ? { roomId } : {}) });
 export function gatewayDocument(record: any): any {
+  if (!record || typeof record !== 'object') {
+    return { id: undefined, uid: undefined, exists: () => false, data: () => undefined };
+  }
   return { id: record.id || record.uid, uid: record.uid, exists: () => true, data: () => record };
 }
 export async function gatewayPage(action: 'places' | 'people', cursor: any, size: number, city?: string): Promise<any> {

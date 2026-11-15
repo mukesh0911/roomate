@@ -3,15 +3,19 @@ export interface DiscoveryFilters {
   types: string[]; propertyType: string; furn: number; ver: number;
   gender: string; sort: string; view: string;
 }
+export type InboxBoxFilter = 'chats' | 'requests' | 'closed' | '';
 export interface ExploreRouteState extends DiscoveryFilters {
   nav: string; cat: number; roomId?: string; personId?: string; chatId?: string;
   section?: string; settingsTab?: number; requests?: number;
+  inboxBox?: InboxBoxFilter; appId?: string;
 }
 const routes = new Set(['explore','saved','messages','connections','listings','profile','notifications']);
+const inboxBoxes = new Set(['chats','requests','closed']);
 const days: Record<string, number> = { Immediately: 0, 'Within 7 days': 7, 'Within 15 days': 15, 'Within 30 days': 30, 'Next month': 60 };
 const number = (value: string | null, fallback: number) => value !== null && value !== '' && Number.isFinite(Number(value)) && Number(value) >= 0 ? Number(value) : fallback;
 export function readExploreLocation(pathname: string, params: URLSearchParams) {
   const nav = pathname.replace(/^\//, '');
+  const rawBox = params.get('box') || '';
   return {
     nav: routes.has(nav) ? nav : 'explore',
     cat: Math.max(0, ['all','rooms','roommates','pg'].indexOf(params.get('tab') || 'all')),
@@ -28,7 +32,9 @@ export function readExploreLocation(pathname: string, params: URLSearchParams) {
     } satisfies DiscoveryFilters,
     personId: params.get('person'), chatId: params.get('chat'),
     section: params.get('section'), settingsTab: number(params.get('settingsTab'), 0),
-    requests: Math.min(2, number(params.get('requests'), 0)),
+    requests: Math.min(3, number(params.get('requests'), 0)),
+    inboxBox: (inboxBoxes.has(rawBox) ? rawBox : '') as InboxBoxFilter,
+    appId: params.get('app') || '',
   };
 }
 export function buildExploreLocation(state: ExploreRouteState): string {
@@ -45,7 +51,11 @@ export function buildExploreLocation(state: ExploreRouteState): string {
   let nav = routes.has(state.nav) ? state.nav : 'explore';
   if (state.nav === 'room' || state.nav === 'pg') set('room', state.roomId);
   if (state.nav === 'roommate') set('person', state.personId);
-  if (nav === 'messages') set('chat', state.chatId);
+  if (nav === 'messages') {
+    set('box', state.inboxBox, '');
+    set('chat', state.chatId);
+    set('app', state.appId, '');
+  }
   if (nav === 'profile') { set('section', state.section, 'profile'); set('settingsTab', state.settingsTab, 0); }
   if (nav === 'connections') set('requests', state.requests, 0);
   if (['compare','applicants'].includes(state.nav)) nav = 'listings';
