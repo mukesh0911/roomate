@@ -37,7 +37,7 @@ export default function App() {
         <Route path="/saved" element={<ExplorePage initialNav="saved" />} />
         <Route path="/messages" element={<ExplorePage initialNav="messages" />} />
         <Route path="/notifications" element={<ExplorePage initialNav="notifications" />} />
-        <Route path="/connections" element={<ExplorePage initialNav="connections" />} />
+        <Route path="/connections" element={<Navigate to="/messages?box=requests" replace />} />
         <Route path="/listings" element={<ExplorePage initialNav="listings" />} />
         <Route path="/profile" element={<ExplorePage initialNav="profile" />} />
         <Route path="/admin" element={<AdminPage />} />

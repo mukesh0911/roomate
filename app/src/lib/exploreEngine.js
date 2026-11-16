@@ -10,6 +10,7 @@ import { buildProfileEditorUpdate, buildMatchingPreferencesUpdate } from '@/lib/
 import { cities, localitiesByCity } from '@/lib/staticData';
 import { areSameCityAlias } from '@/lib/cityNormalization';
 import { resolveUserHousingIntent } from '@/lib/userIntent';
+import { compressImage } from '@/lib/imageCompressor';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, verifyBeforeUpdateEmail } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { readDiscovery } from '@/lib/discoveryGateway';
@@ -27,8 +28,16 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
     let targetNav = initialNav;
     const pathname = location.pathname.replace(/^\//, '');
     if (['saved', 'messages', 'connections', 'listings', 'profile', 'explore', 'notifications'].includes(pathname)) {
-        targetNav = pathname;
+        targetNav = pathname === 'connections' ? 'messages' : pathname;
     }
+    const HABIT_OPTIONS = {
+        diet: ["Vegetarian", "Non-vegetarian", "Eggetarian", "Flexible"],
+        smoke: ["Non-smoker", "Outside only", "Smoker"],
+        sleep: ["Early riser", "Night owl", "Flexible"],
+        pets: ["No pets / allergic", "Pet-friendly", "Has pets"],
+        guests: ["Rarely", "Sometimes", "Often"],
+        clean: ["Very tidy", "Tidy", "Relaxed"]
+    };
     let disposed = false;
     let privatePreviewUrl = "";
     let exportInFlight = false;
@@ -399,7 +408,14 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 }
                 indices.push(i);
             }
-            indices.sort(function (ia, ib) {
+            let finalIndices = indices;
+            if (S.hiMatch && isProfileCalibrated()) {
+                finalIndices = indices.filter(function (idx) {
+                    const sc = RM[idx] && RM[idx][7];
+                    return typeof sc === 'number' && sc >= 70;
+                });
+            }
+            finalIndices.sort(function (ia, ib) {
                 const a = RM[ia];
                 const b = RM[ib];
                 if (S.sort === "a") {
@@ -415,7 +431,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     return b[7] - a[7];
                 }
             });
-            return indices;
+            return finalIndices;
         }
         const ART = '<svg viewBox="0 0 160 120" width="160" height="120" aria-hidden="true"><circle cx="80" cy="64" r="46" fill="var(--bs)"/><path d="M52 94V62l28-22 28 22v32z" fill="#f0541e"/><rect x="72" y="70" width="16" height="24" rx="4" fill="#fff"/><rect x="57" y="66" width="9" height="9" rx="2.500" fill="#fff" opacity=".7"/><rect x="94" y="66" width="9" height="9" rx="2.500" fill="#fff" opacity=".7"/><path d="M128 26l2.500 7 7 2.500-7 2.500-2.500 7-2.500-7-7-2.500 7-2.500z" fill="#f0541e"/><circle cx="32" cy="40" r="4" fill="#ff8a3d"/><circle cx="134" cy="86" r="3" fill="#ff8a3d"/></svg>';
         function em(t, d, x) { return '<div class="empty">' + ART + '<b>' + esc(t) + '</b>' + d + (x || "") + '</div>'; }
@@ -874,7 +890,16 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 return;
             }
             if (!authUser) {
-                openAuthModal();
+                const listingId = b.dataset.applyPlace || (D[S.room] && D[S.room][12]) || '';
+                const roomIndex = S.nav === 'room' ? S.room : D.findIndex(function (d) { return d && (d[12] === listingId || String(D.indexOf(d)) === String(listingId)); });
+                const roomObj = D[roomIndex] || D[S.room];
+                const realId = (roomObj && roomObj[12]) || listingId || '';
+                const roomTitle = (roomObj && roomObj[1]) || 'this room';
+                openAuthModal({
+                    title: 'Sign in to Connect & Message Host',
+                    subtitle: 'Sign in to apply and chat with the host of ' + roomTitle + '.',
+                    redirect: '/explore?room=' + encodeURIComponent(realId) + '&autoApply=1'
+                });
                 return;
             }
             const existingChatIdx = CH.findIndex(function (c) { return c && c.p === hostUid && (c.authorized === true || c.threadType === 'application'); });
@@ -1389,7 +1414,16 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
 
             if (!authUser) {
-                openAuthModal();
+                const listingId = b.dataset.applyPlace || (D[S.room] && D[S.room][12]) || '';
+                const roomIndex = S.nav === 'room' ? S.room : D.findIndex(function (d) { return d && (d[12] === listingId || String(D.indexOf(d)) === String(listingId)); });
+                const roomObj = D[roomIndex] || D[S.room];
+                const realId = (roomObj && roomObj[12]) || listingId || '';
+                const roomTitle = (roomObj && roomObj[1]) || 'this room';
+                openAuthModal({
+                    title: 'Sign in to Connect & Message Host',
+                    subtitle: 'Sign in to apply and chat with the host of ' + roomTitle + '.',
+                    redirect: '/explore?room=' + encodeURIComponent(realId) + '&autoApply=1'
+                });
                 return;
             }
             b.disabled = true;
@@ -2012,6 +2046,17 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                         S.pg = resolved.pg;
                         S.nav = "pg";
                     }
+                    if (searchParams.get("autoApply") === "1" && authUser) {
+                        setTimeout(function () {
+                            if (disposed) return;
+                            const applyBtn = document.querySelector('[data-apply-place="' + esc(requestedRoom) + '"]') || document.querySelector('[data-apply-place]');
+                            if (applyBtn) applyBtn.click();
+                        }, 120);
+                        const cleanParams = new URLSearchParams(window.location.search);
+                        cleanParams.delete('autoApply');
+                        const nextUrl = window.location.pathname + (cleanParams.toString() ? '?' + cleanParams.toString() : '');
+                        window.history.replaceState(window.history.state, '', nextUrl);
+                    }
                 }
                 PAGINATION_STATE.placesCursor = res.cursorDoc;
                 PAGINATION_STATE.placesHasMore = res.hasMore;
@@ -2099,7 +2144,21 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 if (personId) {
                     const personIndex = await ensurePerson(personId);
                     if (disposed) return;
-                    if (personIndex >= 0) { S.rmi = personIndex; S.nav = 'roommate'; }
+                    if (personIndex >= 0) {
+                        S.rmi = personIndex;
+                        S.nav = 'roommate';
+                        if (searchParams.get("autoConnect") === "1" && authUser) {
+                            setTimeout(function () {
+                                if (disposed) return;
+                                const connBtn = document.querySelector('[data-conn="' + personIndex + '"],[data-cn="' + personIndex + '"]');
+                                if (connBtn) connBtn.click();
+                            }, 150);
+                            const cleanParams = new URLSearchParams(window.location.search);
+                            cleanParams.delete('autoConnect');
+                            const nextUrl = window.location.pathname + (cleanParams.toString() ? '?' + cleanParams.toString() : '');
+                            window.history.replaceState(window.history.state, '', nextUrl);
+                        }
+                    }
                 }
                 PAGINATION_STATE.roommatesCursor = res.cursorDoc;
                 PAGINATION_STATE.roommatesHasMore = res.hasMore;
@@ -2839,7 +2898,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             $("cats").style.display = N == "explore" ? "flex" : "none";
             $("ctl").style.display = N == "explore" ? "flex" : "none";
             if ($("hm")) {
-                $("hm").style.display = (N == "explore" && S.cat !== 2) ? "" : "none";
+                $("hm").style.display = N == "explore" ? "" : "none";
                 $("hm").setAttribute("aria-pressed", S.hiMatch ? "true" : "false");
             }
             const key = { me: "me", profile: "me", post: "post" }[N] || N;
@@ -2873,7 +2932,15 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             loadPlacesPage(true);
             loadRoommatesPage(true);
         }
-        $("fb").onclick = function () { pop(""); $("ov").classList.add("o"); };
+        $("fb").onclick = function () {
+            pop("");
+            $("ov").classList.add("o");
+            try {
+                if (!window.history.state || window.history.state.modalOverlay !== 'filters') {
+                    window.history.pushState({ ...window.history.state, modalOverlay: 'filters' }, '', window.location.href);
+                }
+            } catch (_) {}
+        };
         $("x").onclick = $("ap").onclick = function () { $("ov").classList.remove("o"); };
         $("ov").onclick = function (e) {
             if (e.target == this)
@@ -3422,7 +3489,30 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 pf();
             }
         });
-        function addf(fs) { [].slice.call(fs).slice(0, 10 - PF.ph.length).forEach(function (f) { const r = new FileReader(); r.onload = function () { PF.ph.push(r.result); PF.er = {}; pf(); }; r.readAsDataURL(f); }); }
+        async function addf(fs) {
+            const files = [].slice.call(fs).slice(0, 10 - PF.ph.length);
+            for (let i = 0; i < files.length; i++) {
+                const f = files[i];
+                try {
+                    const compressed = await compressImage(f, 1200, 1200, 0.82);
+                    const r = new FileReader();
+                    r.onload = function () {
+                        PF.ph.push(r.result);
+                        PF.er = {};
+                        pf();
+                    };
+                    r.readAsDataURL(compressed);
+                } catch (_) {
+                    const r = new FileReader();
+                    r.onload = function () {
+                        PF.ph.push(r.result);
+                        PF.er = {};
+                        pf();
+                    };
+                    r.readAsDataURL(f);
+                }
+            }
+        }
 
         function openMatchBreakdown(roomIndex) {
             let breakdown = null;
@@ -3525,6 +3615,11 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
 
             ov.classList.add("o");
+            try {
+                if (!window.history.state || window.history.state.modalOverlay !== 'breakdown') {
+                    window.history.pushState({ ...window.history.state, modalOverlay: 'breakdown' }, '', window.location.href);
+                }
+            } catch (_) {}
         }
 
         function closeMatchBreakdown() {
@@ -3552,8 +3647,15 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         }
 
         function openPost() {
-            $("pf").classList.add("o"); if (PF.pub || PF.edit != null)
-                PF = pf0(); pf();
+            $("pf").classList.add("o");
+            try {
+                if (!window.history.state || window.history.state.modalOverlay !== 'pf') {
+                    window.history.pushState({ ...window.history.state, modalOverlay: 'pf' }, '', window.location.href);
+                }
+            } catch (_) {}
+            if (PF.pub || PF.edit != null)
+                PF = pf0();
+            pf();
         }
         addDocListener("click", function (e) {
             const b = e.target.closest("button");
@@ -3581,9 +3683,24 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             if (!a)
                 return;
             if (a == "exit") {
-                clearPostUrlParams();
-                $("pf").classList.remove("o");
-                PF = pf0();
+                const isDirty = !PF.pub && (
+                    (PF.title && PF.title.trim().length > 0) ||
+                    (PF.rent && String(PF.rent).trim().length > 0) ||
+                    (PF.desc && PF.desc.trim().length > 0) ||
+                    (Array.isArray(PF.ph) && PF.ph.length > 0) ||
+                    (PF.loc && PF.loc.trim().length > 0)
+                );
+                if (isDirty) {
+                    cfm("Discard listing draft?", "Your entered details and uploaded photos will be lost.", "Discard draft", true, function () {
+                        clearPostUrlParams();
+                        $("pf").classList.remove("o");
+                        PF = pf0();
+                    });
+                } else {
+                    clearPostUrlParams();
+                    $("pf").classList.remove("o");
+                    PF = pf0();
+                }
             }
             else if (a == "nx") {
                 if (pval(PF.s)) {
@@ -3713,7 +3830,11 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             if (PF.saving)
                 return;
             if (!authUser) {
-                openAuthModal();
+                openAuthModal({
+                    title: 'Sign in to Post Your Room',
+                    subtitle: 'Sign in to create and manage your room listing.',
+                    redirect: '/explore?post=1'
+                });
                 return;
             }
             const p = PF;
@@ -4952,33 +5073,49 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             return '<h1>Edit profile</h1><div class="sub3">This is what people see when they open your profile.</div><div class="cd"><div class="phd">' + avm(d) + '<div><label class="ghb" style="cursor:pointer"><input type="file" id="efile" accept="image/*" hidden>Change photo</label>' + (d.ph ? ' <button class="ghb" data-rph="1">Remove</button>' : '') + '<div class="hp" style="margin-top:8px">A clear face photo builds trust.</div></div></div></div>' +
                 '<div class="cd">' + ff("n", "Full name", '<div class="pin"><input id="ed-n" aria-label="Full name" value="' + esc(d.n || '') + '" placeholder="Your name"></div>') + ff("job", "What do you do?", '<div class="pin"><input id="ed-job" value="' + esc(d.job || '') + '" placeholder="e.g. Product manager"></div>') + ff("city", "City", '<div class="pin"><input id="ed-city" aria-label="City" value="' + esc(d.city || '') + '" placeholder="Your city" maxlength="64"></div>') + ff("area", "Locality", '<div class="pin"><input id="ed-area" aria-label="Locality" value="' + esc(d.area || '') + '" placeholder="Your locality" maxlength="128"></div>') + ff("bio", "About you", '<textarea class="tx" id="ed-bio" placeholder="A few lines about how you live">' + esc(d.bio || '') + '</textarea><div class="hp"><span id="bc">' + esc((d.bio || '').length) + '</span>/280</div>') + '</div>' +
                 intentCardsHtml +
-                discoverySectionHtml +
-                '<div class="cd"><h3>Lifestyle</h3><div class="s2">Used to calculate your match with rooms and roommates.</div>' + [["diet", "Diet", ["Vegetarian", "Eggetarian", "Non-vegetarian"]], ["smoke", "Smoking", ["Non-smoker", "Smoker"]], ["sleep", "Sleep", ["Early riser", "Night owl", "Flexible"]], ["pets", "Pets", ["No pets / allergic", "Pet-friendly", "Has pets"]], ["guests", "Guests", ["Rarely", "Sometimes", "Often"]], ["clean", "Cleanliness", ["Very tidy", "Tidy", "Relaxed"]]].map(function (q) { return ff(q[0], q[1], chp(q[0], q[2])); }).join("") + '</div>' + sv();
+                '<div class="cd"><h3>Lifestyle</h3><div class="s2">Used to calculate your match with rooms and roommates.</div>' + [["diet", "Diet", HABIT_OPTIONS.diet], ["smoke", "Smoking", HABIT_OPTIONS.smoke], ["sleep", "Sleep", HABIT_OPTIONS.sleep], ["pets", "Pets", HABIT_OPTIONS.pets], ["guests", "Guests", HABIT_OPTIONS.guests], ["clean", "Cleanliness", HABIT_OPTIONS.clean]].map(function (q) { return ff(q[0], q[1], chp(q[0], q[2])); }).join("") + '</div>' + sv();
         }
         function acV() {
             const isApproved = (USER_KYC.status === 'approved' || (ME && ME.ver));
             const isPending = (USER_KYC.status === 'pending');
             const isRejected = (USER_KYC.status === 'rejected' || USER_KYC.status === 'resubmission_required');
             const rejReason = (USER_KYC.doc && (USER_KYC.doc.reviewNote || USER_KYC.doc.rejectionReason)) || '';
+            const isHost = Boolean(MY && MY.length > 0);
             let statusBanner = '';
             if (isApproved) {
                 statusBanner = '<div class="cd" style="background:#e4f5ee;border-color:transparent">' +
                     '<div class="rw" style="border:0;padding:0"><i class="ni g" style="background:#fff">' + IS.ver + '</i>' +
-                    '<div><b>Identity document reviewed</b><small style="color:var(--ink)">Your submitted identity document passed manual review. Your room listings are now active and published to discovery.</small></div></div>' +
-                    '<div style="margin-top:14px"><button class="ghb" data-n="listings" style="height:38px;padding:0 20px;font-size:13px">View my listings</button></div>' +
+                    '<div><b>Identity document reviewed</b><small style="color:var(--ink)">' +
+                    (isHost
+                        ? 'Your submitted identity document passed manual review. Your room listings are now active and published to discovery.'
+                        : 'Your submitted identity document passed manual review. Your profile now features the Verified badge across roommate discovery.') +
+                    '</small></div></div>' +
+                    '<div style="margin-top:14px">' +
+                    (isHost
+                        ? '<button class="ghb" data-n="listings" style="height:38px;padding:0 20px;font-size:13px">View my listings</button>'
+                        : '<button class="ghb" data-n="explore" data-cat="2" style="height:38px;padding:0 20px;font-size:13px">Browse roommates</button>') +
+                    '</div>' +
                     '</div>';
             }
             else if (isPending) {
                 statusBanner = '<div class="cd" style="background:#fff4e5;border-color:transparent">' +
                     '<div class="rw" style="border:0;padding:0"><i class="ni" style="background:#fff">' + IC.sh + '</i>' +
-                    '<div><b>Verification Under Review</b><small style="color:var(--ink)">Your document has been submitted and is currently being reviewed by our moderation team. Your listings will automatically be activated once verified.</small></div></div>' +
-                    '<div style="margin-top:14px"><button class="ghb" data-n="listings" style="height:38px;padding:0 20px;font-size:13px">View my listings</button></div>' +
+                    '<div><b>Verification Under Review</b><small style="color:var(--ink)">' +
+                    (isHost
+                        ? 'Your document has been submitted and is currently being reviewed by our moderation team. Your listings will automatically be activated once verified.'
+                        : 'Your document has been submitted and is currently being reviewed by our moderation team. Your profile will receive the Verified trust badge once reviewed.') +
+                    '</small></div></div>' +
+                    '<div style="margin-top:14px">' +
+                    (isHost
+                        ? '<button class="ghb" data-n="listings" style="height:38px;padding:0 20px;font-size:13px">View my listings</button>'
+                        : '<button class="ghb" data-n="explore" data-cat="2" style="height:38px;padding:0 20px;font-size:13px">Browse roommates</button>') +
+                    '</div>' +
                     '</div>';
             }
             else if (isRejected) {
                 statusBanner = '<div class="cd" style="background:#fde8e8;border-color:transparent">' +
                     '<div class="rw" style="border:0;padding:0"><i class="ni" style="background:#fff;color:var(--err)">✕</i>' +
-                    '<div><b style="color:var(--err)">Verification Rejected</b><small style="color:var(--ink)">' + (rejReason ? 'Reason: ' + esc(rejReason) : 'The submitted document could not be verified.') + ' You may re-submit a clear document below to publish your room listing.</small></div></div>' +
+                    '<div><b style="color:var(--err)">Verification Rejected</b><small style="color:var(--ink)">' + (rejReason ? 'Reason: ' + esc(rejReason) : 'The submitted document could not be verified.') + ' You may re-submit a clear document below to complete verification.</small></div></div>' +
                     '</div>';
             }
             let formHtml = '';
@@ -4986,7 +5123,11 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 formHtml = '<div class="cd">' +
                     '<div style="background:#fff4e5;border:1px solid #ffd8a8;border-radius:12px;padding:14px 16px;margin-bottom:18px;display:flex;gap:12px;align-items:center">' +
                     '<svg style="width:22px;height:22px;fill:#f0541e;flex-shrink:0" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>' +
-                    '<div style="font-size:13.5px;color:#495057;line-height:1.45"><b style="color:#d9480f">Required to publish room listings:</b> Complete verification below so your room listing can be reviewed and published to discovery.</div>' +
+                    '<div style="font-size:13.5px;color:#495057;line-height:1.45">' +
+                    (isHost
+                        ? '<b style="color:#d9480f">Required to publish room listings:</b> Complete verification below so your room listing can be reviewed and published to discovery.'
+                        : '<b style="color:#d9480f">Trust badge for roommates:</b> Complete verification below to display a verified badge on your profile and boost trust with hosts and flatmates.') +
+                    '</div>' +
                     '</div>' +
                     '<h3>Submit Government ID for Verification</h3>' +
                     '<p class="sub2" style="margin-bottom:16px">Upload a government-issued identification document to verify your account. Documents are kept strictly private and reviewed only by authorized NestMate admins.</p>' +
@@ -5060,7 +5201,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     : '');
             return '<h1>Matching preferences</h1><div class="sub3">Tell us what you are looking for. Your match scores update automatically.</div>' + topBanner + hostNotice + '<div class="cd"><h3>Budget</h3><div class="s2">Monthly rent you are comfortable with.</div><div class="rg2"><div><label>Minimum · <b id="pl0">₹' + budgetMin.toLocaleString("en-IN") + '</b></label><input type="range" id="pb0" min="5000" max="' + sliderMax + '" step="1000" value="' + esc(budgetMin) + '"></div><div><label>Maximum · <b id="pl1">₹' + budgetMax.toLocaleString("en-IN") + '</b></label><input type="range" id="pb1" min="5000" max="' + sliderMax + '" step="1000" value="' + esc(budgetMax) + '"></div></div>' + (ER.b ? '<div class="er" style="display:block;color:#d92d20;font-size:13.5px;margin-top:6px">' + ER.b + '</div>' : '') + '</div>' +
                 '<div class="cd">' + nameField + cityField + ff("areas", "Preferred areas", areaFieldHtml, "Pick 1 to 3 areas in " + esc(selectedCity) + ".") + ff("types", "Place type", chp("types", ["Private room", "Full flat", "PG / Coliving"], 1)) + ff("mv", "Move-in timeline", chp("mv", ["Immediately", "Within 2 weeks", "Next month", "Flexible"])) + ff("ug", "Your gender", chp("ug", ["Female", "Male", "Non-binary", "Prefer not to say"]), "Used only to score women-only or men-only listings accurately.") + ff("gd", "Roommate gender preference", chp("gd", ["Any", "Female", "Male"])) + '</div>' +
-                '<div class="cd"><h3>Your living habits</h3><div class="s2">Optional lifestyle details that power compatibility scores with flatmates and house rules.</div>' + ff("diet", "Diet", chp("diet", ["Vegetarian", "Non-vegetarian", "Eggetarian", "Flexible"])) + ff("smoke", "Smoking", chp("smoke", ["Non-smoker", "Outside only", "Smoker"])) + ff("pets", "Pets", chp("pets", ["No pets / allergic", "Pet-friendly", "Has pets"])) + ff("sleep", "Sleep schedule", chp("sleep", ["Early riser", "Night owl", "Flexible"])) + ff("guests", "Guests", chp("guests", ["Rarely", "Sometimes", "Often"])) + ff("clean", "Cleanliness", chp("clean", ["Very tidy", "Tidy", "Relaxed"])) + '</div>' +
+                '<div class="cd"><h3>Your living habits</h3><div class="s2">Optional lifestyle details that power compatibility scores with flatmates and house rules.</div>' + ff("diet", "Diet", chp("diet", HABIT_OPTIONS.diet)) + ff("smoke", "Smoking", chp("smoke", HABIT_OPTIONS.smoke)) + ff("pets", "Pets", chp("pets", HABIT_OPTIONS.pets)) + ff("sleep", "Sleep schedule", chp("sleep", HABIT_OPTIONS.sleep)) + ff("guests", "Guests", chp("guests", HABIT_OPTIONS.guests)) + ff("clean", "Cleanliness", chp("clean", HABIT_OPTIONS.clean)) + '</div>' +
                 '<div class="cd"><h3>Roommates tab visibility</h3><div class="s2">Choose whether other verified members looking to team up can discover your profile in the Roommates tab.</div>' + ff("teamUpVisibility", "Appear in Roommates", chp("teamUpVisibility", ["Show me in Roommates", "Rooms only (keep hidden)"]), "Turning this on adds Team-Up intent so your profile appears alongside roommates once your profile is active.") + '</div>' +
                 '<div class="hint" style="background:var(--bs)">' + IS.spk + '<div><b id="pmc">' + pm() + ' of ' + esc(D.length) + '</b> loaded rooms fit these preferences right now.</div></div><div class="pr-actions">' + '<button type="button" class="ghb" data-prefs-back="1">← Back to rooms</button>' + '<button type="button" class="msgb" data-sv="1"><em>Save preferences &amp; see matches</em></button></div>';
         }
@@ -5089,17 +5230,23 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                         try { f.focus({ preventScroll: true }); } catch { f.focus(); }
                 }, 60);
         }
-        function vd(st, er) {
-            const b = 'style="width:auto;padding:0 22px;height:46px"';
-            if (st == 1)
-                dlg('<h3>Verify with Aadhaar</h3><p>Enter your 12-digit Aadhaar number. It is only used to confirm it is you.</p><div class="pff' + (er ? " e" : "") + '"><div class="pin"><input id="vda" inputmode="numeric" maxlength="14" placeholder="1234 5678 9012" autocomplete="off"></div><div class="er">' + (er || "") + '</div></div><div class="r"><button class="ghb" data-cf="no" style="height:46px">Cancel</button><button class="msgb" data-vd="otp" ' + b + '><em>Send code</em></button></div>');
-            else if (st == 2)
-                dlg('<h3>Enter the code</h3><p>We sent a 6-digit code to the mobile number linked with your Aadhaar.</p><div class="pff' + (er ? " e" : "") + '"><div class="pin"><input id="vdo" class="otp" inputmode="numeric" maxlength="6" placeholder="······" autocomplete="one-time-code"></div><div class="er">' + (er || "") + '</div></div><div class="r"><button class="ghb" data-vd="start" style="height:46px">Back</button><button class="msgb" data-vd="ok" ' + b + '><em>Verify</em></button></div>');
-            else
-                dlg('<div style="text-align:center"><svg viewBox="0 0 92 92" width="92" height="92"><circle cx="46" cy="46" r="40" fill="var(--bs)"/><circle cx="46" cy="46" r="28" fill="#12805c"/><path d="m34 47 8 8 16-17" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg><h3 style="margin-top:12px">You are verified</h3><p>A verified badge now shows on your profile and listings.</p><button class="msgb" data-vd="done" style="width:100%;height:48px"><em>Done</em></button></div>');
-        }
         function pvw() { const m = ME, t = [m.diet, m.smoke, m.sleep]; dlg('<div class="pvx"><div class="eb" style="color:var(--brand);font-weight:700;font-size:12px;letter-spacing:.07em;text-transform:uppercase;margin-bottom:12px">How others see you</div><div class="phd">' + avm(m) + '<div><h3 style="font-size:22px;margin:0">' + esc(m.n) + '</h3><div class="loc" style="margin:2px 0 0">' + IC.pin + esc(m.area) + ' · ' + esc(m.job) + '</div></div></div><p style="color:var(--ink2);margin:16px 0 10px">' + esc(m.bio) + '</p><div class="tg">' + t.map(function (x) { return '<span>' + x + '</span>'; }).join("") + '</div>' + (TG.bud ? '<div class="loc" style="margin-top:14px">' + IC.wal + "Budget ₹" + PR.b[0] / 1000 + "k–" + PR.b[1] / 1000 + "k</div>" : "") + '<div class="tru" style="margin-top:12px"><div><i class="' + (m.ver ? "" : "no") + '">' + (m.ver ? "✓" : "–") + '</i>' + (m.ver ? "ID verified" : "ID not verified yet") + '</div></div><div class="r" style="margin-top:20px"><button class="ghb" data-cf="no" style="height:46px">Close</button><button class="msgb" data-as="edit" data-cf="no" style="width:auto;padding:0 20px;height:46px"><em>Edit profile</em></button></div></div>', 1); }
-        function shr() { toast("Public profile sharing is not available yet. No public link was created."); }
+        function shr() {
+            if (authUser && authUser.uid) {
+                const shareUrl = window.location.origin + '/explore?tab=roommates&person=' + encodeURIComponent(authUser.uid);
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(shareUrl).then(function () {
+                        toast("Shareable profile link copied to clipboard!");
+                    }).catch(function () {
+                        toast("Profile link: " + shareUrl);
+                    });
+                } else {
+                    toast("Profile link: " + shareUrl);
+                }
+            } else {
+                toast("Sign in to share your profile.");
+            }
+        }
         function syncDraftInputs() {
             if (!DR) return;
             if (S.as === "prefs") {
@@ -5418,17 +5565,9 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
             else if (d.dl)
                 toast("Account deletion is not available in this screen yet. Your account has not been changed.");
-            else if (d.vd) {
-                toast("Use the manual document upload for identity verification.");
-            }
         });
         addDocListener("input", function (e) {
             const t = e.target, id = t.id;
-            if (id == "vda") {
-                const v = t.value.replace(/\D/g, "").slice(0, 12).replace(/(\d{4})(?=\d)/g, "$1 ");
-                t.value = v;
-                return;
-            }
             if (!DR)
                 return;
             if (id == "ed-n")
@@ -5575,7 +5714,10 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                             sampleBtn +
                             '</div></div>';
                     }
-                    return em("No roommate candidates available right now", "Roommate discovery features verified Team-Up seekers and Live-in Hosts offering spare rooms.", (authUser ? '<div class="r" style="display:flex;align-items:center;justify-content:center;gap:12px;margin:20px auto 0;flex-wrap:wrap"><button class="pill" data-n="profile" data-as="prefs">Set your roommate preferences</button><button class="pill" data-n="post">Post a room</button>' + sampleBtn + '</div>' : '<br><button class="pill" data-n="signin" style="margin:16px auto 0">Sign in to connect</button>'));
+                    return em("No roommate candidates available right now", "Roommate discovery features verified Team-Up seekers and Live-in Hosts offering spare rooms.", (authUser ? '<div class="r" style="display:flex;align-items:center;justify-content:center;gap:12px;margin:20px auto 0;flex-wrap:wrap"><button class="pill" data-n="profile" data-as="prefs" style="background:var(--brand);color:#fff;border-color:var(--brand);cursor:pointer;padding:0 20px">Create Roommate Profile</button><button class="pill" data-n="post" style="cursor:pointer;padding:0 20px">Post a room</button>' + sampleBtn + '</div>' : '<br><button class="pill" data-n="signin" style="margin:16px auto 0">Sign in to connect</button>'));
+                }
+                if (S.hiMatch) {
+                    return em("No 70%+ roommate matches found", "Try turning off the 70%+ filter or adjusting your budget and preferences.", '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px"><button class="pill" data-widen-match="1">Show all roommates</button><button class="pill" data-n="profile" data-as="prefs">Edit preferences</button></div>');
                 }
                 return em("No roommates match these filters", "Try a higher budget or a wider move-in window.", '<br><button class="pill" data-rs="1" style="margin:16px auto 0">Reset filters</button>');
             }
@@ -6370,7 +6512,22 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         function sentL() { return Object.keys(CN).filter(function (k) { return CN[k]; }).map(Number); }
         async function openChat(kind, i) {
             if (!authUser) {
-                openAuthModal();
+                if (kind === "m") {
+                    const mateUid = RM[i] && RM[i][9];
+                    const mateName = (RM[i] && RM[i][1]) || 'Roommate';
+                    openAuthModal({
+                        title: 'Sign in to Message ' + mateName,
+                        subtitle: 'Sign in to chat with compatible roommates.',
+                        redirect: '/explore?tab=roommates&person=' + encodeURIComponent(mateUid || '') + '&autoConnect=1'
+                    });
+                } else {
+                    const placeId = (kind === 'r' ? D[i] && D[i][12] : G[i] && G[i][11]) || '';
+                    openAuthModal({
+                        title: 'Sign in to Connect & Message',
+                        subtitle: 'Sign in to send an inquiry and message the host.',
+                        redirect: '/explore?' + (kind === 'p' ? 'pg=' : 'room=') + encodeURIComponent(placeId) + '&autoApply=1'
+                    });
+                }
                 return;
             }
             const targetUid = kind == "m" ? RM[i] && RM[i][9] : kind == "r" ? D[i] && D[i][20] : G[i] && G[i][17];
@@ -6679,22 +6836,43 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 return;
             }
             if (d.msg) {
+                const p = d.msg.split(":");
+                const kind = p[0];
+                const i = +p[1];
                 if (!authUser || !authUser.uid) {
-                    toast("Please sign in to message roommates");
-                    openAuthModal();
+                    if (kind === "m") {
+                        const targetPerson = RM[i];
+                        const targetUid = (targetPerson && targetPerson[9]) || '';
+                        openAuthModal({
+                            title: 'Sign in to Message Roommate',
+                            subtitle: 'Sign in to chat with compatible roommates.',
+                            redirect: '/explore?tab=roommates&person=' + encodeURIComponent(targetUid) + '&autoConnect=1'
+                        });
+                    } else {
+                        const placeId = (kind === 'r' ? D[i] && D[i][12] : G[i] && G[i][11]) || '';
+                        openAuthModal({
+                            title: 'Sign in to Message Host',
+                            subtitle: 'Sign in to chat with the host.',
+                            redirect: '/explore?' + (kind === 'p' ? 'pg=' : 'room=') + encodeURIComponent(placeId) + '&autoApply=1'
+                        });
+                    }
                     return;
                 }
-                const p = d.msg.split(":");
-                openChat(p[0], +p[1]);
+                openChat(kind, i);
             }
             else if (d.conn !== undefined || d.cn !== undefined) {
-                if (!authUser || !authUser.uid) {
-                    toast("Please sign in to connect with roommates");
-                    openAuthModal();
-                    return;
-                }
                 const i = +(d.conn !== undefined ? d.conn : d.cn);
                 const targetPerson = RM[i];
+                if (!authUser || !authUser.uid) {
+                    const targetUid = (targetPerson && targetPerson[9]) || '';
+                    const personName = (targetPerson && targetPerson[1]) || 'Roommate';
+                    openAuthModal({
+                        title: 'Sign in to Connect',
+                        subtitle: 'Connect with ' + personName + ' to team up or rent together.',
+                        redirect: '/explore?tab=roommates&person=' + encodeURIComponent(targetUid) + '&autoConnect=1'
+                    });
+                    return;
+                }
                 if (!targetPerson) return;
                 const targetUid = targetPerson[9];
                 const relationship = relationshipState(authUser.uid, targetUid, LIVE_CONNS, currentProfile && currentProfile.blockedUserIds || [], CH.map(function (c) { return { id: c.id, participants: c.raw && c.raw.participants || [authUser && authUser.uid, c.p], authorized: c.authorized === true }; }));
@@ -6887,10 +7065,13 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         };
         addDocListener("keydown", function (e) {
             if (e.key != "Escape")
-                return; if ($("cfo").classList.contains("o"))
+                return;
+            if ($("cfo").classList.contains("o"))
                 $("cfo").classList.remove("o");
-            else if ($("pf").classList.contains("o") && !document.querySelector(".pp.o,.gv.o"))
+            else if ($("pf").classList.contains("o") && !document.querySelector(".pp.o,.gv.o")) {
+                clearPostUrlParams();
                 $("pf").classList.remove("o");
+            }
         });
         render();
         // Sync User Profile from Firebase Auth
@@ -7011,6 +7192,22 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         // popstate is handled by React Router, which remounts this lifecycle.
         let navigationReady = false;
         addWinListener('popstate', function () {
+            const openPf = $("pf") && $("pf").classList.contains("o");
+            const openOv = $("ov") && $("ov").classList.contains("o");
+            const openBreakdown = $("nm-breakdown-ov") && $("nm-breakdown-ov").classList.contains("o");
+            const openCfo = $("cfo") && $("cfo").classList.contains("o");
+            const openGv = $("gv") && $("gv").classList.contains("o");
+            if (openPf || openOv || openBreakdown || openCfo || openGv) {
+                if (openBreakdown) closeMatchBreakdown();
+                if (openOv) $("ov").classList.remove("o");
+                if (openCfo) $("cfo").classList.remove("o");
+                if (openGv) $("gv").classList.remove("o");
+                if (openPf) {
+                    clearPostUrlParams();
+                    $("pf").classList.remove("o");
+                }
+                return;
+            }
             navigationReady = false;
             // Native pushState does not notify React Router. A Back destination
             // may equal its stale context, so replace that same entry through

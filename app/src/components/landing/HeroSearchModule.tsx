@@ -14,6 +14,8 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
+import { cities, localitiesByCity } from '@/lib/staticData';
+import { areSameCityAlias } from '@/lib/cityNormalization';
 
 export default function HeroSearchModule() {
   const navigate = useNavigate();
@@ -73,21 +75,71 @@ export default function HeroSearchModule() {
     if (e) e.preventDefault();
 
     const selectedBudget = budgetOptions.find((b) => b.label === budgetRange) || budgetOptions[0];
+    const flatTypeForTab: string[] = [];
 
-    // Build flatType filter based on active tab
-    // Rooms & PGs tab → no flatType restriction (shows all types)
-    // Flatmates tab → navigate to roommates tab, no flatType filter needed
-    const flatTypeForTab: string[] = []; // both tabs show all types on explore
+    const rawQuery = cityAreaQuery.trim();
+    const queryLower = rawQuery.toLowerCase();
+    let detectedCity = '';
+    let detectedLocality = '';
+
+    if (queryLower) {
+      // 1. Check exact match or known alias to canonical cities
+      const matchedCity = cities.find(
+        (c) => c.toLowerCase() === queryLower || areSameCityAlias(c.toLowerCase(), queryLower)
+      );
+      if (matchedCity) {
+        detectedCity = matchedCity;
+      } else {
+        // 2. Check if query is a known locality in any city
+        for (const [cityKey, locs] of Object.entries(localitiesByCity)) {
+          const foundLoc = (locs || []).find(
+            (l) => l.toLowerCase() === queryLower || l.toLowerCase().includes(queryLower)
+          );
+          if (foundLoc) {
+            detectedCity = cityKey;
+            detectedLocality = rawQuery;
+            break;
+          }
+        }
+        // 3. Check if a city name is embedded in query (e.g., "Koramangala, Bengaluru")
+        if (!detectedCity) {
+          const cityInQuery = cities.find((c) => queryLower.includes(c.toLowerCase()));
+          if (cityInQuery) {
+            detectedCity = cityInQuery;
+            const cleanedLoc = rawQuery
+              .replace(new RegExp(cityInQuery, 'gi'), '')
+              .replace(/[,·-]/g, '')
+              .trim();
+            if (cleanedLoc) detectedLocality = cleanedLoc;
+          } else {
+            detectedLocality = rawQuery;
+          }
+        }
+      }
+    }
 
     updateFilters({
-      city: cityAreaQuery.trim() || '',
-      localities: cityAreaQuery.trim() ? [cityAreaQuery.trim()] : [],
+      city: detectedCity || rawQuery || '',
+      localities: detectedLocality ? [detectedLocality] : (rawQuery ? [rawQuery] : []),
       budgetMin: selectedBudget.min,
       budgetMax: selectedBudget.max,
       flatType: flatTypeForTab,
     });
 
-    const params = new URLSearchParams({ tab: activeTab === 'flatmates' ? 'roommates' : 'rooms', q: cityAreaQuery.trim(), min: String(selectedBudget.min), max: String(selectedBudget.max), move: moveInDate });
+    const params = new URLSearchParams({
+      tab: activeTab === 'flatmates' ? 'roommates' : 'rooms',
+      q: detectedLocality || (detectedCity ? '' : cityAreaQuery.trim()),
+      min: String(selectedBudget.min),
+      max: String(selectedBudget.max),
+      move: moveInDate,
+    });
+    if (detectedCity) {
+      params.set('city', detectedCity);
+    }
+    if (!detectedLocality && detectedCity) {
+      params.delete('q');
+    }
+
     navigate('/explore?' + params.toString());
   };
 
