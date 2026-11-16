@@ -686,6 +686,9 @@ html.lock{overflow:hidden}
  .nm-explore-root .card:not(.rm) .ft .msgb.owner-edit-btn{padding:0 12px;background:var(--sf)!important;color:var(--brand)!important;border:1.5px solid var(--brand)!important;box-shadow:none!important;display:inline-flex!important;align-items:center;justify-content:center;gap:5px}
  .nm-explore-root .card:not(.rm) .ft .msgb.owner-edit-btn em{display:inline-block!important;font-style:normal;font-weight:600;color:var(--brand)!important}
  .nm-explore-root .card:not(.rm) .ft .msgb.owner-edit-btn svg{width:14px;height:14px;stroke:var(--brand)!important;display:inline-block!important}
+ .nm-explore-root .card.rm .ft .msgb.owner-edit-btn{padding:0 12px;background:var(--sf)!important;color:var(--brand)!important;border:1.5px solid var(--brand)!important;box-shadow:none!important;display:inline-flex!important;align-items:center;justify-content:center;gap:5px}
+ .nm-explore-root .card.rm .ft .msgb.owner-edit-btn em{display:inline-block!important;font-style:normal;font-weight:600;color:var(--brand)!important}
+ .nm-explore-root .card.rm .ft .msgb.owner-edit-btn svg{width:14px;height:14px;stroke:var(--brand)!important;display:inline-block!important}
  .nm-explore-root .card.rm{grid-template-columns:92px minmax(0,1fr);gap:12px;padding:8px;border-radius:20px}
  .nm-explore-root .card.rm .bd{display:flex;flex-direction:column;min-width:0;padding:2px 2px 0 0}
  .nm-explore-root .card.rm .av2{width:92px;height:92px;aspect-ratio:1/1;border-radius:16px;overflow:hidden;flex-shrink:0}

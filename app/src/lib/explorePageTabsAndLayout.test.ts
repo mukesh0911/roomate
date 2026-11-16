@@ -137,7 +137,7 @@ describe('ExplorePage Unified Portal & Layout Architecture', () => {
       expect(cardWidth).toBeGreaterThan(400); // Cards have generous, comfortable width
     });
 
-    it('keeps .cfm modals bounded and scrollable on desktop and uses wide dialog layout for room applications', () => {
+    it('keeps .cfm modals bounded and scrollable on desktop and unifies direct message routing without modal form clutter', () => {
       const css = readFileSync(resolve(process.cwd(), 'src/nestmate-explore.css'), 'utf8');
       const engine = readFileSync(resolve(process.cwd(), 'src/lib/exploreEngine.js'), 'utf8');
 
@@ -149,8 +149,8 @@ describe('ExplorePage Unified Portal & Layout Architecture', () => {
       expect(css).toMatch(/\.nm-explore-root \.card:not\(\.rm\) \.ft\{[^}]*flex-wrap:wrap;/);
       expect(css).toMatch(/\.nm-explore-root \.ov\{[^}]*z-index:50;/);
       expect(css).toMatch(/\.nm-explore-root \.cfm \.tx\{min-height:72px;/);
-      expect(engine).toContain('dlg(\'<div class="app-dlg">\' + rows.join("") + \'</div>\', 1, \'app-sheet\');');
-      expect(engine).toContain('<div class="loc" style="font-size:13.5px;margin-top:2px">\' + IC.pin');
+      expect(engine).toContain('openHostChat');
+      expect(engine).toContain('openChat');
       expect(engine).toContain('const appDlgBody = $("cfb").querySelector(".app-dlg-b"); if (appDlgBody) appDlgBody.scrollTop = 0;');
       expect(engine).toContain('<span style="position:static;flex:1;min-width:0;height:44px;');
       expect(engine).not.toContain('<span class="tag" style="flex:1;text-align:center">Inquiry Sent</span>');

@@ -569,9 +569,9 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             let applyBtn = '';
             if (hasActiveApp) {
                 const statusLabels = { pending: '🟡 Inquiry Sent · Open Chat', shortlisted: '🔵 Shortlisted · Open Chat', selected: '🟢 Accepted · Open Chat', accepted_by_user: '✅ Accepted · Open Chat' };
-                applyBtn = '<button class="ghb" data-apply-place="' + esc(x[12] || i) + '" style="width:100%;height:48px;border-radius:14px;font-weight:700;font-size:14.5px;justify-content:center;background:#fff8f5;border-color:var(--brand);color:var(--brand)">' + (statusLabels[existingApp.status] || 'Open Chat Thread') + '</button>';
+                applyBtn = '<button class="ghb" data-msg="r:' + i + '" style="width:100%;height:48px;border-radius:14px;font-weight:700;font-size:14.5px;justify-content:center;background:#fff8f5;border-color:var(--brand);color:var(--brand)">' + (statusLabels[existingApp.status] || 'Open Chat') + '</button>';
             } else {
-                applyBtn = '<button class="msgb big" data-apply-place="' + esc(x[12] || i) + '" style="width:100%;height:48px;border-radius:14px;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--g);color:#fff;box-shadow:0 6px 18px rgba(240,84,30,0.3)"><em>' + (authUser ? 'Message Host' : 'Sign in to Message') + '</em></button>';
+                applyBtn = '<button class="msgb big" data-msg="r:' + i + '" style="width:100%;height:48px;border-radius:14px;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--g);color:#fff;box-shadow:0 6px 18px rgba(240,84,30,0.3)"><em>' + (authUser ? 'Message Host' : 'Sign in to Message') + '</em></button>';
             }
             const sideCtas = isOwn
                 ? '<span class="tag" style="background:#e8f5e9;color:#2e7d32;font-weight:700;padding:6px 14px;border-radius:20px;font-size:13px;display:inline-block;margin-bottom:12px">Your Listing</span><button class="msgb big" data-la="edit" data-q="' + (x[12] || i) + '"><em>Edit Listing</em></button><button class="ghb" data-n="listings">Manage in My listings</button>'
@@ -583,8 +583,8 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 ? '<button class="msgb" data-la="edit" data-q="' + (x[12] || i) + '"><em>Edit Listing</em></button>'
                 : '<div style="display:flex;align-items:center;gap:8px;margin-left:auto">' +
                     (hasActiveApp
-                        ? '<button class="ghb" data-apply-place="' + esc(x[12] || i) + '" style="height:42px;padding:0 16px;border-radius:12px;font-weight:700;font-size:13.5px;border-color:var(--brand);color:var(--brand);background:#fff8f5">' + (existingApp.status === 'pending' ? '🟡 Inquiry Sent · Chat' : existingApp.status === 'shortlisted' ? '🔵 Shortlisted · Chat' : '🟢 Open Chat') + '</button>'
-                        : '<button class="msgb" data-apply-place="' + esc(x[12] || i) + '" style="height:42px;padding:0 18px;border-radius:12px;font-weight:700;font-size:13.5px;white-space:nowrap;background:var(--brand);color:#fff"><em>' + (!authUser ? 'Sign in' : 'Message Host') + '</em></button>'
+                        ? '<button class="ghb" data-msg="r:' + i + '" style="height:42px;padding:0 16px;border-radius:12px;font-weight:700;font-size:13.5px;border-color:var(--brand);color:var(--brand);background:#fff8f5">' + (existingApp.status === 'pending' ? '🟡 Inquiry Sent · Chat' : existingApp.status === 'shortlisted' ? '🔵 Shortlisted · Chat' : '🟢 Open Chat') + '</button>'
+                        : '<button class="msgb" data-msg="r:' + i + '" style="height:42px;padding:0 18px;border-radius:12px;font-weight:700;font-size:13.5px;white-space:nowrap;background:var(--brand);color:#fff"><em>' + (!authUser ? 'Sign in' : 'Message Host') + '</em></button>'
                     ) +
                   '</div>';
             const hostSection = '<section class="sec-host"><div class="host-card" style="display:flex;align-items:center;gap:14px;padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--sf)"><div class="av2" style="width:52px;height:52px;border-radius:16px;font-size:18px;flex:none">' + posterAvContent + '</div><div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span>Hosted by ' + esc(posterName) + '</span>' + (x[9] ? '<span class="ok" title="Verified Host" style="color:var(--ok);font-size:12px;background:#e4f5ee;padding:1px 8px;border-radius:999px;font-weight:600;display:inline-flex;align-items:center;gap:3px">✓ Verified</span>' : '') + '</div><div style="color:var(--ink2);font-size:13px;margin-top:3px">' + (isOwn ? 'Your listing' : 'Live-in Host · Active on NestMate') + '</div></div></div></section>';
@@ -957,10 +957,12 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 return '<span class="tag">Pending</span><button class="gh" data-withdraw="' + esc(relationship.connectionId) + '" data-r-idx="' + i + '">Withdraw</button>';
             if (relationship.state === 'received')
                 return '<button class="gh" data-conn-act="decline" data-conn-id="' + esc(relationship.connectionId) + '" data-r-idx="' + i + '">Decline</button><button class="' + cls + '" data-conn-act="accept" data-conn-id="' + esc(relationship.connectionId) + '" data-r-idx="' + i + '">Accept</button>';
-            const label = { self: 'Your profile', unavailable: 'Profile unavailable', blocked: 'Connection blocked', restricted: 'Connection unavailable' }[relationship.state];
+            if (relationship.state === 'self')
+                return '<button class="' + cls + ' owner-edit-btn" data-la="profile" style="background:var(--sf);color:var(--brand);border:1.5px solid var(--brand);box-shadow:none" aria-label="Edit your profile">' + IC.edit + '<em>Edit</em></button>';
+            const label = { unavailable: 'Profile unavailable', blocked: 'Connection blocked', restricted: 'Connection unavailable' }[relationship.state];
             if (label)
                 return '<button class="' + cls + '" disabled>' + label + '</button>';
-            return '<button class="' + cls + '" data-conn="' + i + '">' + IC.chat + '<em>Message</em></button>';
+            return '<button class="' + cls + '" data-msg="m:' + i + '">' + IC.chat + '<em>Message</em></button>';
         }
         function listingCommunicationButtons(kind, i, mode = false) {
             const isOutline = mode === 'outline' || mode === 'secondary';
@@ -983,9 +985,9 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 const listingId = (row && row[12]) || i;
                 const existingApp = (SEEKER_APPS || []).find(function (a) { return a && String(a.listingId) === String(listingId); });
                 if (existingApp && ['applied', 'shortlisted', 'rejected', 'hired', 'roommate_connected'].includes(existingApp.status)) {
-                    return '<button class="' + baseCls + '" data-apply-place="' + esc(listingId) + '" aria-label="View Application" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>View Application</em></button>';
+                    return '<button class="' + baseCls + '" data-msg="r:' + i + '" aria-label="Open Chat" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>Open Chat</em></button>';
                 }
-                return '<button class="' + baseCls + '" data-apply-place="' + esc(listingId) + '" aria-label="' + (!authUser ? 'Sign in to message' : 'Message host') + '" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>Message</em></button>';
+                return '<button class="' + baseCls + '" data-msg="r:' + i + '" aria-label="' + (!authUser ? 'Sign in to message' : 'Message host') + '" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>Message</em></button>';
             }
             if (!authUser) return '<button class="' + baseCls + '" data-msg="' + kind + ':' + i + '" aria-label="Sign in" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>Message</em></button>';
             return '<button class="' + baseCls + '" data-msg="' + kind + ':' + i + '" aria-label="Contact host" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>Message</em></button>';
@@ -1448,81 +1450,14 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     }
 
                     let roomObj = D.find(function (d) { return d && (d[12] === listingId || String(D.indexOf(d)) === String(listingId)); });
-                    const rTitle = roomObj ? roomObj[1] : "Room Listing";
-                    const rLoc = roomObj ? roomObj[2] : "Bengaluru";
-                    const rRent = roomObj ? roomObj[3] : 0;
-                    const rDeposit = (roomObj && roomObj[21] && roomObj[21].deposit != null) ? roomObj[21].deposit : (rRent * 2);
-                    const rPhoto = (roomObj && roomObj[13] && roomObj[13][0]) ? roomObj[13][0] : '';
-                    const hName = (roomObj && roomObj[16]) || 'Host';
-                    const hId = (roomObj && (roomObj[20] || (roomObj[21] && roomObj[21].ownerId))) || ('demo_host_' + listingId);
-                    const hAv = (roomObj && roomObj[17]) || '';
-                    const qs = (roomObj && roomObj[21] && roomObj[21].screeningQuestions) || [];
-
-                    const applicantName = (currentProfile && (currentProfile.name || currentProfile.displayName)) || (authUser && authUser.displayName) || '';
-                    const applicantGender = (currentProfile && currentProfile.gender) || '';
-                    const applicantBudget = resolveSeekerBudget(currentProfile) || 0;
-                    const roomPrefGender = (roomObj && ((roomObj[21] && (roomObj[21].preferredGender || roomObj[21].genderPreference)) || roomObj[10])) || 'Any';
-
-                    let genderWarning = '';
-                    if (applicantGender && roomPrefGender && roomPrefGender !== 'Any') {
-                        const rG = roomPrefGender.toLowerCase();
-                        const aG = applicantGender.toLowerCase();
-                        if ((rG === 'female' && aG === 'male') || (rG === 'male' && aG === 'female')) {
-                            genderWarning = '<div class="v-alert" style="background:#fff3cd;border:1px solid #ffeeba;border-radius:10px;padding:10px 14px;margin:10px 0;font-size:13px;color:#856404;display:flex;align-items:center;gap:8px">' +
-                                '⚠️ <b>Gender Notice:</b> Host specified gender preference: <b>' + esc(roomPrefGender) + '</b>. Your profile lists <b>' + esc(applicantGender) + '</b>.</div>';
-                        }
+                    const rIdx = roomObj ? D.indexOf(roomObj) : -1;
+                    if (rIdx >= 0) {
+                        await openChat("r", rIdx);
+                    } else {
+                        const hName = (roomObj && roomObj[16]) || 'Host';
+                        const hId = (roomObj && (roomObj[20] || (roomObj[21] && roomObj[21].ownerId))) || ('demo_host_' + listingId);
+                        await openHostChat(hId, listingId, hName);
                     }
-
-                    let jitFields = '';
-                    if (!applicantName || !applicantGender || applicantBudget <= 0) {
-                        jitFields = '<div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:12px;padding:12px 14px;margin:12px 0">' +
-                            '<b style="font-size:13px;color:var(--ink);display:block;margin-bottom:8px">Quick Details for the Host</b>';
-                        if (!applicantName) {
-                            jitFields += '<div style="margin-bottom:10px"><label for="jit-name" style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Your Full Name <span style="color:var(--brand)">*</span></label><div class="pin"><input type="text" id="jit-name" placeholder="Full legal name" style="width:100%" required></div></div>';
-                        }
-                        if (!applicantGender) {
-                            jitFields += '<div style="margin-bottom:10px"><label for="jit-gender" style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Your Gender <span style="color:var(--brand)">*</span></label><select id="jit-gender" class="pill" style="width:100%;height:40px"><option value="">Select gender</option><option value="Female">Female</option><option value="Male">Male</option><option value="Non-binary">Non-binary</option><option value="Prefer not to say">Prefer not to say</option></select></div>';
-                        }
-                        if (applicantBudget <= 0) {
-                            jitFields += '<div style="margin-bottom:6px"><label for="jit-budget" style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Your Max Monthly Budget (₹) <span style="color:var(--brand)">*</span></label><div class="pin"><input type="number" id="jit-budget" placeholder="e.g. 25000" style="width:100%" required></div></div>';
-                        }
-                        jitFields += '</div>';
-                    }
-
-                    const myProfileSummary = (currentProfile && currentProfile.name)
-                        ? '<div style="display:flex;align-items:center;gap:10px;background:var(--bs);padding:10px 14px;border-radius:12px;margin:12px 0">' +
-                          ((currentProfile.avatarUrl || currentProfile.avatar) ? '<img src="' + esc(currentProfile.avatarUrl || currentProfile.avatar) + '" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover">' : '<span style="width:36px;height:36px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-weight:700">' + esc(currentProfile.name.slice(0, 1)) + '</span>') +
-                          '<div><b style="font-size:13.5px">' + esc(currentProfile.name) + '</b>' + (currentProfile.isVerified ? ' <span style="color:#0ca678;font-size:11.5px">✓ Verified</span>' : '') +
-                          '<div style="font-size:12px;color:var(--ink2)">' + esc([currentProfile.profession || 'Working Professional', currentProfile.diet || currentProfile.smoke].filter(Boolean).join(' · ')) + '</div></div></div>'
-                        : '';
-
-                    const rows = [
-                        '<div class="app-dlg-h"><div style="min-width:0;flex:1"><h3 style="margin:0 0 4px;font-size:18px;line-height:1.25">Connect for ' + esc(rTitle) + '</h3>' +
-                        '<div class="loc" style="font-size:13.5px;margin-top:2px">' + IC.pin + '<span style="min-width:0">' + esc(rLoc) + ' · <b>' + fmt(rRent) + '</b>/month</span></div></div><button type="button" class="ghb" data-cf="no" aria-label="Close" style="width:34px;height:34px;min-width:34px;padding:0;border-radius:50%;display:grid;place-items:center;font-size:16px;line-height:1;flex:none">✕</button></div><div class="app-dlg-b">',
-                        myProfileSummary,
-                        genderWarning,
-                        jitFields,
-                        '<div style="margin:10px 0"><b style="font-size:13px;color:var(--ink)">Target Move-in Date</b><div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">' +
-                        '<button type="button" class="pill" data-set-move="immediate" aria-pressed="false" style="padding:0 14px;height:34px;font-size:12.5px">Immediate</button>' +
-                        '<button type="button" class="pill" data-set-move="15days" aria-pressed="true" style="background:var(--brand);color:#fff;border-color:var(--brand);padding:0 14px;height:34px;font-size:12.5px">Within 15 days</button>' +
-                        '<button type="button" class="pill" data-set-move="nextmonth" aria-pressed="false" style="padding:0 14px;height:34px;font-size:12.5px">1st of next month</button>' +
-                        '</div></div>',
-                        '<div style="margin:12px 0"><label for="seeker-note" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Short Introduction Message</label><textarea class="tx" id="seeker-note" placeholder="Introduce yourself, what you do, and why this flat is a great fit..." rows="2" style="width:100%;resize:vertical;border-radius:10px"></textarea></div>'
-                    ];
-
-                    if (qs.length > 0) {
-                        rows.push('<div style="margin:12px 0"><b style="font-size:13px">Host\'s Screening Questions</b>' +
-                            qs.map(function (q, idx) {
-                                return '<div style="margin-top:10px"><label for="seeker-q-' + idx + '" style="display:block;margin-bottom:5px;font-size:12.5px;font-weight:500;color:var(--ink)">' + esc(q) + '</label><textarea class="tx" id="seeker-q-' + idx + '" rows="2" placeholder="Your answer..." style="width:100%;border-radius:10px"></textarea></div>';
-                            }).join('') +
-                            '</div>');
-                    }
-
-                    rows.push(
-                        '</div><div class="app-dlg-f"><div class="r"><button type="button" class="ghb" data-cf="no" style="height:44px">Cancel</button><button type="button" class="msgb" data-submit-app-place="' + esc(listingId) + '" data-questions-count="' + qs.length + '" style="width:auto;padding:0 24px;height:44px;background:var(--brand);color:#fff;font-size:15px;font-weight:700"><em>Send Request</em></button></div></div>'
-                    );
-
-                    dlg('<div class="app-dlg">' + rows.join("") + '</div>', 1, 'app-sheet');
                     return;
                 }
                 else if (b.dataset.submitAppPlace) {
@@ -6618,11 +6553,19 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 } else {
                     const placeId = (kind === 'r' ? D[i] && D[i][12] : G[i] && G[i][11]) || '';
                     openAuthModal({
-                        title: 'Sign in to Connect & Message',
-                        subtitle: 'Sign in to send an inquiry and message the host.',
+                        title: 'Sign in to Message Host',
+                        subtitle: 'Sign in to chat with the host.',
                         redirect: '/explore?' + (kind === 'p' ? 'pg=' : 'room=') + encodeURIComponent(placeId) + '&autoApply=1'
                     });
                 }
+                return;
+            }
+            if (kind === "r") {
+                const roomObj = D[i];
+                const hostUid = (roomObj && (roomObj[20] || (roomObj[21] && roomObj[21].ownerId))) || '';
+                const hName = (roomObj && roomObj[16]) || 'Host';
+                const lId = (roomObj && roomObj[12]) || '';
+                await openHostChat(hostUid, lId, hName);
                 return;
             }
             const targetUid = kind == "m" ? RM[i] && RM[i][9] : kind == "r" ? D[i] && D[i][20] : G[i] && G[i][17];
@@ -7061,85 +7004,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     toast("Communication is currently unavailable with this profile.");
                     return;
                 }
-
-                // Check for associated listing
-                const targetListingId = targetPerson[13] || ((D.find(function (d) { return d && d[20] === targetUid; })) ? (D.find(function (d) { return d && d[20] === targetUid; }))[12] : '');
-                const matchedListing = targetListingId ? D.find(function (d) { return d && d[12] === targetListingId; }) : null;
-                const modalTitle = matchedListing ? ("Message Host for " + matchedListing[1]) : ("Message " + targetPerson[1]);
-                const modalLoc = matchedListing ? (matchedListing[2] + " · " + fmt(matchedListing[3]) + "/mo") : ([targetPerson[3], targetPerson[4]].filter(Boolean).join(" · ") || "Bengaluru");
-
-                const rawQs = (matchedListing && matchedListing[21] && Array.isArray(matchedListing[21].screeningQuestions) && matchedListing[21].screeningQuestions.length > 0)
-                    ? matchedListing[21].screeningQuestions
-                    : ((targetPerson[17] && Array.isArray(targetPerson[17].screeningQuestions) && targetPerson[17].screeningQuestions.length > 0)
-                        ? targetPerson[17].screeningQuestions
-                        : []);
-                const qs = rawQs.slice(0, 3);
-
-                const applicantName = (currentProfile && (currentProfile.name || currentProfile.displayName)) || (authUser && authUser.displayName) || '';
-                const applicantGender = (currentProfile && currentProfile.gender) || '';
-                const applicantBudget = resolveSeekerBudget(currentProfile) || 0;
-                const roomPrefGender = (matchedListing && ((matchedListing[21] && (matchedListing[21].preferredGender || matchedListing[21].genderPreference)) || matchedListing[10])) || (targetPerson[17] && targetPerson[17].preferredGender) || 'Any';
-
-                let genderWarning = '';
-                if (applicantGender && roomPrefGender && roomPrefGender !== 'Any') {
-                    const rG = roomPrefGender.toLowerCase();
-                    const aG = applicantGender.toLowerCase();
-                    if ((rG === 'female' && aG === 'male') || (rG === 'male' && aG === 'female')) {
-                        genderWarning = '<div class="v-alert" style="background:#fff3cd;border:1px solid #ffeeba;border-radius:10px;padding:10px 14px;margin:10px 0;font-size:13px;color:#856404;display:flex;align-items:center;gap:8px">' +
-                            '⚠️ <b>Gender Notice:</b> Host/Roommate specified gender preference: <b>' + esc(roomPrefGender) + '</b>. Your profile lists <b>' + esc(applicantGender) + '</b>.</div>';
-                    }
-                }
-
-                let jitFields = '';
-                if (!applicantName || !applicantGender || applicantBudget <= 0) {
-                    jitFields = '<div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:12px;padding:12px 14px;margin:12px 0">' +
-                        '<b style="font-size:13px;color:var(--ink);display:block;margin-bottom:8px">Quick Details for Roommate Connect</b>';
-                    if (!applicantName) {
-                        jitFields += '<div style="margin-bottom:10px"><label for="jit-name" style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Your Full Name <span style="color:var(--brand)">*</span></label><div class="pin"><input type="text" id="jit-name" placeholder="Full legal name" style="width:100%" required></div></div>';
-                    }
-                    if (!applicantGender) {
-                        jitFields += '<div style="margin-bottom:10px"><label for="jit-gender" style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Your Gender <span style="color:var(--brand)">*</span></label><select id="jit-gender" class="pill" style="width:100%;height:40px"><option value="">Select gender</option><option value="Female">Female</option><option value="Male">Male</option><option value="Non-binary">Non-binary</option><option value="Prefer not to say">Prefer not to say</option></select></div>';
-                    }
-                    if (applicantBudget <= 0) {
-                        jitFields += '<div style="margin-bottom:6px"><label for="jit-budget" style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Your Max Monthly Budget (₹) <span style="color:var(--brand)">*</span></label><div class="pin"><input type="number" id="jit-budget" placeholder="e.g. 25000" style="width:100%" required></div></div>';
-                    }
-                    jitFields += '</div>';
-                }
-
-                const myProfileSummary = (currentProfile && currentProfile.name)
-                    ? '<div style="display:flex;align-items:center;gap:10px;background:var(--bs);padding:10px 14px;border-radius:12px;margin:12px 0">' +
-                      ((currentProfile.avatarUrl || currentProfile.avatar) ? '<img src="' + esc(currentProfile.avatarUrl || currentProfile.avatar) + '" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover">' : '<span style="width:36px;height:36px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-weight:700">' + esc(currentProfile.name.slice(0, 1)) + '</span>') +
-                      '<div><b style="font-size:13.5px">' + esc(currentProfile.name) + '</b>' + (currentProfile.isVerified ? ' <span style="color:#0ca678;font-size:11.5px">✓ Verified</span>' : '') +
-                      '<div style="font-size:12px;color:var(--ink2)">' + esc([currentProfile.profession || 'Working Professional', currentProfile.diet || currentProfile.smoke].filter(Boolean).join(' · ')) + '</div></div></div>'
-                    : '';
-
-                const rows = [
-                    '<div class="app-dlg-h"><div style="min-width:0;flex:1"><h3 style="margin:0 0 4px;font-size:18px;line-height:1.25">' + esc(modalTitle) + '</h3>' +
-                    '<div class="loc" style="font-size:13.5px;margin-top:2px">' + IC.pin + '<span style="min-width:0">' + esc(modalLoc) + '</span></div></div><button type="button" class="ghb" data-cf="no" aria-label="Close" style="width:34px;height:34px;min-width:34px;padding:0;border-radius:50%;display:grid;place-items:center;font-size:16px;line-height:1;flex:none">✕</button></div><div class="app-dlg-b">',
-                    myProfileSummary,
-                    genderWarning,
-                    jitFields,
-                    '<div style="margin:10px 0"><b style="font-size:13px;color:var(--ink)">Target Move-in Date</b><div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">' +
-                    '<button type="button" class="pill" data-set-move="immediate" aria-pressed="false" style="padding:0 14px;height:34px;font-size:12.5px">Immediate</button>' +
-                    '<button type="button" class="pill" data-set-move="15days" aria-pressed="true" style="background:var(--brand);color:#fff;border-color:var(--brand);padding:0 14px;height:34px;font-size:12.5px">Within 15 days</button>' +
-                    '<button type="button" class="pill" data-set-move="nextmonth" aria-pressed="false" style="padding:0 14px;height:34px;font-size:12.5px">1st of next month</button>' +
-                    '</div></div>',
-                    '<div style="margin:12px 0"><label for="seeker-note" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Short Introduction Message</label><textarea class="tx" id="seeker-note" placeholder="Introduce yourself, what you do, and why you would be a great roommate..." rows="2" style="width:100%;resize:vertical;border-radius:10px"></textarea></div>'
-                ];
-
-                if (qs.length > 0) {
-                    rows.push('<div style="margin:12px 0"><b style="font-size:13px">Screening Questions</b>' +
-                        qs.map(function (q, idx) {
-                            return '<div style="margin-top:10px"><label for="seeker-q-' + idx + '" style="display:block;margin-bottom:5px;font-size:12.5px;font-weight:500;color:var(--ink)">' + esc(q) + '</label><textarea class="tx" id="seeker-q-' + idx + '" rows="2" placeholder="Your answer..." style="width:100%;border-radius:10px"></textarea></div>';
-                        }).join('') +
-                        '</div>');
-                }
-
-                rows.push(
-                    '</div><div class="app-dlg-f"><div class="r"><button type="button" class="ghb" data-cf="no" style="height:44px">Cancel</button><button type="button" class="msgb" data-submit-mate-conn="' + i + '" data-questions-count="' + qs.length + '" style="width:auto;padding:0 24px;height:44px;background:var(--brand);color:#fff;font-size:15px;font-weight:700"><em>Send Message</em></button></div></div>'
-                );
-
-                dlg('<div class="app-dlg">' + rows.join("") + '</div>', 1, 'app-sheet');
+                openChat("m", i);
                 return;
             }
             else if (d.ub) {
