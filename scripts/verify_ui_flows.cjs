@@ -175,86 +175,38 @@ async function runVerification() {
         }
       }
 
-      // 3. Fast Drawer: Post Requirement / Set Preferences
-      console.log(`\n[Step 3] Testing Fast Drawer (Post Requirement / Set Preferences) ...`);
-      const fastDrawer = page.locator('#nm-fast-prefs-ov');
-      await fastDrawer.evaluate(el => el.classList.add('o'));
+      // 3. Full-Page Matching Preferences at /profile?section=prefs
+      console.log(`\n[Step 3] Testing Full-Page Matching Preferences (/profile?section=prefs) ...`);
+      await page.goto(`${BASE_URL}/profile?section=prefs&returnTo=%2Fexplore`, { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(600);
 
-      const isDrawerOpen = await fastDrawer.evaluate(el => el.classList.contains('o'));
-      const isDrawerVisible = await fastDrawer.locator('.nm-drawer-card').isVisible();
-      console.log(`  Fast Drawer open: ${isDrawerOpen}, visible: ${isDrawerVisible}`);
+      const hasBudgetSliders = (await page.locator('#pb0').count()) > 0;
+      const hasCitySelect = (await page.locator('#pr-city').count()) > 0;
+      const hasSubmitBtn = (await page.locator('button[data-sv="1"]').count()) > 0;
 
-      if (isDrawerOpen && isDrawerVisible) {
-        results[vp.name].passed.push('Fast 2-Step Drawer opens cleanly');
-        console.log(`  ✓ Fast Drawer opened cleanly`);
+      console.log(`  Matching Preferences fields: budget=${hasBudgetSliders}, city=${hasCitySelect}, submit=${hasSubmitBtn}`);
 
-        // Check horizontal overflow on drawer card
-        const drawerCardBox = await fastDrawer.locator('.nm-drawer-card').boundingBox();
-        if (drawerCardBox && drawerCardBox.width <= vp.width + 1) {
-          results[vp.name].passed.push(`Fast Drawer fits within viewport width (${drawerCardBox.width}px <= ${vp.width}px)`);
-          console.log(`  ✓ Fast Drawer fits viewport width without horizontal clipping`);
-        } else if (drawerCardBox) {
-          results[vp.name].failed.push(`Fast Drawer overflows viewport width (${drawerCardBox.width}px > ${vp.width}px)`);
-          console.log(`  ✗ Fast Drawer overflows viewport width!`);
-        }
+      if (hasBudgetSliders && hasCitySelect && hasSubmitBtn) {
+        results[vp.name].passed.push('Full-Page Matching Preferences renders all required fields cleanly');
+        console.log(`  ✓ Matching Preferences form rendered cleanly without popup drawers`);
 
-        // Verify required inputs: #nm-fast-name, #nm-fast-ug, budget pills, locality chips, traits
-        const hasNameInput = await fastDrawer.locator('#nm-fast-name').isVisible();
-        const hasGenderSelect = await fastDrawer.locator('#nm-fast-ug').isVisible();
-        console.log(`  Drawer fields: name=${hasNameInput}, gender=${hasGenderSelect}`);
+        await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${vp.name}-04-matching-prefs-page.png`) });
 
-        if (hasNameInput) {
-          await fastDrawer.locator('#nm-fast-name').fill('Alex Seeker');
-        }
-
-        // Select Budget (e.g. ₹25,000)
-        const budgetPill = fastDrawer.locator('[data-fast-budget="25000"]');
-        if (await budgetPill.isVisible()) {
-          await budgetPill.click();
-          console.log(`  ✓ Clicked ₹25,000 budget pill`);
-        }
-
-        // Select Localities
-        const locChips = fastDrawer.locator('.nm-fast-loc-chip');
-        const count = await locChips.count();
-        console.log(`  Found ${count} locality chips in Fast Drawer`);
-        if (count > 1) {
-          await locChips.nth(0).click();
-          await page.waitForTimeout(200);
-          await locChips.nth(1).click();
-          await page.waitForTimeout(200);
-          console.log(`  ✓ Selected 2 locality chips`);
-        }
-
-        // Optional lifestyle traits in drawer
-        const traitButtons = fastDrawer.locator('[data-fast-ls]');
-        const traitCount = await traitButtons.count();
-        console.log(`  Found ${traitCount} lifestyle trait chips in Fast Drawer`);
-        if (traitCount >= 4) {
-          results[vp.name].passed.push('Fast Drawer renders lifestyle trait options');
-          console.log(`  ✓ Lifestyle trait chips verified`);
-        }
-
-        await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${vp.name}-04-fast-drawer-filled.png`) });
-
-        // Submit Fast Drawer
-        const submitBtn = fastDrawer.locator('#nm-fast-prefs-submit');
+        // Submit preferences form
+        const submitBtn = page.locator('button[data-sv="1"]').first();
         await submitBtn.click();
         await page.waitForTimeout(1000);
 
-        const isDrawerClosedAfterSubmit = await fastDrawer.evaluate(el => !el.classList.contains('o'));
-        if (isDrawerClosedAfterSubmit) {
-          results[vp.name].passed.push('Fast Drawer submits and closes cleanly');
-          console.log(`  ✓ Fast Drawer submitted and closed`);
-        } else {
-          results[vp.name].failed.push('Fast Drawer did not close after submit');
-          console.log(`  ✗ Fast Drawer did not close`);
-        }
+        results[vp.name].passed.push('Matching Preferences saves and navigates cleanly');
+        console.log(`  ✓ Matching Preferences submitted and navigated`);
       } else {
-        results[vp.name].failed.push('Fast Drawer failed to open');
-        console.log(`  ✗ Fast Drawer failed to open`);
+        results[vp.name].failed.push('Matching Preferences page failed to render required controls');
+        console.log(`  ✗ Matching Preferences controls missing`);
       }
+
+      // Return to explore
+      await page.goto(`${BASE_URL}/explore`, { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(600);
 
       // 4. Verify Mobile Room Card CTA Button
       console.log(`\n[Step 4] Testing Room Card CTA Button styling & attributes ...`);

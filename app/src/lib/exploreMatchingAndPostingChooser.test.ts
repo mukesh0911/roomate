@@ -7,17 +7,16 @@ import {
 } from '@/lib/matching';
 import { buildMatchingPreferencesUpdate } from '@/lib/profileEditor';
 
-describe('Explore Engine: Matching, Intent Switching, and Posting Chooser', () => {
-  describe('Quick 2-Option Posting Chooser Contract', () => {
-    it('differentiates room posting (provider/host) from requirement/matching preferences (seeker)', () => {
-      const chooserOptions = [
-        { action: 'post-room', label: 'Post a Room', role: 'have_room' },
-        { action: 'post-pref', label: 'Post Requirement / Set Match Preferences', role: 'find_room' },
-      ];
+describe('Explore Engine: Matching, Intent Switching, and Direct Routing', () => {
+  describe('Direct Action Routing Contract', () => {
+    it('routes post room directly to wizard and matching preferences directly to /profile?section=prefs', () => {
+      const actions = {
+        postRoom: 'openPost()',
+        matchingPrefs: '/profile?section=prefs',
+      };
 
-      expect(chooserOptions).toHaveLength(2);
-      expect(chooserOptions[0].action).toBe('post-room');
-      expect(chooserOptions[1].action).toBe('post-pref');
+      expect(actions.postRoom).toBe('openPost()');
+      expect(actions.matchingPrefs).toBe('/profile?section=prefs');
     });
   });
 

@@ -1473,33 +1473,6 @@ html.lock{overflow:hidden}
   flex-wrap: wrap;
   margin-bottom: 8px;
 }
-.nm-explore-root .nm-fast-loc-chip {
-  padding: 6px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--bg);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all .15s;
-}
-.nm-explore-root .nm-fast-loc-chip:hover {
-  border-color: var(--ink2);
-}
-.nm-explore-root .nm-fast-loc-chip.active {
-  background: var(--brand);
-  color: #fff;
-  border-color: var(--brand);
-  font-weight: 600;
-}
-.nm-explore-root .nm-drawer-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
-}
 
 /* Match Breakdown Modal ("Why this %?") */
 .nm-explore-root .nm-breakdown-card {
