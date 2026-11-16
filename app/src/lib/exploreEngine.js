@@ -995,22 +995,25 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             const relation = relationshipState(authUser && authUser.uid, uid, LIVE_CONNS, currentProfile && currentProfile.blockedUserIds || [], CH.map(function (c) { return { id: c.id, participants: c.raw && c.raw.participants || [authUser && authUser.uid, c.p], authorized: c.authorized === true }; }));
             const baseCls = isOutline ? 'ghb' : (isBig ? 'msgb big' : 'msgb');
             const outlineStyle = isOutline ? 'width:100%;height:46px;border-radius:14px;font-size:14.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px solid var(--line);background:var(--sf);color:var(--ink);transition:all .15s ease;' : '';
-            if (relation.state === 'self') return '<button class="' + baseCls + '" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + ' disabled>Your listing</button>';
+            if (relation.state === 'self') {
+                const selfListingId = (row && row[12]) || i;
+                return '<button class="' + baseCls + ' owner-edit-btn" data-la="edit" data-q="' + esc(selfListingId) + '" style="' + (isOutline ? outlineStyle : 'background:var(--sf);color:var(--brand);border:1.5px solid var(--brand);box-shadow:none;') + '" aria-label="Edit your listing">' + IC.edit + '<em>Edit</em></button>';
+            }
             if (relation.state === 'blocked') return '<button class="' + baseCls + '" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + ' disabled>Connection blocked</button>';
             if (relation.state === 'restricted') return '<button class="' + baseCls + '" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + ' disabled>Unavailable</button>';
             if (relation.state === 'sent') return '<div style="display:flex;align-items:center;gap:8px;width:100%;min-width:0;margin-top:10px"><span style="position:static;flex:1;min-width:0;height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 12px;border-radius:12px;background:var(--bs);color:var(--brandt);border:1px solid rgba(240,84,30,.24);font-size:13.5px;font-weight:600;white-space:nowrap">Inquiry Sent</span><button class="ghb" data-withdraw="' + esc(relation.connectionId) + '" style="width:auto;height:44px;margin-top:0;padding:0 16px;white-space:nowrap;flex:none;justify-content:center">Withdraw</button></div>';
             if (relation.state === 'received') return '<div style="display:flex;align-items:center;gap:8px;width:100%;margin-top:10px"><button class="ghb" data-conn-act="decline" data-conn-id="' + esc(relation.connectionId) + '" style="flex:1;width:auto;height:44px;margin-top:0;justify-content:center">Decline</button><button class="msgb" data-conn-act="accept" data-conn-id="' + esc(relation.connectionId) + '" style="flex:1;width:auto;height:44px;margin-top:0;justify-content:center">Accept</button></div>';
-            if (relation.state === 'accepted') return '<button class="' + baseCls + '" data-msg="' + kind + ':' + i + '" aria-label="Message the poster" ' + (isOutline ? 'style="' + outlineStyle + 'border-color:var(--brand);color:var(--brand);"' : '') + '>' + IC.chat + '<em>Message Host</em></button>';
+            if (relation.state === 'accepted') return '<button class="' + baseCls + '" data-msg="' + kind + ':' + i + '" aria-label="Message the poster" ' + (isOutline ? 'style="' + outlineStyle + 'border-color:var(--brand);color:var(--brand);"' : '') + '>' + IC.chat + '<em>Message</em></button>';
             if (kind === 'r') {
                 const listingId = (row && row[12]) || i;
                 const existingApp = (SEEKER_APPS || []).find(function (a) { return a && String(a.listingId) === String(listingId); });
                 if (existingApp && ['applied', 'shortlisted', 'rejected', 'hired', 'roommate_connected'].includes(existingApp.status)) {
                     return '<button class="' + baseCls + '" data-apply-place="' + esc(listingId) + '" aria-label="View Application" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>View Application</em></button>';
                 }
-                return '<button class="' + baseCls + '" data-apply-place="' + esc(listingId) + '" aria-label="' + (!authUser ? 'Sign in to message' : 'Message host') + '" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>' + (!authUser ? 'Sign in to message' : 'Message') + '</em></button>';
+                return '<button class="' + baseCls + '" data-apply-place="' + esc(listingId) + '" aria-label="' + (!authUser ? 'Sign in to message' : 'Message host') + '" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>Message</em></button>';
             }
-            if (!authUser) return '<button class="' + baseCls + '" data-msg="' + kind + ':' + i + '" aria-label="Sign in" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>Sign in</em></button>';
-            return '<button class="' + baseCls + '" data-msg="' + kind + ':' + i + '" aria-label="Contact host" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>Contact Host</em></button>';
+            if (!authUser) return '<button class="' + baseCls + '" data-msg="' + kind + ':' + i + '" aria-label="Sign in" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>Message</em></button>';
+            return '<button class="' + baseCls + '" data-msg="' + kind + ':' + i + '" aria-label="Contact host" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>Message</em></button>';
         }
         let CONN_ID_MAP = {};
         function bn(t) {
@@ -2737,7 +2740,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     const recentBadge = (act && (act.status === 'online' || act.status === 'recent'))
                         ? '<span class="nm-recent-badge">🟢 ' + esc(act.text) + '</span>'
                         : '';
-                    h += '<article class="card" data-i="' + i + '"><div class="ph">' + coverImg + '<span class="tag">' + esc(x[0]) + '</span>' + (x[9] ? '<span class="vb" title="Verified">' + IC.chk + '</span>' : '') + matchPillHtml(x[11], i) + '</div><div class="bd"><div class="tr"><div class="t">' + esc(x[1]) + '</div>' + recentBadge + '<button class="ib sv" data-id="' + i + '" aria-pressed="' + (isRoomSaved(x, i) ? "true" : "false") + '" aria-label="Save">' + IC.heart + '</button></div><div class="loc">' + IC.pin + esc(x[2]) + (x[8] ? ' · Furnished' : '') + '</div><div class="fx"><div title="Room type">' + IC.bed + esc(x[7]) + '</div><div title="Looking for">' + IC.usr + esc(x[21] && Number.isInteger(x[21].partnersNeeded) ? x[21].partnersNeeded + ' roommate(s)' : 'Not provided') + '</div><div title="Deposit">' + IC.wal + cf(x[4]) + ' deposit</div><div title="Available">' + IC.cal + (x[6] == "Now" ? "Available now" : "From " + esc(x[6])) + '</div></div><div class="ft"><div class="pr"><b>' + fmt(x[3]) + '</b><span>/mo</span></div>' + (authUser && (x[20] === authUser.uid || (x[12] && MY.some(function (m) { return m && m.id === x[12]; }))) ? '<button class="msgb" data-la="edit" data-q="' + (x[12] || i) + '" style="background:var(--sf);color:var(--brand);border:1px solid var(--brand)"><em>Your Listing · Edit</em></button>' : listingCommunicationButtons('r', i)) + '</div></div></article>';
+                    h += '<article class="card" data-i="' + i + '"><div class="ph">' + coverImg + '<span class="tag">' + esc(x[0]) + '</span>' + (x[9] ? '<span class="vb" title="Verified">' + IC.chk + '</span>' : '') + matchPillHtml(x[11], i) + '</div><div class="bd"><div class="tr"><div class="t">' + esc(x[1]) + '</div>' + recentBadge + '<button class="ib sv" data-id="' + i + '" aria-pressed="' + (isRoomSaved(x, i) ? "true" : "false") + '" aria-label="Save">' + IC.heart + '</button></div><div class="loc">' + IC.pin + esc(x[2]) + (x[8] ? ' · Furnished' : '') + '</div><div class="fx"><div title="Room type">' + IC.bed + esc(x[7]) + '</div><div title="Looking for">' + IC.usr + esc(x[21] && Number.isInteger(x[21].partnersNeeded) ? x[21].partnersNeeded + ' roommate(s)' : 'Not provided') + '</div><div title="Deposit">' + IC.wal + cf(x[4]) + ' deposit</div><div title="Available">' + IC.cal + (x[6] == "Now" ? "Available now" : "From " + esc(x[6])) + '</div></div><div class="ft"><div class="pr"><b>' + fmt(x[3]) + '</b><span>/mo</span></div>' + (authUser && (x[20] === authUser.uid || (x[12] && MY.some(function (m) { return m && m.id === x[12]; }))) ? '<button class="msgb owner-edit-btn" data-la="edit" data-q="' + (x[12] || i) + '" style="background:var(--sf);color:var(--brand);border:1.5px solid var(--brand);box-shadow:none" aria-label="Edit listing">' + IC.edit + '<em>Edit</em></button>' : listingCommunicationButtons('r', i)) + '</div></div></article>';
                 });
                 if (N === "explore" && PAGINATION_STATE.placesHasMore) {
                     h += '<div class="lm-wrap" style="grid-column:1/-1;display:flex;justify-content:center;padding:24px 0 32px"><button class="pill" data-act="load-more" style="height:44px;padding:0 24px;border-color:var(--brand);color:var(--brand);font-weight:600">' + (PAGINATION_STATE.placesLoading ? 'Loading...' : 'Load more places') + '</button></div>';
@@ -5665,10 +5668,10 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
 
                     if (isSelfDiscoverable || hasActiveListing) {
                         const statusTitle = hasActiveListing
-                            ? '● Your Room Listing is Published in ' + esc(cityName)
-                            : '● Your Roommate Profile is Live in ' + esc(cityName);
+                            ? 'Your Room Listing is Live in ' + esc(cityName)
+                            : 'Your Roommate Profile is Live in ' + esc(cityName);
                         const descText = hasActiveListing
-                            ? 'Your listing <b>' + esc(activeListing.t || 'Room') + '</b> is published under <b>Rooms & flats</b>. Because you are the host, your own card is hidden from your candidate search. Other members searching in ' + esc(cityName) + ' can find your host profile and listing.'
+                            ? 'Your listing <strong style="color:var(--ink);font-weight:700">' + esc(activeListing.t || 'Room') + '</strong> is live under <strong style="color:var(--ink);font-weight:700">Rooms & flats</strong>. Because you are the host, your own card is hidden from your roommate candidate search. Other members searching in ' + esc(cityName) + ' can discover your listing and reach out to you directly.'
                             : 'Your profile is active and visible to seekers in ' + esc(cityName) + '. As other members join and search for roommates, their profiles will appear here for you to connect.';
 
                         return '<div class="empty">' +
@@ -5681,9 +5684,9 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                             '<circle cx="98" cy="72" r="11" fill="#0ca678"/>' +
                             '<path d="M94 72l3 3 6-6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
                             '</svg>' +
-                            '<div style="margin-bottom:12px"><span style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;background:#e6fcf5;color:#0ca678;font-size:13px;font-weight:700">' + statusTitle + '</span></div>' +
-                            '<b style="font-size:19px;display:block;margin-bottom:8px">No other roommate candidates in your area yet</b>' +
-                            '<p style="max-width:540px;margin:0 auto 20px;color:var(--ink2);line-height:1.55;font-size:14px">' + descText + '</p>' +
+                            '<div style="margin-bottom:14px"><span style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;background:#e6fcf5;color:#0ca678;font-size:13px;font-weight:700"><span style="width:7px;height:7px;border-radius:50%;background:#0ca678;display:inline-block"></span>' + statusTitle + '</span></div>' +
+                            '<b style="font-size:20px;display:block;margin-bottom:10px">No other roommate candidates in your area yet</b>' +
+                            '<p style="max-width:540px;margin:0 auto 20px;color:var(--ink2);line-height:1.6;font-size:14.5px">' + descText + '</p>' +
                             '<div class="r" style="display:flex;align-items:center;justify-content:center;gap:12px;margin:20px auto 0;flex-wrap:wrap">' +
                             '<button class="pill" data-pvw="1" style="background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:0 6px 16px -4px rgba(240,84,30,0.45);cursor:pointer;padding:0 20px">👁️ Preview how seekers see you</button>' +
                             (hasActiveListing ? '<button class="pill" data-n="listings" style="cursor:pointer;padding:0 20px">View my listings</button>' : '<button class="pill" data-n="post" style="cursor:pointer;padding:0 20px">Post a room</button>') +
