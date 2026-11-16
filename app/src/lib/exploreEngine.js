@@ -434,8 +434,8 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             });
             return finalIndices;
         }
-        const ART = '<svg viewBox="0 0 160 120" width="160" height="120" aria-hidden="true"><circle cx="80" cy="64" r="46" fill="var(--bs)"/><path d="M52 94V62l28-22 28 22v32z" fill="#f0541e"/><rect x="72" y="70" width="16" height="24" rx="4" fill="#fff"/><rect x="57" y="66" width="9" height="9" rx="2.500" fill="#fff" opacity=".7"/><rect x="94" y="66" width="9" height="9" rx="2.500" fill="#fff" opacity=".7"/><path d="M128 26l2.500 7 7 2.500-7 2.500-2.500 7-2.500-7-7-2.500 7-2.500z" fill="#f0541e"/><circle cx="32" cy="40" r="4" fill="#ff8a3d"/><circle cx="134" cy="86" r="3" fill="#ff8a3d"/></svg>';
-        function em(t, d, x) { return '<div class="empty">' + ART + '<b>' + esc(t) + '</b>' + d + (x || "") + '</div>'; }
+        const ART = '<div class="nm-empty-icon-wrap"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>';
+        function em(t, d, x) { return '<div class="empty"><div class="nm-empty-card">' + ART + '<h3 class="nm-empty-title">' + esc(t) + '</h3><p class="nm-empty-desc">' + d + '</p>' + (x ? '<div class="nm-empty-actions">' + x + '</div>' : '') + '</div></div>'; }
         const CAT_NAMES = ["All listings", "Rooms & flats", "Roommates", "PG & coliving"];
         const HUB = [
             ["listings", "My listings", "Rooms you have posted & draft listings", IC.home],
@@ -5651,11 +5651,32 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             let h = ""; for (let i = 0; i < 6; i++)
                 h += '<div class="card sk"><div class="ph"></div><div class="bd"><i style="width:80%"></i><i style="width:55%"></i><i style="width:90%"></i><i style="width:40%"></i></div></div>'; return h;
         }
-        function erm() { return '<div class="empty"><svg viewBox="0 0 160 120" width="160" height="120" aria-hidden="true"><circle cx="80" cy="64" r="46" fill="var(--bs)"/><path d="M50 82a18 18 0 0 1 4-35 24 24 0 0 1 46-4 20 20 0 0 1 8 39z" fill="#f0541e"/><rect x="77" y="52" width="6" height="16" rx="3" fill="#fff"/><circle cx="80" cy="76" r="3.500" fill="#fff"/></svg><b>We could not load places</b>Check your connection and try again.<br><button class="post" data-sim="" style="display:inline-block">Try again</button></div>'; }
+        function erm() {
+            return '<div class="empty"><div class="nm-empty-card">' +
+                '<div class="nm-empty-icon-wrap" style="color:#e03131;background:rgba(224,49,49,0.08);border-color:rgba(224,49,49,0.2);box-shadow:0 8px 20px -4px rgba(224,49,49,0.12)">' +
+                '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+                '</div>' +
+                '<h3 class="nm-empty-title">Unable to Load Places</h3>' +
+                '<p class="nm-empty-desc">Check your network connection and try again.</p>' +
+                '<div class="nm-empty-actions"><button class="nm-btn-primary" data-sim=""><span>Try Again</span></button></div>' +
+                '</div></div>';
+        }
         function dsx() { return ""; }
         function exem() {
-            if (S.q)
-                return em("No results for \"" + esc(S.q) + "\"", "Check the spelling, or try a nearby area.", '<div class="ppc2">' + LOC.slice(0, 4).map(function (l) { return '<button class="pill" data-sq="' + l + '">' + l + '</button>'; }).join("") + '</div><button class="pill" data-sqc="1" style="margin:16px auto 0">Clear search</button>');
+            if (S.q) {
+                return '<div class="empty"><div class="nm-empty-card">' +
+                    '<div class="nm-empty-icon-wrap">' +
+                    '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
+                    '</div>' +
+                    '<h3 class="nm-empty-title">No results for &ldquo;' + esc(S.q) + '&rdquo;</h3>' +
+                    '<p class="nm-empty-desc">Check your spelling or explore these popular areas nearby.</p>' +
+                    '<div class="nm-empty-localities">' +
+                    LOC.slice(0, 4).map(function (l) { return '<button class="nm-btn-outline" style="height:34px;padding:0 12px;font-size:12.5px;width:auto" data-sq="' + l + '">' + l + '</button>'; }).join("") +
+                    '</div>' +
+                    '<div class="nm-empty-actions" style="margin-top:16px">' +
+                    '<button class="nm-btn-outline" data-sqc="1"><span>Clear search</span></button>' +
+                    '</div></div></div>';
+            }
             if (S.cat === 2) {
                 if (RM.length === 0) {
                     const intentSource = Object.assign({}, currentProfile || {}, { uid: authUser && authUser.uid, roommateDiscoveryEnabled: Boolean(ME && (ME.discover || (currentProfile && currentProfile.roommateDiscoveryEnabled === true))), housingPreferences: Object.assign({}, (currentProfile && currentProfile.housingPreferences) || {}, { activeIntents: (ME && Array.isArray(ME.activeIntents) && ME.activeIntents.length) ? ME.activeIntents : ((currentProfile && currentProfile.housingPreferences && currentProfile.housingPreferences.activeIntents) || []) }) });
@@ -5663,50 +5684,154 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     const isSelfDiscoverable = Boolean(authUser && ME && intentSource.roommateDiscoveryEnabled && resolvedSelfIntent.isDiscoveryEligible);
                     const hasActiveListing = MY && MY.some(function (l) { return l && (l.st === "Active" || l.st === "Pending verification"); });
                     const activeListing = MY && MY.find(function (l) { return l && (l.st === "Active" || l.st === "Pending verification"); });
-                    const cityName = (ME && (ME.city || ME.area)) || (activeListing && activeListing.loc) || "Bengaluru";
-                    const sampleBtn = '<button class="pill" data-load-samples="1" style="background:#0ca678;color:#fff;border-color:#0ca678;cursor:pointer;padding:0 20px;font-weight:600">✨ View sample roommates (' + esc(cityName) + ')</button>';
+                    const cityName = (ME && (ME.city || ME.area)) || (activeListing && activeListing.loc) || S.city || "Bengaluru";
+                    const sampleBtn = '<button class="nm-btn-curated" data-load-samples="1"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg><span>Explore sample roommates in ' + esc(cityName) + '</span></button>';
 
                     if (isSelfDiscoverable || hasActiveListing) {
                         const statusTitle = hasActiveListing
-                            ? 'Your Room Listing is Live in ' + esc(cityName)
-                            : 'Your Roommate Profile is Live in ' + esc(cityName);
-                        const descText = hasActiveListing
-                            ? 'Your listing <strong style="color:var(--ink);font-weight:700">' + esc(activeListing.t || 'Room') + '</strong> is live under <strong style="color:var(--ink);font-weight:700">Rooms & flats</strong>. Because you are the host, your own card is hidden from your roommate candidate search. Other members searching in ' + esc(cityName) + ' can discover your listing and reach out to you directly.'
-                            : 'Your profile is active and visible to seekers in ' + esc(cityName) + '. As other members join and search for roommates, their profiles will appear here for you to connect.';
+                            ? 'Listing Active in ' + esc(cityName)
+                            : 'Roommate Profile Live in ' + esc(cityName);
+                        const calloutTitle = hasActiveListing
+                            ? (activeListing.t || 'Your Room Listing')
+                            : ((ME && ME.n) || 'Your Roommate Profile');
+                        const calloutDesc = hasActiveListing
+                            ? 'Published under <strong>Rooms & flats</strong>. To keep discovery focused on candidates seeking rooms, host listings are excluded from your own candidate search.'
+                            : 'Your profile is active and discoverable to seekers in ' + esc(cityName) + '. As other members join, they will appear here.';
 
                         return '<div class="empty">' +
-                            '<svg viewBox="0 0 160 120" width="160" height="120" aria-hidden="true">' +
-                            '<circle cx="80" cy="60" r="44" fill="var(--bs)"/>' +
-                            '<circle cx="76" cy="46" r="14" fill="#f0541e"/>' +
-                            '<path d="M54 80c0-11 10-18 22-18s22 7 22 18z" fill="#f0541e"/>' +
-                            '<circle cx="36" cy="38" r="4" fill="#ff8a3d"/>' +
-                            '<path d="M124 24l2 5.5 5.5 2-5.5 2-2 5.5-2-5.5-5.5-2 5.5-2z" fill="#f0541e"/>' +
-                            '<circle cx="98" cy="72" r="11" fill="#0ca678"/>' +
-                            '<path d="M94 72l3 3 6-6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                            '<div class="nm-empty-card">' +
+                            '<div class="nm-empty-badge">' +
+                            '<span class="nm-pulse-dot"></span>' +
+                            '<span>' + esc(statusTitle) + '</span>' +
+                            '</div>' +
+                            '<div class="nm-empty-icon-wrap">' +
+                            '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+                            '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>' +
+                            '<circle cx="9" cy="7" r="4"/>' +
+                            '<path d="M22 21v-2a4 4 0 0 0-3-3.87"/>' +
+                            '<path d="M16 3.13a4 4 0 0 1 0 7.75"/>' +
                             '</svg>' +
-                            '<div style="margin-bottom:14px"><span style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;background:#e6fcf5;color:#0ca678;font-size:13px;font-weight:700"><span style="width:7px;height:7px;border-radius:50%;background:#0ca678;display:inline-block"></span>' + statusTitle + '</span></div>' +
-                            '<b style="font-size:20px;display:block;margin-bottom:10px">No other roommate candidates in your area yet</b>' +
-                            '<p style="max-width:540px;margin:0 auto 20px;color:var(--ink2);line-height:1.6;font-size:14.5px">' + descText + '</p>' +
-                            '<div class="r" style="display:flex;align-items:center;justify-content:center;gap:12px;margin:20px auto 0;flex-wrap:wrap">' +
-                            '<button class="pill" data-pvw="1" style="background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:0 6px 16px -4px rgba(240,84,30,0.45);cursor:pointer;padding:0 20px">👁️ Preview how seekers see you</button>' +
-                            (hasActiveListing ? '<button class="pill" data-n="listings" style="cursor:pointer;padding:0 20px">View my listings</button>' : '<button class="pill" data-n="post" style="cursor:pointer;padding:0 20px">Post a room</button>') +
+                            '</div>' +
+                            '<h3 class="nm-empty-title">No Roommate Candidates Yet</h3>' +
+                            '<p class="nm-empty-desc">Your ' + (hasActiveListing ? 'host listing is active' : 'profile is live') + ' and discoverable to members in ' + esc(cityName) + '.</p>' +
+                            '<div class="nm-host-callout">' +
+                            '<div class="nm-hc-top">' +
+                            '<span class="nm-hc-badge">' +
+                            '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                            '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>' +
+                            '<polyline points="9 22 9 12 15 12 15 22"/>' +
+                            '</svg>' +
+                            (hasActiveListing ? 'Active Listing' : 'Active Profile') +
+                            '</span>' +
+                            '<span class="nm-hc-live-tag">Live</span>' +
+                            '</div>' +
+                            '<div class="nm-hc-name">' + esc(calloutTitle) + '</div>' +
+                            '<div class="nm-hc-desc">' + calloutDesc + '</div>' +
+                            '</div>' +
+                            '<div class="nm-empty-actions">' +
+                            '<button class="nm-btn-primary" data-pvw="1">' +
+                            '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                            '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>' +
+                            '<circle cx="12" cy="12" r="3"/>' +
+                            '</svg>' +
+                            '<span>' + (hasActiveListing ? 'Preview Public Listing' : 'Preview Public Profile') + '</span>' +
+                            '</button>' +
+                            (hasActiveListing
+                                ? '<button class="nm-btn-outline" data-n="listings"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Manage Listings</span></button>'
+                                : '<button class="nm-btn-outline" data-n="profile" data-as="prefs"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Edit Preferences</span></button>') +
                             sampleBtn +
-                            '</div></div>';
+                            '</div></div></div>';
                     }
-                    return em("No roommate candidates available right now", "Roommate discovery features verified Team-Up seekers and Live-in Hosts offering spare rooms.", (authUser ? '<div class="r" style="display:flex;align-items:center;justify-content:center;gap:12px;margin:20px auto 0;flex-wrap:wrap"><button class="pill" data-n="profile" data-as="prefs" style="background:var(--brand);color:#fff;border-color:var(--brand);cursor:pointer;padding:0 20px">Create Roommate Profile</button><button class="pill" data-n="post" style="cursor:pointer;padding:0 20px">Post a room</button>' + sampleBtn + '</div>' : '<br><button class="pill" data-n="signin" style="margin:16px auto 0">Sign in to connect</button>'));
+                    return '<div class="empty"><div class="nm-empty-card">' +
+                        '<div class="nm-empty-icon-wrap">' +
+                        '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+                        '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>' +
+                        '<circle cx="9" cy="7" r="4"/>' +
+                        '<path d="M22 21v-2a4 4 0 0 0-3-3.87"/>' +
+                        '<path d="M16 3.13a4 4 0 0 1 0 7.75"/>' +
+                        '</svg>' +
+                        '</div>' +
+                        '<h3 class="nm-empty-title">No Roommate Candidates Right Now</h3>' +
+                        '<p class="nm-empty-desc">Roommate discovery connects verified seekers and live-in hosts looking to share flats in ' + esc(cityName) + '.</p>' +
+                        '<div class="nm-empty-actions">' +
+                        (authUser
+                            ? '<button class="nm-btn-primary" data-n="profile" data-as="prefs"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Create Roommate Profile</span></button>' +
+                              '<button class="nm-btn-outline" data-n="post"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span>Post a Room</span></button>'
+                            : '<button class="nm-btn-primary" data-n="signin"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg><span>Sign in to Connect</span></button>'
+                        ) +
+                        sampleBtn +
+                        '</div></div></div>';
                 }
                 if (S.hiMatch) {
-                    return em("No 70%+ roommate matches found", "Try turning off the 70%+ filter or adjusting your budget and preferences.", '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px"><button class="pill" data-widen-match="1">Show all roommates</button><button class="pill" data-n="profile" data-as="prefs">Edit preferences</button></div>');
+                    return '<div class="empty"><div class="nm-empty-card">' +
+                        '<div class="nm-empty-icon-wrap">' +
+                        '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+                        '<circle cx="12" cy="12" r="10"/>' +
+                        '<path d="M12 6v6l4 2"/>' +
+                        '</svg>' +
+                        '</div>' +
+                        '<h3 class="nm-empty-title">No 70%+ Roommate Matches Found</h3>' +
+                        '<p class="nm-empty-desc">Widen your compatibility threshold or update your matching preferences to see more candidates.</p>' +
+                        '<div class="nm-empty-actions">' +
+                        '<button class="nm-btn-primary" data-widen-match="1"><span>Show All Roommates</span></button>' +
+                        '<button class="nm-btn-outline" data-n="profile" data-as="prefs"><span>Edit Preferences</span></button>' +
+                        '</div></div></div>';
                 }
-                return em("No roommates match these filters", "Try a higher budget or a wider move-in window.", '<br><button class="pill" data-rs="1" style="margin:16px auto 0">Reset filters</button>');
+                return '<div class="empty"><div class="nm-empty-card">' +
+                    '<div class="nm-empty-icon-wrap">' +
+                    '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+                    '<path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>' +
+                    '</svg>' +
+                    '</div>' +
+                    '<h3 class="nm-empty-title">No Roommates Match Filters</h3>' +
+                    '<p class="nm-empty-desc">Try increasing your budget range or expanding your move-in window.</p>' +
+                    '<div class="nm-empty-actions">' +
+                    '<button class="nm-btn-outline" data-rs="1"><span>Reset Filters</span></button>' +
+                    '</div></div></div>';
             }
             if (D.length === 0) {
-                return em("No places available right now", "Rooms and flats will appear here when posted.", '<br><button class="pill" data-open-post="1" style="margin:16px auto 0">Post a room</button>');
+                return '<div class="empty"><div class="nm-empty-card">' +
+                    '<div class="nm-empty-icon-wrap">' +
+                    '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+                    '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>' +
+                    '<polyline points="9 22 9 12 15 12 15 22"/>' +
+                    '</svg>' +
+                    '</div>' +
+                    '<h3 class="nm-empty-title">No Places Available Right Now</h3>' +
+                    '<p class="nm-empty-desc">Rooms and flats in ' + esc(S.city || 'your city') + ' will appear here once posted by verified hosts.</p>' +
+                    '<div class="nm-empty-actions">' +
+                    '<button class="nm-btn-primary" data-open-post="1">' +
+                    '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>' +
+                    '<span>Post a Room</span>' +
+                    '</button>' +
+                    '</div></div></div>';
             }
             if (S.hiMatch) {
-                return em("No 70%+ matches in this view yet", "Expand below to compare all active rooms and PGs sorted by compatibility, or add a listing.", '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px"><button class="pill" data-widen-match="1">Show all matches</button><button class="pill" data-open-post="1">+ Add a room listing</button></div>');
+                return '<div class="empty"><div class="nm-empty-card">' +
+                    '<div class="nm-empty-icon-wrap">' +
+                    '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+                    '<circle cx="12" cy="12" r="10"/>' +
+                    '<path d="M12 6v6l4 2"/>' +
+                    '</svg>' +
+                    '</div>' +
+                    '<h3 class="nm-empty-title">No 70%+ Matches in this View</h3>' +
+                    '<p class="nm-empty-desc">Expand below to compare all active rooms sorted by compatibility, or post your own space.</p>' +
+                    '<div class="nm-empty-actions">' +
+                    '<button class="nm-btn-primary" data-widen-match="1"><span>Show All Matches</span></button>' +
+                    '<button class="nm-btn-outline" data-open-post="1"><span>+ Add a Room Listing</span></button>' +
+                    '</div></div></div>';
             }
-            return em("No places match these filters", "Try a higher budget or a wider move-in window.", '<br><button class="pill" data-rs="1" style="margin:16px auto 0">Reset filters</button>');
+            return '<div class="empty"><div class="nm-empty-card">' +
+                '<div class="nm-empty-icon-wrap">' +
+                '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+                '<path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>' +
+                '</svg>' +
+                '</div>' +
+                '<h3 class="nm-empty-title">No Places Match These Filters</h3>' +
+                '<p class="nm-empty-desc">Try widening your budget or selecting a different locality.</p>' +
+                '<div class="nm-empty-actions">' +
+                '<button class="nm-btn-outline" data-rs="1"><span>Reset Filters</span></button>' +
+                '</div></div></div>';
         }
         function pop(k) {
             ["ppc", "ppq", "ppb"].forEach(function (i) { $(i).classList.remove("o"); });
