@@ -1217,17 +1217,6 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             let index = RM.findIndex(function (m) { return m && m[9] === uid; });
             if (index >= 0)
                 return index;
-            if (String(uid).startsWith("demo_") || String(uid).startsWith("curated_")) {
-                const activeCity = S.city || (currentProfile && currentProfile.city) || 'Bengaluru';
-                const fallback = getCityCuratedUniverse(activeCity);
-                const foundPerson = fallback.roommates.find(function (p) { return p.uid === uid; });
-                if (foundPerson) {
-                    index = RM.length;
-                    RM.push(mapRoommateToTuple(foundPerson));
-                    RX.push([foundPerson.diet || "", foundPerson.smoking || "", foundPerson.sleep || "", foundPerson.guests || "", foundPerson.cleanliness || "", foundPerson.raw?.bio || ""]);
-                    return index;
-                }
-            }
             const person = await fetchPersonByIdBackend(uid);
             if (disposed)
                 return -1;
@@ -1257,16 +1246,6 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         async function resolvePlace(id) {
             let ri = D.findIndex(function (x) { return x[12] === id; }), pi = G.findIndex(function (x) { return x[11] === id; });
             if (ri < 0 && pi < 0) {
-                if (String(id).startsWith("demo_") || String(id).startsWith("curated_")) {
-                    const activeCity = S.city || (currentProfile && currentProfile.city) || 'Bengaluru';
-                    const fallback = getCityCuratedUniverse(activeCity);
-                    const foundRoom = fallback.rooms.find(function (r) { return r.id === id; });
-                    if (foundRoom) {
-                        ri = D.length;
-                        D.push(mapRoomToTuple(foundRoom));
-                        return { room: ri, pg: -1 };
-                    }
-                }
                 const place = await fetchPlaceByIdBackend(id, currentProfile);
                 if (disposed)
                     return;
@@ -1999,297 +1978,6 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 b.disabled = false;
             }
         });
-        function getCityCuratedUniverse(cityName) {
-            const city = cityName || 'Bengaluru';
-            const locs = (localitiesByCity && (localitiesByCity[city] || localitiesByCity[Object.keys(localitiesByCity).find(function (k) { return k.toLowerCase() === city.toLowerCase(); })])) || [
-                'Koramangala', 'Indiranagar', 'HSR Layout', 'Whitefield'
-            ];
-            const loc1 = locs[0] || 'Prime Central';
-            const loc2 = locs[1] || 'Tech Corridor';
-            const loc3 = locs[2] || 'Metro Zone';
-
-            const isTier1 = ['Mumbai', 'Delhi NCR', 'Bengaluru'].some(function (c) { return c.toLowerCase() === city.toLowerCase(); });
-            const isTier2 = ['Hyderabad', 'Pune', 'Chennai'].some(function (c) { return c.toLowerCase() === city.toLowerCase(); });
-            const rentBase = isTier1 ? 20000 : isTier2 ? 15000 : 12000;
-            const citySlug = city.toLowerCase().replace(/[^a-z0-9]/g, "_");
-
-            const rooms = [
-                {
-                    flatType: "Private room in 3BHK",
-                    title: "Sunny Private Room with Balcony in " + loc1,
-                    locality: loc1,
-                    rent: rentBase,
-                    deposit: rentBase * 2,
-                    moveInDays: 7,
-                    availableFrom: "Within 7 days",
-                    roomType: "Private room",
-                    isFurnished: 1,
-                    isOwnerVerified: 1,
-                    preferredGender: "Any",
-                    matchPct: 92,
-                    id: "curated_" + citySlug + "_1",
-                    images: [
-                        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=80",
-                        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&auto=format&fit=crop&q=80"
-                    ],
-                    amenities: ["Furnished", "WiFi", "AC", "Power backup", "Washing Machine", "Housekeeping"],
-                    houseRules: ["Non-smoker", "Vegetarian friendly", "Guests welcome"],
-                    ownerName: "Priya Sharma",
-                    ownerAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
-                    description: "Spacious private bedroom with attached washroom and private balcony in a gated society in " + loc1 + ". High speed WiFi and modular kitchen.",
-                    address: loc1 + ", " + city,
-                    ownerId: "demo_priya_sharma",
-                    raw: {
-                        city: city,
-                        locality: loc1,
-                        monthlyRent: rentBase,
-                        partnerShare: rentBase,
-                        deposit: rentBase * 2,
-                        isFurnished: true,
-                        furnishingStatus: "furnished",
-                        preferredGender: "Any",
-                        roomType: "Private room",
-                        houseRules: ["Non-smoker", "Vegetarian friendly", "Guests welcome"],
-                        amenities: ["Furnished", "WiFi", "AC", "Power backup", "Washing Machine", "Housekeeping"],
-                        partnersNeeded: 1,
-                        isCuratedSample: true,
-                        isOwnerVerified: true,
-                        screeningQuestions: [
-                            "What are your typical working hours (WFH or office)?",
-                            "How long are you planning to stay in " + city + "?"
-                        ]
-                    }
-                },
-                {
-                    flatType: "Full 2BHK flat",
-                    title: "Modern 2BHK Flat near Tech Park in " + loc2,
-                    locality: loc2,
-                    rent: Math.round(rentBase * 1.5),
-                    deposit: Math.round(rentBase * 3),
-                    moveInDays: 0,
-                    availableFrom: "Now",
-                    roomType: "Full flat",
-                    isFurnished: 1,
-                    isOwnerVerified: 1,
-                    preferredGender: "Any",
-                    matchPct: 86,
-                    id: "curated_" + citySlug + "_2",
-                    images: [
-                        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&auto=format&fit=crop&q=80",
-                        "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&auto=format&fit=crop&q=80"
-                    ],
-                    amenities: ["Furnished", "AC", "WiFi", "Power backup", "Lift", "Covered Parking", "Gym"],
-                    houseRules: ["Non-smoker", "Working professionals only", "Quiet hours after 11 PM"],
-                    ownerName: "Rahul Verma",
-                    ownerAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-                    description: "Beautifully maintained 2BHK flat in prime " + loc2 + ". Walking distance to major corporate offices and metro.",
-                    address: loc2 + ", " + city,
-                    ownerId: "demo_rahul_verma",
-                    raw: {
-                        city: city,
-                        locality: loc2,
-                        monthlyRent: Math.round(rentBase * 1.5),
-                        partnerShare: Math.round(rentBase * 1.5),
-                        deposit: Math.round(rentBase * 3),
-                        isFurnished: true,
-                        furnishingStatus: "furnished",
-                        preferredGender: "Any",
-                        roomType: "Full flat",
-                        houseRules: ["Non-smoker", "Working professionals only", "Quiet hours after 11 PM"],
-                        amenities: ["Furnished", "AC", "WiFi", "Power backup", "Lift", "Covered Parking", "Gym"],
-                        partnersNeeded: 2,
-                        isCuratedSample: true,
-                        isOwnerVerified: true,
-                        screeningQuestions: [
-                            "When do you plan to move in?",
-                            "Are you okay splitting utility and maintenance bills equally?"
-                        ]
-                    }
-                },
-                {
-                    flatType: "Private room in 2BHK",
-                    title: "Cozy Bedroom with Attached Bath in " + loc3,
-                    locality: loc3,
-                    rent: Math.round(rentBase * 0.85),
-                    deposit: Math.round(rentBase * 1.7),
-                    moveInDays: 15,
-                    availableFrom: "Within 15 days",
-                    roomType: "Private room",
-                    isFurnished: 0,
-                    isOwnerVerified: 1,
-                    preferredGender: "Female",
-                    matchPct: 79,
-                    id: "curated_" + citySlug + "_3",
-                    images: [
-                        "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&auto=format&fit=crop&q=80"
-                    ],
-                    amenities: ["WiFi", "24/7 Water", "Security", "Balcony", "Geyser"],
-                    houseRules: ["Female only", "Vegetarian kitchen", "Non-smoker"],
-                    ownerName: "Sneha Patel",
-                    ownerAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-                    description: "Quiet, peaceful apartment in " + loc3 + ". Looking for a friendly female flatmate who values cleanliness and calm.",
-                    address: loc3 + ", " + city,
-                    ownerId: "demo_sneha_patel",
-                    raw: {
-                        city: city,
-                        locality: loc3,
-                        monthlyRent: Math.round(rentBase * 0.85),
-                        partnerShare: Math.round(rentBase * 0.85),
-                        deposit: Math.round(rentBase * 1.7),
-                        isFurnished: false,
-                        furnishingStatus: "unfurnished",
-                        preferredGender: "Female",
-                        roomType: "Private room",
-                        houseRules: ["Female only", "Vegetarian kitchen", "Non-smoker"],
-                        amenities: ["WiFi", "24/7 Water", "Security", "Balcony", "Geyser"],
-                        partnersNeeded: 1,
-                        isCuratedSample: true,
-                        isOwnerVerified: true,
-                        screeningQuestions: [
-                            "Are you comfortable with a non-smoking, vegetarian environment?",
-                            "How long is your expected lease duration?"
-                        ]
-                    }
-                }
-            ];
-
-            const roommates = [
-                {
-                    initials: "PS",
-                    name: "Priya Sharma",
-                    profession: "Software Engineer",
-                    locality: loc1,
-                    budgetStr: "₹" + Number(rentBase).toLocaleString("en-IN"),
-                    moveInStr: "Within 15 days",
-                    isVerified: 1,
-                    matchPct: 91,
-                    tags: ["Non-smoker", "Vegetarian", "Software Engineer"],
-                    uid: "demo_priya_sharma",
-                    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
-                    raw: {
-                        gender: "Female",
-                        city: city,
-                        bio: "Tech professional working in " + city + ". Looking for friendly, respectful flatmates to team up for a 2BHK/3BHK flat near " + loc1 + ".",
-                        isCuratedSample: true,
-                        housingPreferences: {
-                            preferredCities: [city],
-                            preferredLocalities: [loc1, loc2],
-                            budget: { min: Math.round(rentBase * 0.7), max: Math.round(rentBase * 1.2) }
-                        },
-                        householdExpectations: {
-                            dietPref: "Vegetarian",
-                            smokingPolicy: "no_smoking",
-                            quietHoursPolicy: "Flexible",
-                            guestPolicy: "Sometimes",
-                            cleanlinessPolicy: "Very tidy"
-                        }
-                    },
-                    resolvedIntent: {
-                        activeIntents: ["team_up"],
-                        isTeamUpSeeker: true,
-                        isLookingForRoom: true,
-                        isLiveInHost: false,
-                        isDiscoveryEligible: true,
-                        displayBadge: { text: "Teaming Up for a Room", variant: "team_up" }
-                    },
-                    diet: "Vegetarian",
-                    smoking: "Non-smoker",
-                    sleep: "Flexible",
-                    guests: "Sometimes",
-                    cleanliness: "Very tidy"
-                },
-                {
-                    initials: "RV",
-                    name: "Rahul Verma",
-                    profession: "Product Designer",
-                    locality: loc2,
-                    budgetStr: "₹" + Number(Math.round(rentBase * 1.25)).toLocaleString("en-IN"),
-                    moveInStr: "Immediate",
-                    isVerified: 1,
-                    matchPct: 84,
-                    tags: ["Non-smoker", "Product Designer", "Early riser"],
-                    uid: "demo_rahul_verma",
-                    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-                    raw: {
-                        gender: "Male",
-                        city: city,
-                        bio: "Product designer at a tech company. Looking for chill flatmates who keep common spaces clean and respect quiet hours on weekdays near " + loc2 + ".",
-                        isCuratedSample: true,
-                        housingPreferences: {
-                            preferredCities: [city],
-                            preferredLocalities: [loc2, loc1],
-                            budget: { min: Math.round(rentBase * 0.8), max: Math.round(rentBase * 1.4) }
-                        },
-                        householdExpectations: {
-                            dietPref: "Non-vegetarian",
-                            smokingPolicy: "no_smoking",
-                            quietHoursPolicy: "Early riser",
-                            guestPolicy: "Sometimes",
-                            cleanlinessPolicy: "Tidy"
-                        }
-                    },
-                    resolvedIntent: {
-                        activeIntents: ["team_up"],
-                        isTeamUpSeeker: true,
-                        isLookingForRoom: false,
-                        isLiveInHost: false,
-                        isDiscoveryEligible: true,
-                        displayBadge: { text: "Teaming Up for a Room", variant: "team_up" }
-                    },
-                    diet: "Non-vegetarian",
-                    smoking: "Non-smoker",
-                    sleep: "Early riser",
-                    guests: "Sometimes",
-                    cleanliness: "Tidy"
-                },
-                {
-                    initials: "SP",
-                    name: "Sneha Patel",
-                    profession: "Data Analyst",
-                    locality: loc3,
-                    budgetStr: "₹" + Number(Math.round(rentBase * 0.9)).toLocaleString("en-IN"),
-                    moveInStr: "Within 30 days",
-                    isVerified: 1,
-                    matchPct: 78,
-                    tags: ["Vegetarian", "Data Analyst", "Night owl"],
-                    uid: "demo_sneha_patel",
-                    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-                    raw: {
-                        gender: "Female",
-                        city: city,
-                        bio: "Data analyst relocating to " + city + ". Looking for an independent room in a shared apartment near " + loc3 + ".",
-                        isCuratedSample: true,
-                        housingPreferences: {
-                            preferredCities: [city],
-                            preferredLocalities: [loc3],
-                            budget: { min: Math.round(rentBase * 0.6), max: Math.round(rentBase * 1.1) }
-                        },
-                        householdExpectations: {
-                            dietPref: "Vegetarian",
-                            smokingPolicy: "no_smoking",
-                            quietHoursPolicy: "Night owl",
-                            guestPolicy: "Rarely",
-                            cleanlinessPolicy: "Very tidy"
-                        }
-                    },
-                    resolvedIntent: {
-                        activeIntents: ["team_up", "find_room"],
-                        isTeamUpSeeker: true,
-                        isLookingForRoom: true,
-                        isLiveInHost: false,
-                        isDiscoveryEligible: true,
-                        displayBadge: { text: "Open to Room or Team-Up", variant: "team_up" }
-                    },
-                    diet: "Vegetarian",
-                    smoking: "Non-smoker",
-                    sleep: "Night owl",
-                    guests: "Rarely",
-                    cleanliness: "Very tidy"
-                }
-            ];
-
-            return { rooms: rooms, roommates: roommates };
-        }
         let placesRequestVersion = 0, roommatesRequestVersion = 0;
         async function loadPlacesPage(isInitial) {
             if (disposed)
@@ -2337,11 +2025,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     D = D.concat(newRooms);
                     G = G.concat(newPgs);
                 }
-                if (isInitial && D.length === 0 && G.length === 0 && !S.q) {
-                    const activeCity = S.city || (currentProfile && currentProfile.city) || 'Bengaluru';
-                    const fallback = getCityCuratedUniverse(activeCity);
-                    D = fallback.rooms.map(mapRoomToTuple);
-                }
+
                 if (S.nav === 'saved' && currentProfile) {
                     await Promise.allSettled((currentProfile.savedRoomIds || []).map(resolvePlace));
                     if (disposed)
@@ -2396,12 +2080,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 PAGINATION_STATE.placesError = true;
                 console.error('loadPlacesPage error:', err);
                 PAGINATION_STATE.placesHasMore = false;
-                if (isInitial && D.length === 0 && G.length === 0 && !S.q) {
-                    const activeCity = S.city || (currentProfile && currentProfile.city) || 'Bengaluru';
-                    const fallback = getCityCuratedUniverse(activeCity);
-                    D = fallback.rooms.map(mapRoomToTuple);
-                    PAGINATION_STATE.placesError = false;
-                }
+
             }
             finally {
                 if (!disposed && requestVersion === placesRequestVersion) {
@@ -2424,14 +2103,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 PAGINATION_STATE.roommatesLoading = false;
                 PAGINATION_STATE.roommatesError = false;
                 PAGINATION_STATE.roommatesHasMore = false;
-                if (RM.length === 0 && !S.q) {
-                    const activeCity = S.city || (currentProfile && currentProfile.city) || 'Bengaluru';
-                    const fallback = getCityCuratedUniverse(activeCity);
-                    RM = fallback.roommates.map(mapRoommateToTuple);
-                    RX = fallback.roommates.map(function (p) {
-                        return [p.diet, p.smoking, p.sleep, p.guests, p.cleanliness, p.raw?.bio || 'Looking for compatible flatmates.'];
-                    });
-                }
+
                 render();
                 return;
             }
@@ -2472,14 +2144,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     RM = RM.concat(newRm);
                     RX = RX.concat(newRx);
                 }
-                if (isInitial && RM.length === 0 && !S.q) {
-                    const activeCity = S.city || (currentProfile && currentProfile.city) || 'Bengaluru';
-                    const fallback = getCityCuratedUniverse(activeCity);
-                    RM = fallback.roommates.map(mapRoommateToTuple);
-                    RX = fallback.roommates.map(function (p) {
-                        return [p.diet, p.smoking, p.sleep, p.guests, p.cleanliness, p.raw?.bio || 'Looking for compatible flatmates.'];
-                    });
-                }
+
                 if (S.nav === 'saved' && currentProfile) {
                     await Promise.allSettled((currentProfile.savedProfileIds || []).map(ensurePerson));
                     if (disposed)
@@ -2522,15 +2187,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     console.warn('loadRoommatesPage note:', err);
                 }
                 PAGINATION_STATE.roommatesHasMore = false;
-                if (isInitial && RM.length === 0 && !S.q) {
-                    const activeCity = S.city || (currentProfile && currentProfile.city) || 'Bengaluru';
-                    const fallback = getCityCuratedUniverse(activeCity);
-                    RM = fallback.roommates.map(mapRoommateToTuple);
-                    RX = fallback.roommates.map(function (p) {
-                        return [p.diet, p.smoking, p.sleep, p.guests, p.cleanliness, p.raw?.bio || 'Looking for compatible flatmates.'];
-                    });
-                    PAGINATION_STATE.roommatesError = false;
-                }
+
             }
             finally {
                 if (!disposed && requestVersion === roommatesRequestVersion) {
@@ -2540,15 +2197,93 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
         }
         function loadDevSampleRoommates(silent = false) {
-            const activeCity = S.city || (currentProfile && currentProfile.city) || 'Bengaluru';
-            const curated = getCityCuratedUniverse(activeCity);
-            RM = curated.roommates.map(mapRoommateToTuple);
-            RX = curated.roommates.map(function (p) {
+            const samplePeople = [
+                {
+                    initials: "PS",
+                    name: "Priya Sharma",
+                    profession: "Software Engineer",
+                    locality: "Koramangala",
+                    budgetStr: "₹18,000",
+                    moveInStr: "Within 15 days",
+                    isVerified: 1,
+                    matchPct: 88,
+                    tags: ["Non-smoker", "Vegetarian", "Software Engineer"],
+                    uid: "demo_priya_sharma",
+                    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
+                    raw: { gender: "Female", bio: "Tech professional looking for flatmates in Koramangala or HSR Layout to team up for a 2BHK flat. Keep things clean and quiet on weekdays." },
+                    resolvedIntent: {
+                        activeIntents: ["team_up"],
+                        isTeamUpSeeker: true,
+                        isLookingForRoom: true,
+                        isLiveInHost: false,
+                        isDiscoveryEligible: true,
+                        displayBadge: { text: "Teaming Up for a Room", variant: "team_up" }
+                    },
+                    diet: "Vegetarian",
+                    smoking: "Non-smoker",
+                    sleep: "Flexible",
+                    guests: "Sometimes",
+                    cleanliness: "Very tidy"
+                },
+                {
+                    initials: "RV",
+                    name: "Rahul Verma",
+                    profession: "Product Designer",
+                    locality: "Indiranagar",
+                    budgetStr: "₹22,000",
+                    moveInStr: "Immediate",
+                    isVerified: 1,
+                    matchPct: 82,
+                    tags: ["Non-smoker", "Product Designer", "Early riser"],
+                    uid: "demo_rahul_verma",
+                    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+                    raw: { gender: "Male", bio: "Designer at a startup. Looking for easygoing flatmates to share an apartment near Indiranagar or Domlur." },
+                    resolvedIntent: {
+                        activeIntents: ["team_up"],
+                        isTeamUpSeeker: true,
+                        isLookingForRoom: false,
+                        isLiveInHost: false,
+                        isDiscoveryEligible: true,
+                        displayBadge: { text: "Teaming Up for a Room", variant: "team_up" }
+                    },
+                    diet: "Non-vegetarian",
+                    smoking: "Non-smoker",
+                    sleep: "Early riser",
+                    guests: "Sometimes",
+                    cleanliness: "Tidy"
+                },
+                {
+                    initials: "SP",
+                    name: "Sneha Patel",
+                    profession: "Data Analyst",
+                    locality: "HSR Layout",
+                    budgetStr: "₹15,000",
+                    moveInStr: "Within 30 days",
+                    isVerified: 0,
+                    matchPct: 75,
+                    tags: ["Vegetarian", "Data Analyst"],
+                    uid: "demo_sneha_patel",
+                    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+                    raw: { gender: "Female", bio: "Moving to Bengaluru next month for work. Looking for a private room or roommate to find a flat together in HSR." },
+                    resolvedIntent: {
+                        activeIntents: ["team_up", "find_room"],
+                        isTeamUpSeeker: true,
+                        isLookingForRoom: true,
+                        isLiveInHost: false,
+                        isDiscoveryEligible: true,
+                        displayBadge: { text: "Open to Room or Team-Up", variant: "team_up" }
+                    },
+                    diet: "Vegetarian",
+                    smoking: "Non-smoker",
+                    sleep: "Night owl",
+                    guests: "Rarely",
+                    cleanliness: "Very tidy"
+                }
+            ];
+            RM = samplePeople.map(mapRoommateToTuple);
+            RX = samplePeople.map(function (p) {
                 return [p.diet, p.smoking, p.sleep, p.guests, p.cleanliness, p.raw.bio];
             });
-            if (D.length === 0) {
-                D = curated.rooms.map(mapRoomToTuple);
-            }
 
             // Seed realistic connection states:
             // Rahul Verma has sent a connection request to the user (Received request)
