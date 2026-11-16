@@ -415,15 +415,19 @@ export function resolveUserHousingIntent(
       (intentNorm && intentNorm.intents.includes('have_room')) ||
       (seekingNorm && seekingNorm.intents.includes('have_room'));
 
-    const isExplicitCompound = rawIntentStr === 'room_and_roommate' || rawIntentStr === 'offering & seeking';
+    const hasListings = Array.isArray(userListings) ? userListings.length > 0 : Boolean(userListings);
+    const hasActiveIntentsPref = Array.isArray(user?.housingPreferences?.activeIntents) && user.housingPreferences.activeIntents.length > 0;
+    const isExplicitCompound = rawIntentStr === 'room_and_roommate' || rawIntentStr === 'offering & seeking' || (claimsFindRoom && claimsHaveRoom && (hasListings || hasActiveIntentsPref));
     const isConflicting = !isExplicitCompound && claimsFindRoom && claimsHaveRoom && (
-      (rawIntentStr === 'find_room' && (hasRoomBool === true || rawSeekingType === 'roommate_for_my_room')) ||
+      (rawIntentStr === 'find_room' && !hasListings && (hasRoomBool === true || rawSeekingType === 'roommate_for_my_room')) ||
       (rawIntentStr === 'have_room' && (hasRoomBool === false || rawSeekingType === 'find_room'))
     );
 
     if (isConflicting) {
       // Conflicting/ambiguous legacy signals cannot establish a reliable intent
       intents = [];
+    } else if (claimsFindRoom && claimsHaveRoom && (hasListings || isExplicitCompound)) {
+      intents = Array.from(new Set([...(intentNorm?.intents || []), ...(seekingNorm?.intents || []), ...hasRoomIntents, 'find_room', 'have_room'])) as HousingIntent[];
     } else if (intentNorm && intentNorm.intents.length > 0) {
       intents = intentNorm.intents;
     } else if (seekingNorm && seekingNorm.intents.length > 0) {

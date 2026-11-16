@@ -1,4 +1,4 @@
-// Generated from src/lib/matching.ts (e858c021aa69a6b9b8620cd7520ff334fcadb6f346ce77b74005d3b26d8744b8).
+// Generated from src/lib/matching.ts (1b506a7d9e171e842a6d8ce9517bcd64633863f1b7d401cd9728c99f64ff6f26).
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -138,7 +138,10 @@ function hasActiveSeekerIntent(user = {}, myRooms = []) {
   if (Array.isArray(activeIntents) && activeIntents.length > 0) {
     return activeIntents.includes("find_room") || activeIntents.includes("team_up");
   }
-  if (u.housingIntent === "find_room" || u.housingIntent === "team_up") {
+  if (u.housingIntent === "find_room" || u.housingIntent === "team_up" || u.housingIntent === "room_and_roommate" || u.housingIntent === "offering & seeking") {
+    return true;
+  }
+  if (resolveSeekerBudget(u) > 0 && resolveSeekerLocalities(u).length > 0) {
     return true;
   }
   if (u.housingIntent === "have_room") {

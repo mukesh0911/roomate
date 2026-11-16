@@ -139,6 +139,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         IC.bed = P('<path d="M3 18V7M3 14h18v4M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="1.500"/>');
         IC.wal = P('<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M16 14.500h2"/>');
         IC.cal = P('<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/>');
+        IC.edit = P('<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>');
         const SB = '<i class="nb sc"></i>';
         const isCurrentAdmin = Boolean(authUser && (['mukvr46@gmail.com', 'mrmukeshram111@gmail.com'].includes((authUser.email || '').toLowerCase()) || (currentProfile && (currentProfile.role === 'admin' || currentProfile.isAdmin === true))));
         $("rail").innerHTML = sanitizeRenderedHtml('<div class="lg"><svg viewBox="0 0 24 24"><path d="M12 2.500 2.500 11H5v9h5.500v-6h3v6H19v-9h2.500z"/></svg></div>' + nv("explore", "Explore", IC.exp) + nv("saved", "Saved", IC.heart, SB) + nv("messages", "Inbox", IC.chat, '<i class="nb mu"></i>') + nv("listings", "My listings", IC.home) + (isCurrentAdmin ? nv("admin", "Admin", '<svg viewBox="0 0 24 24" style="width:20px;height:20px" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5z"/></svg>') : '') + '<div class="sp"></div>' + nv("profile", "Profile", IC.me));
@@ -310,9 +311,10 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         }
         function matchPillHtml(score, roomIndex) {
             if (!isProfileCalibrated()) {
-                return '<button type="button" class="mp mp-unset" data-go-prefs="1" style="cursor:pointer;border:0" title="Set preferences to unlock match %"><i style="--m:0"></i>Set preferences</button>';
+                return '';
             }
             const s = Math.max(0, Math.round(Number(score) || 0));
+            if (s <= 0) return '';
             return '<button type="button" class="mp ' + matchTierClass(s) + '" data-why-match="' + (roomIndex !== undefined ? esc(roomIndex) : '') + '" title="View compatibility breakdown" style="border:0;cursor:pointer"><i style="--m:' + esc(s) + '"></i>' + esc(s) + '% match</button>';
         }
         function mapExistingTrait(key, qa) {
@@ -469,36 +471,9 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             const activeIntents = (x[15] && Array.isArray(x[15])) ? x[15] : [];
             const rawIntent = (x && x[12]) || '';
             const isLiveInHost = Boolean(resolved ? resolved.isLiveInHost : (x[14] === 'live_in_host' || rawIntent.indexOf('Live-in Host') > -1 || rawIntent.indexOf('Room Available') > -1 || rawIntent === 'have_room' || rawIntent === 'Room available'));
-            const isTeamUp = Boolean(resolved ? resolved.isTeamUpSeeker : (x[14] === 'team_up' || rawIntent.indexOf('Team Up') > -1 || rawIntent.indexOf('Flatmates') > -1 || rawIntent === 'team_up' || rawIntent.indexOf('roommate') > -1));
-            const isFindRoom = Boolean(resolved ? resolved.isLookingForRoom : (x[14] === 'seeker' || rawIntent === 'find_room' || rawIntent.indexOf('Looking for a room') > -1));
-            const badges = [];
-            const haveRoomStyle = 'background:#fff3e0;color:#e65100;border:1px solid #ffe0b2;';
-            const teamUpStyle = 'background:#e3f2fd;color:#1565c0;border:1px solid #bbdefb;';
-            const dualStyle = 'background:#ede9fe;color:#6d28d9;border:1px solid #ddd6fe;';
-            const findRoomStyle = 'background:#f0f4f8;color:#37474f;border:1px solid #cfd8dc;';
-            // Strict check: Only show "Room available" if the user qualifies as genuine Live-in Host
-            // with a valid associated active listing and required occupancy evidence
-            if (isLiveInHost) {
-                badges.push({ text: 'Room available', style: haveRoomStyle });
-            }
-            if (isTeamUp && isFindRoom && !isLiveInHost) {
-                badges.push({ text: 'Open to Room or Team-Up', style: dualStyle });
-            }
-            else if (isTeamUp) {
-                badges.push({ text: 'Looking for a roommate', style: teamUpStyle });
-            }
-            else if (isFindRoom) {
-                badges.push({ text: 'Looking for a room', style: findRoomStyle });
-            }
-            if (badges.length === 0) {
-                badges.push({ text: 'Looking for a roommate', style: teamUpStyle });
-            }
-            const badgesHtml = badges.map(function (b) {
-                return '<span class="rm-intent-badge" style="' + b.style + 'font-weight:600;font-size:11px;padding:2px 8px;border-radius:999px;display:inline-block;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">' + esc(b.text) + '</span>';
-            }).join(' ');
             const displayBudget = (x[4] && x[4] !== 'Not provided') ? esc(x[4]) : (isLiveInHost ? 'Room available' : 'Budget flexible');
             const displayMoveIn = (x[5] == "Now") ? "Move in now" : (x[5] && x[5] !== 'Not provided') ? ("From " + esc(x[5])) : "Flexible move-in";
-            return '<article class="card rm" data-r="' + i + '"><div class="av2">' + avContent + (x[6] ? '<span class="vb" title="Verified">' + IC.chk + '</span>' : '') + '</div><div class="bd"><div class="tr"><div class="t">' + esc(x[1]) + '</div><button class="ib sv" data-id="r' + i + '" aria-pressed="' + (isProfileSaved(x, i) ? "true" : "false") + '" aria-label="Save">' + IC.heart + '</button></div><div class="rm-badge-row">' + badgesHtml + '</div><div class="loc">' + IC.pin + '<span>' + esc(x[3]) + (x[2] ? ' · ' + esc(x[2]) : '') + '</span></div><div class="fx"><div>' + IC.wal + displayBudget + '</div><div>' + IC.cal + displayMoveIn + '</div></div><div class="tg">' + x[8].map(function (t) { return '<span>' + esc(t) + '</span>'; }).join("") + '</div><div class="ft">' + ft + '</div></div></article>';
+            return '<article class="card rm" data-r="' + i + '"><div class="av2">' + avContent + (x[6] ? '<span class="vb" title="Verified">' + IC.chk + '</span>' : '') + '</div><div class="bd"><div class="tr"><div class="t">' + esc(x[1]) + '</div><button class="ib sv" data-id="r' + i + '" aria-pressed="' + (isProfileSaved(x, i) ? "true" : "false") + '" aria-label="Save">' + IC.heart + '</button></div><div class="loc">' + IC.pin + '<span>' + esc(x[3]) + (x[2] ? ' · ' + esc(x[2]) : '') + '</span></div><div class="fx"><div>' + IC.wal + displayBudget + '</div><div>' + IC.cal + displayMoveIn + '</div></div><div class="tg">' + x[8].map(function (t) { return '<span>' + esc(t) + '</span>'; }).join("") + '</div><div class="ft">' + ft + '</div></div></article>';
         }
         S.room = 0;
         function rd(i) {
@@ -596,7 +571,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 const statusLabels = { pending: '🟡 Inquiry Sent · Open Chat', shortlisted: '🔵 Shortlisted · Open Chat', selected: '🟢 Accepted · Open Chat', accepted_by_user: '✅ Accepted · Open Chat' };
                 applyBtn = '<button class="ghb" data-apply-place="' + esc(x[12] || i) + '" style="width:100%;height:48px;border-radius:14px;font-weight:700;font-size:14.5px;justify-content:center;background:#fff8f5;border-color:var(--brand);color:var(--brand)">' + (statusLabels[existingApp.status] || 'Open Chat Thread') + '</button>';
             } else {
-                applyBtn = '<button class="msgb big" data-apply-place="' + esc(x[12] || i) + '" style="width:100%;height:48px;border-radius:14px;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--g);color:#fff;box-shadow:0 6px 18px rgba(240,84,30,0.3)"><em>' + (authUser ? 'Connect &amp; Message Host' : 'Sign in to Connect &amp; Message') + '</em></button>';
+                applyBtn = '<button class="msgb big" data-apply-place="' + esc(x[12] || i) + '" style="width:100%;height:48px;border-radius:14px;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--g);color:#fff;box-shadow:0 6px 18px rgba(240,84,30,0.3)"><em>' + (authUser ? 'Message Host' : 'Sign in to Message') + '</em></button>';
             }
             const sideCtas = isOwn
                 ? '<span class="tag" style="background:#e8f5e9;color:#2e7d32;font-weight:700;padding:6px 14px;border-radius:20px;font-size:13px;display:inline-block;margin-bottom:12px">Your Listing</span><button class="msgb big" data-la="edit" data-q="' + (x[12] || i) + '"><em>Edit Listing</em></button><button class="ghb" data-n="listings">Manage in My listings</button>'
@@ -609,7 +584,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 : '<div style="display:flex;align-items:center;gap:8px;margin-left:auto">' +
                     (hasActiveApp
                         ? '<button class="ghb" data-apply-place="' + esc(x[12] || i) + '" style="height:42px;padding:0 16px;border-radius:12px;font-weight:700;font-size:13.5px;border-color:var(--brand);color:var(--brand);background:#fff8f5">' + (existingApp.status === 'pending' ? '🟡 Inquiry Sent · Chat' : existingApp.status === 'shortlisted' ? '🔵 Shortlisted · Chat' : '🟢 Open Chat') + '</button>'
-                        : '<button class="msgb" data-apply-place="' + esc(x[12] || i) + '" style="height:42px;padding:0 18px;border-radius:12px;font-weight:700;font-size:13.5px;white-space:nowrap;background:var(--brand);color:#fff"><em>' + (!authUser ? 'Sign in' : 'Connect &amp; Message') + '</em></button>'
+                        : '<button class="msgb" data-apply-place="' + esc(x[12] || i) + '" style="height:42px;padding:0 18px;border-radius:12px;font-weight:700;font-size:13.5px;white-space:nowrap;background:var(--brand);color:#fff"><em>' + (!authUser ? 'Sign in' : 'Message Host') + '</em></button>'
                     ) +
                   '</div>';
             const hostSection = '<section class="sec-host"><div class="host-card" style="display:flex;align-items:center;gap:14px;padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--sf)"><div class="av2" style="width:52px;height:52px;border-radius:16px;font-size:18px;flex:none">' + posterAvContent + '</div><div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span>Hosted by ' + esc(posterName) + '</span>' + (x[9] ? '<span class="ok" title="Verified Host" style="color:var(--ok);font-size:12px;background:#e4f5ee;padding:1px 8px;border-radius:999px;font-weight:600;display:inline-flex;align-items:center;gap:3px">✓ Verified</span>' : '') + '</div><div style="color:var(--ink2);font-size:13px;margin-top:3px">' + (isOwn ? 'Your listing' : 'Live-in Host · Active on NestMate') + '</div></div></div></section>';
@@ -985,7 +960,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             const label = { self: 'Your profile', unavailable: 'Profile unavailable', blocked: 'Connection blocked', restricted: 'Connection unavailable' }[relationship.state];
             if (label)
                 return '<button class="' + cls + '" disabled>' + label + '</button>';
-            return '<button class="' + cls + '" data-conn="' + i + '">' + IC.usr + '<em>Connect</em></button>';
+            return '<button class="' + cls + '" data-conn="' + i + '">' + IC.chat + '<em>Message</em></button>';
         }
         function listingCommunicationButtons(kind, i, mode = false) {
             const isOutline = mode === 'outline' || mode === 'secondary';
@@ -2546,49 +2521,44 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
             let RMODE = (N == "explore" && S.cat == 2) || (N == "saved" && S.sub == 1) || N == "connections", sub = "";
             if (N === "explore" && authUser && !isPrefsSnoozed()) {
-                if (isHostOnlyWithoutSeekerPrefs(currentProfile, MY)) {
-                    sub = '<div class="ob-banner ob-banner-pivot" role="region" aria-label="Seeker discovery">' +
-                        '<div class="ob-banner-t"><b>Hosting a place, or also searching for a room for yourself?</b><span>Set your seeker preferences to see live match scores across explore listings.</span></div>' +
-                        '<div class="ob-banner-actions">' +
-                        '<button class="ob-banner-btn pill" data-go-prefs="1">Set Seeker Preferences to see Match %</button>' +
-                        '<button class="ob-banner-snooze" data-snooze-prefs="48" title="Remind me later">Remind me later</button>' +
-                        '</div>' +
-                        '<button class="ob-banner-close" data-snooze-prefs="24" aria-label="Dismiss banner" title="Dismiss">&times;</button>' +
-                        '</div>';
-                } else if (!isProfileCalibrated() && hasActiveSeekerIntent(currentProfile, MY)) {
-                    sub = '<div class="ob-banner" role="region" aria-label="Personalized matching">' +
-                        '<div class="ob-banner-t"><b>See rooms ranked by your budget, city &amp; lifestyle</b><span>Complete your Matching Preferences in 30 seconds to unlock personalized compatibility %.</span></div>' +
-                        '<div class="ob-banner-actions">' +
-                        '<button class="ob-banner-btn" data-go-prefs="1">Personalized Matching</button>' +
-                        '<button class="ob-banner-snooze" data-snooze-prefs="48" title="Remind me later">Remind me later</button>' +
-                        '</div>' +
-                        '<button class="ob-banner-close" data-snooze-prefs="24" aria-label="Dismiss banner" title="Dismiss">&times;</button>' +
-                        '</div>';
-                } else if (isProfileCalibrated()) {
-                    const savedCity = resolveSeekerCity(currentProfile) || (currentProfile && currentProfile.city) || "Bengaluru";
-                    const savedMin = (currentProfile && currentProfile.budgetMin) ? Number(currentProfile.budgetMin) : 0;
-                    const savedMax = resolveSeekerBudget(currentProfile) || (currentProfile && currentProfile.budget) || 0;
-                    const savedLocs = resolveSeekerLocalities(currentProfile);
-                    const bStr = (savedMin > 0 && savedMax > 0)
-                        ? ('₹' + savedMin.toLocaleString('en-IN') + ' - ₹' + savedMax.toLocaleString('en-IN'))
-                        : (savedMax ? ('Up to ₹' + savedMax.toLocaleString('en-IN')) : '');
-                    const locsStr = savedLocs.slice(0, 3).join(', ');
+                const isPureHost = Array.isArray(MY) && MY.length > 0 && !isProfileCalibrated();
+                if (!isPureHost) {
+                    if (!isProfileCalibrated() && hasActiveSeekerIntent(currentProfile, MY)) {
+                        sub = '<div class="ob-banner" role="region" aria-label="Personalized matching">' +
+                            '<div class="ob-banner-t"><b>See rooms ranked by your budget, city &amp; lifestyle</b><span>Complete your Matching Preferences in 30 seconds to unlock personalized compatibility %.</span></div>' +
+                            '<div class="ob-banner-actions">' +
+                            '<button class="ob-banner-btn" data-go-prefs="1">Personalized Matching</button>' +
+                            '<button class="ob-banner-snooze" data-snooze-prefs="48" title="Remind me later">Remind me later</button>' +
+                            '</div>' +
+                            '<button class="ob-banner-close" data-snooze-prefs="24" aria-label="Dismiss banner" title="Dismiss">&times;</button>' +
+                            '</div>';
+                    } else if (isProfileCalibrated()) {
+                        const savedCity = resolveSeekerCity(currentProfile) || (currentProfile && currentProfile.city) || "Bengaluru";
+                        const savedMin = (currentProfile && currentProfile.budgetMin) ? Number(currentProfile.budgetMin) : 0;
+                        const savedMax = resolveSeekerBudget(currentProfile) || (currentProfile && currentProfile.budget) || 0;
+                        const savedLocs = resolveSeekerLocalities(currentProfile);
+                        const bStr = (savedMin > 0 && savedMax > 0)
+                            ? ('₹' + savedMin.toLocaleString('en-IN') + ' - ₹' + savedMax.toLocaleString('en-IN'))
+                            : (savedMax ? ('Up to ₹' + savedMax.toLocaleString('en-IN')) : '');
+                        const locsStr = savedLocs.slice(0, 3).join(', ');
 
-                    sub = '<div class="nm-calibrated-bar" role="region" aria-label="Active matching preferences">' +
-                        '<div class="nm-calibrated-info">' +
-                            '<span class="nm-calibrated-badge"><span class="nm-calibrated-dot"></span> Personalized Matching Active</span>' +
-                            '<span class="nm-calibrated-details">' + esc(savedCity) + (locsStr ? ' · ' + esc(locsStr) : '') + (bStr ? ' · ' + esc(bStr) : '') + '</span>' +
-                        '</div>' +
-                        '<button type="button" class="nm-calibrated-edit-btn" data-go-prefs="1">' +
-                            '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
-                            '<span>Edit Preferences</span>' +
-                        '</button>' +
-                    '</div>';
+                        sub = '<div class="nm-calibrated-bar" role="region" aria-label="Active matching preferences">' +
+                            '<div class="nm-calibrated-info">' +
+                                '<span class="nm-calibrated-badge"><span class="nm-calibrated-dot"></span> Personalized Matching Active</span>' +
+                                '<span class="nm-calibrated-details">' + esc(savedCity) + (locsStr ? ' · ' + esc(locsStr) : '') + (bStr ? ' · ' + esc(bStr) : '') + '</span>' +
+                            '</div>' +
+                            '<button type="button" class="nm-calibrated-edit-btn" data-go-prefs="1">' +
+                                '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+                                '<span>Edit Preferences</span>' +
+                            '</button>' +
+                        '</div>';
+                    }
                 }
             }
             if (N === "explore" && S.cat === 2) {
                 const isDiscoverable = Boolean(authUser && currentProfile && currentProfile.roommateDiscoveryEnabled);
-                if (!isDiscoverable) {
+                const hasMyListings = Array.isArray(MY) && MY.length > 0;
+                if (!isDiscoverable && !isProfileCalibrated() && !hasMyListings) {
                     sub = '<div class="nm-roommate-promo-bar" role="region" aria-label="Roommate Discovery">' +
                         '<div class="nm-roommate-promo-text">' +
                             '<b>Looking to team up or find flatmates?</b>' +
@@ -2735,12 +2705,11 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     const coverImg = coverUrl
                         ? '<img src="' + esc(coverUrl) + '" alt="' + esc(x[1]) + '" loading="lazy" style="width:100%;height:100%;object-fit:cover">'
                         : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--bs);color:var(--brand)"><svg style="width:40px;height:40px" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M3 11 12 3l9 8v9H3z"/><path fill="none" stroke="currentColor" stroke-width="2" d="M9 20v-6h6v6"/></svg></div>';
-                    const rawListing = x[21] || {};
-                    const act = getActiveStatus(rawListing.updatedAt || rawListing.createdAt);
-                    const recentBadge = (act && (act.status === 'online' || act.status === 'recent'))
-                        ? '<span class="nm-recent-badge">🟢 ' + esc(act.text) + '</span>'
-                        : '';
-                    h += '<article class="card" data-i="' + i + '"><div class="ph">' + coverImg + '<span class="tag">' + esc(x[0]) + '</span>' + (x[9] ? '<span class="vb" title="Verified">' + IC.chk + '</span>' : '') + matchPillHtml(x[11], i) + '</div><div class="bd"><div class="tr"><div class="t">' + esc(x[1]) + '</div>' + recentBadge + '<button class="ib sv" data-id="' + i + '" aria-pressed="' + (isRoomSaved(x, i) ? "true" : "false") + '" aria-label="Save">' + IC.heart + '</button></div><div class="loc">' + IC.pin + esc(x[2]) + (x[8] ? ' · Furnished' : '') + '</div><div class="fx"><div title="Room type">' + IC.bed + esc(x[7]) + '</div><div title="Looking for">' + IC.usr + esc(x[21] && Number.isInteger(x[21].partnersNeeded) ? x[21].partnersNeeded + ' roommate(s)' : 'Not provided') + '</div><div title="Deposit">' + IC.wal + cf(x[4]) + ' deposit</div><div title="Available">' + IC.cal + (x[6] == "Now" ? "Available now" : "From " + esc(x[6])) + '</div></div><div class="ft"><div class="pr"><b>' + fmt(x[3]) + '</b><span>/mo</span></div>' + (authUser && (x[20] === authUser.uid || (x[12] && MY.some(function (m) { return m && m.id === x[12]; }))) ? '<button class="msgb owner-edit-btn" data-la="edit" data-q="' + (x[12] || i) + '" style="background:var(--sf);color:var(--brand);border:1.5px solid var(--brand);box-shadow:none" aria-label="Edit listing">' + IC.edit + '<em>Edit</em></button>' : listingCommunicationButtons('r', i)) + '</div></div></article>';
+                    const isOwnListing = Boolean(authUser && (x[20] === authUser.uid || (x[12] && MY.some(function (m) { return m && m.id === x[12]; }))));
+                    const cardActionBtn = isOwnListing
+                        ? '<button class="msgb owner-edit-btn" data-la="edit" data-q="' + esc(x[12] || i) + '" style="background:var(--sf);color:var(--brand);border:1.5px solid var(--brand);box-shadow:none" aria-label="Edit listing">' + IC.edit + '<em>Edit</em></button>'
+                        : listingCommunicationButtons('r', i);
+                    h += '<article class="card" data-i="' + i + '"><div class="ph">' + coverImg + '<span class="tag">' + esc(x[0]) + '</span>' + (x[9] ? '<span class="vb" title="Verified">' + IC.chk + '</span>' : '') + matchPillHtml(x[11], i) + '</div><div class="bd"><div class="tr"><div class="t">' + esc(x[1]) + '</div><button class="ib sv" data-id="' + i + '" aria-pressed="' + (isRoomSaved(x, i) ? "true" : "false") + '" aria-label="Save">' + IC.heart + '</button></div><div class="loc">' + IC.pin + esc(x[2]) + (x[8] ? ' · Furnished' : '') + '</div><div class="fx"><div title="Room type">' + IC.bed + esc(x[7]) + '</div><div title="Looking for">' + IC.usr + esc(x[21] && Number.isInteger(x[21].partnersNeeded) ? x[21].partnersNeeded + ' roommate(s)' : 'Not provided') + '</div><div title="Deposit">' + IC.wal + cf(x[4]) + ' deposit</div><div title="Available">' + IC.cal + (x[6] == "Now" ? "Available now" : "From " + esc(x[6])) + '</div></div><div class="ft"><div class="pr"><b>' + fmt(x[3]) + '</b><span>/mo</span></div>' + cardActionBtn + '</div></div></article>';
                 });
                 if (N === "explore" && PAGINATION_STATE.placesHasMore) {
                     h += '<div class="lm-wrap" style="grid-column:1/-1;display:flex;justify-content:center;padding:24px 0 32px"><button class="pill" data-act="load-more" style="height:44px;padding:0 24px;border-color:var(--brand);color:var(--brand);font-weight:600">' + (PAGINATION_STATE.placesLoading ? 'Loading...' : 'Load more places') + '</button></div>';
@@ -3810,6 +3779,22 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 else {
                     await createNewListingBackend(p, authUser);
                     toast("Listing submitted. Publication depends on review and availability.");
+                }
+                const syncedQuiz = Object.assign({}, (currentProfile && currentProfile.quizAnswers) || {});
+                let quizDirty = false;
+                if (p.lf && Array.isArray(p.lf)) {
+                    if (p.lf.includes("Vegetarian") && !syncedQuiz.diet) { syncedQuiz.diet = "veg"; syncedQuiz.food_pref = "veg"; quizDirty = true; }
+                    if (p.lf.includes("Non-smoker") && !syncedQuiz.smoke) { syncedQuiz.smoke = "never"; syncedQuiz.smoking = "never"; quizDirty = true; }
+                    if (p.lf.includes("Early riser") && !syncedQuiz.sleep) { syncedQuiz.sleep = "before_10"; syncedQuiz.sleep_time = "before_10"; quizDirty = true; }
+                    if (p.lf.includes("Night owl") && !syncedQuiz.sleep) { syncedQuiz.sleep = "after_12"; syncedQuiz.sleep_time = "after_12"; quizDirty = true; }
+                }
+                if (p.gd && p.gd !== "Any" && !syncedQuiz.roommate_gender) {
+                    syncedQuiz.roommate_gender = p.gd;
+                    quizDirty = true;
+                }
+                if (quizDirty && authUser) {
+                    updateUserProfileBackend({ quizAnswers: syncedQuiz }).catch(function () {});
+                    if (currentProfile) currentProfile.quizAnswers = syncedQuiz;
                 }
                 p.pub = 1;
                 pf();
@@ -5685,8 +5670,6 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     const hasActiveListing = MY && MY.some(function (l) { return l && (l.st === "Active" || l.st === "Pending verification"); });
                     const activeListing = MY && MY.find(function (l) { return l && (l.st === "Active" || l.st === "Pending verification"); });
                     const cityName = (ME && (ME.city || ME.area)) || (activeListing && activeListing.loc) || S.city || "Bengaluru";
-                    const sampleBtn = '<button class="nm-btn-curated" data-load-samples="1"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg><span>Explore sample roommates in ' + esc(cityName) + '</span></button>';
-
                     if (isSelfDiscoverable || hasActiveListing) {
                         const statusTitle = hasActiveListing
                             ? 'Listing Active in ' + esc(cityName)
@@ -5695,7 +5678,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                             ? (activeListing.t || 'Your Room Listing')
                             : ((ME && ME.n) || 'Your Roommate Profile');
                         const calloutDesc = hasActiveListing
-                            ? 'Published under <strong>Rooms & flats</strong>. To keep discovery focused on candidates seeking rooms, host listings are excluded from your own candidate search.'
+                            ? 'Published under <strong>Rooms &amp; flats</strong>. To keep discovery focused on candidates seeking rooms, host listings are excluded from your candidate search.'
                             : 'Your profile is active and discoverable to seekers in ' + esc(cityName) + '. As other members join, they will appear here.';
 
                         return '<div class="empty">' +
@@ -5729,17 +5712,26 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                             '<div class="nm-hc-desc">' + calloutDesc + '</div>' +
                             '</div>' +
                             '<div class="nm-empty-actions">' +
-                            '<button class="nm-btn-primary" data-pvw="1">' +
-                            '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-                            '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>' +
-                            '<circle cx="12" cy="12" r="3"/>' +
-                            '</svg>' +
-                            '<span>' + (hasActiveListing ? 'Preview Public Listing' : 'Preview Public Profile') + '</span>' +
-                            '</button>' +
+                            (hasActiveListing && activeListing.id
+                                ? '<button class="nm-btn-primary" data-r="' + esc(activeListing.id) + '">' +
+                                  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                                  '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>' +
+                                  '<circle cx="12" cy="12" r="3"/>' +
+                                  '</svg>' +
+                                  '<span>Preview Public Listing</span>' +
+                                  '</button>'
+                                : '<button class="nm-btn-primary" data-pvw="1">' +
+                                  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                                  '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>' +
+                                  '<circle cx="12" cy="12" r="3"/>' +
+                                  '</svg>' +
+                                  '<span>Preview Public Profile</span>' +
+                                  '</button>'
+                            ) +
                             (hasActiveListing
                                 ? '<button class="nm-btn-outline" data-n="listings"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Manage Listings</span></button>'
-                                : '<button class="nm-btn-outline" data-n="profile" data-as="prefs"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Edit Preferences</span></button>') +
-                            sampleBtn +
+                                : '<button class="nm-btn-outline" data-n="profile" data-as="prefs"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Edit Preferences</span></button>'
+                            ) +
                             '</div></div></div>';
                     }
                     return '<div class="empty"><div class="nm-empty-card">' +
@@ -5759,7 +5751,6 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                               '<button class="nm-btn-outline" data-n="post"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span>Post a Room</span></button>'
                             : '<button class="nm-btn-primary" data-n="signin"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg><span>Sign in to Connect</span></button>'
                         ) +
-                        sampleBtn +
                         '</div></div></div>';
                 }
                 if (S.hiMatch) {
@@ -7074,7 +7065,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 // Check for associated listing
                 const targetListingId = targetPerson[13] || ((D.find(function (d) { return d && d[20] === targetUid; })) ? (D.find(function (d) { return d && d[20] === targetUid; }))[12] : '');
                 const matchedListing = targetListingId ? D.find(function (d) { return d && d[12] === targetListingId; }) : null;
-                const modalTitle = matchedListing ? ("Connect for " + matchedListing[1]) : ("Connect with " + targetPerson[1]);
+                const modalTitle = matchedListing ? ("Message Host for " + matchedListing[1]) : ("Message " + targetPerson[1]);
                 const modalLoc = matchedListing ? (matchedListing[2] + " · " + fmt(matchedListing[3]) + "/mo") : ([targetPerson[3], targetPerson[4]].filter(Boolean).join(" · ") || "Bengaluru");
 
                 const rawQs = (matchedListing && matchedListing[21] && Array.isArray(matchedListing[21].screeningQuestions) && matchedListing[21].screeningQuestions.length > 0)
@@ -7145,7 +7136,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 }
 
                 rows.push(
-                    '</div><div class="app-dlg-f"><div class="r"><button type="button" class="ghb" data-cf="no" style="height:44px">Cancel</button><button type="button" class="msgb" data-submit-mate-conn="' + i + '" data-questions-count="' + qs.length + '" style="width:auto;padding:0 24px;height:44px;background:var(--brand);color:#fff;font-size:15px;font-weight:700"><em>Send Request</em></button></div></div>'
+                    '</div><div class="app-dlg-f"><div class="r"><button type="button" class="ghb" data-cf="no" style="height:44px">Cancel</button><button type="button" class="msgb" data-submit-mate-conn="' + i + '" data-questions-count="' + qs.length + '" style="width:auto;padding:0 24px;height:44px;background:var(--brand);color:#fff;font-size:15px;font-weight:700"><em>Send Message</em></button></div></div>'
                 );
 
                 dlg('<div class="app-dlg">' + rows.join("") + '</div>', 1, 'app-sheet');

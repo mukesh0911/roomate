@@ -268,7 +268,11 @@ export function hasActiveSeekerIntent(user: any = {}, myRooms: any[] = []): bool
   if (Array.isArray(activeIntents) && activeIntents.length > 0) {
     return activeIntents.includes('find_room') || activeIntents.includes('team_up');
   }
-  if (u.housingIntent === 'find_room' || u.housingIntent === 'team_up') {
+  if (u.housingIntent === 'find_room' || u.housingIntent === 'team_up' || u.housingIntent === 'room_and_roommate' || u.housingIntent === 'offering & seeking') {
+    return true;
+  }
+  // If user has set a seeker budget and preferred localities, they have active seeker intent even if they also host a room
+  if (resolveSeekerBudget(u) > 0 && resolveSeekerLocalities(u).length > 0) {
     return true;
   }
   if (u.housingIntent === 'have_room') {

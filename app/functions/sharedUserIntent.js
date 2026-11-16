@@ -1,4 +1,4 @@
-// Generated from src/lib/userIntent.ts (7991cbac8e4d04d1bf38f716a38496551589df2028536163ba80415568c79973).
+// Generated from src/lib/userIntent.ts (e9028f15830c5db2f56cd411cd05704ae88efb5d4ddbdfa823429596897639c8).
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -237,10 +237,14 @@ function resolveUserHousingIntent(user, userListings) {
     const hasRoomIntents = hasRoomBool === true ? ["have_room"] : [];
     const claimsFindRoom = intentNorm && intentNorm.intents.includes("find_room") || seekingNorm && seekingNorm.intents.includes("find_room");
     const claimsHaveRoom2 = hasRoomBool === true || intentNorm && intentNorm.intents.includes("have_room") || seekingNorm && seekingNorm.intents.includes("have_room");
-    const isExplicitCompound = rawIntentStr === "room_and_roommate" || rawIntentStr === "offering & seeking";
-    const isConflicting = !isExplicitCompound && claimsFindRoom && claimsHaveRoom2 && (rawIntentStr === "find_room" && (hasRoomBool === true || rawSeekingType === "roommate_for_my_room") || rawIntentStr === "have_room" && (hasRoomBool === false || rawSeekingType === "find_room"));
+    const hasListings = Array.isArray(userListings) ? userListings.length > 0 : Boolean(userListings);
+    const hasActiveIntentsPref = Array.isArray(user?.housingPreferences?.activeIntents) && user.housingPreferences.activeIntents.length > 0;
+    const isExplicitCompound = rawIntentStr === "room_and_roommate" || rawIntentStr === "offering & seeking" || claimsFindRoom && claimsHaveRoom2 && (hasListings || hasActiveIntentsPref);
+    const isConflicting = !isExplicitCompound && claimsFindRoom && claimsHaveRoom2 && (rawIntentStr === "find_room" && !hasListings && (hasRoomBool === true || rawSeekingType === "roommate_for_my_room") || rawIntentStr === "have_room" && (hasRoomBool === false || rawSeekingType === "find_room"));
     if (isConflicting) {
       intents = [];
+    } else if (claimsFindRoom && claimsHaveRoom2 && (hasListings || isExplicitCompound)) {
+      intents = Array.from(/* @__PURE__ */ new Set([...intentNorm?.intents || [], ...seekingNorm?.intents || [], ...hasRoomIntents, "find_room", "have_room"]));
     } else if (intentNorm && intentNorm.intents.length > 0) {
       intents = intentNorm.intents;
     } else if (seekingNorm && seekingNorm.intents.length > 0) {
