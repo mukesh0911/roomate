@@ -748,6 +748,19 @@ html.lock{overflow:hidden}
 .nm-explore-root .ob-banner-close{position:absolute;top:10px;right:10px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;border:none;background:transparent;color:var(--ink2);font-size:20px;line-height:1;cursor:pointer;padding:0}
 .nm-explore-root .ob-banner-close:hover{background:rgba(0,0,0,.06);color:var(--ink)}
 @media (max-width:600px){.nm-explore-root .ob-banner-t{max-width:100%}.nm-explore-root .ob-banner-actions{width:100%;justify-content:flex-start}}
+.nm-explore-root .nm-calibrated-bar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;border-radius:14px;background:rgba(18,128,92,.06);border:1px solid rgba(18,128,92,.22);margin-bottom:6px;flex-wrap:wrap}
+.nm-explore-root .nm-calibrated-info{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:200px;flex:1}
+.nm-explore-root .nm-calibrated-badge{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#0ca678}
+.nm-explore-root .nm-calibrated-dot{width:8px;height:8px;border-radius:50%;background:#0ca678;display:inline-block;box-shadow:0 0 0 2px rgba(12,166,120,.2)}
+.nm-explore-root .nm-calibrated-details{font-size:13px;color:var(--ink2);font-weight:500}
+.nm-explore-root .nm-calibrated-edit-btn{height:32px;padding:0 12px;border-radius:999px;background:var(--sf);border:1px solid rgba(18,128,92,.35);color:#0ca678;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:all .15s ease}
+.nm-explore-root .nm-calibrated-edit-btn:hover{background:#e6fcf5;border-color:#0ca678}
+.nm-explore-root .nm-roommate-promo-bar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 18px;border-radius:16px;background:linear-gradient(135deg,rgba(240,84,30,.06) 0%,rgba(240,84,30,.02) 100%),var(--sf);border:1px solid rgba(240,84,30,.24);margin-bottom:8px;flex-wrap:wrap}
+.nm-explore-root .nm-roommate-promo-text{display:flex;flex-direction:column;gap:2px;flex:1;min-width:220px}
+.nm-explore-root .nm-roommate-promo-text b{font-size:14.5px;color:var(--ink)}
+.nm-explore-root .nm-roommate-promo-text span{font-size:13px;color:var(--ink2)}
+.nm-explore-root .nm-roommate-promo-btn{height:36px;padding:0 16px;border-radius:999px;background:var(--brand);color:#fff;font-size:13px;font-weight:600;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;box-shadow:0 2px 8px rgba(240,84,30,.25)}
+.nm-explore-root .nm-roommate-promo-btn:hover{filter:brightness(.95)}
 .nm-explore-root .miss-cta{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:16px 20px;border-radius:18px;background:var(--sf);border:1px dashed var(--line);margin-bottom:24px}
 .nm-explore-root .miss-cta b{display:block;font-size:15px;color:var(--ink);margin-bottom:2px}
 .nm-explore-root .miss-cta span{display:block;font-size:13px;color:var(--ink2)}

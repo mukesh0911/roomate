@@ -245,7 +245,8 @@ export function resolveSeekerCity(user: any = {}): string {
  */
 export function resolveSeekerLocalities(user: any = {}): string[] {
   const u = user || {};
-  const values = u.housingPreferences?.preferredLocalities || u.localities;
+  const prefLocs = u.housingPreferences?.preferredLocalities;
+  const values = (Array.isArray(prefLocs) && prefLocs.length > 0) ? prefLocs : u.localities;
   const rawList = Array.isArray(values) ? values : (u.locality ? [u.locality] : []);
   return [
     ...new Set(

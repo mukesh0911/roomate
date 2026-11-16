@@ -182,36 +182,6 @@ export default function ExplorePage({ initialNav = 'explore' }: ExplorePageProps
         </div>
         <div className="pfbar" id="pfbar"></div>
       </div>
-      {/* Quick 2-Option Chooser for the + Button */}
-      <div className="ov" id="nm-chooser-ov" role="dialog" aria-modal="true" aria-label="Choose posting option">
-        <div className="nm-chooser-card">
-          <div className="nm-chooser-header">
-            <div>
-              <h3>What would you like to post?</h3>
-              <p>Choose your marketplace goal on NestMate</p>
-            </div>
-            <button type="button" className="nm-chooser-close" data-close-chooser="1" aria-label="Close dialog">&times;</button>
-          </div>
-          <div className="nm-chooser-options">
-            <button type="button" className="nm-option-card" data-chooser-action="post-room">
-              <div className="nm-option-icon" style={{ background: '#fff3e0', color: '#e65100' }}>🏠</div>
-              <div className="nm-option-text">
-                <b>Post a Room</b>
-                <span>I have an available flat, room or PG to rent out or share with flatmates</span>
-              </div>
-              <span className="nm-option-arrow">→</span>
-            </button>
-            <button type="button" className="nm-option-card" data-chooser-action="post-pref">
-              <div className="nm-option-icon" style={{ background: '#e3f2fd', color: '#1565c0' }}>🔍</div>
-              <div className="nm-option-text">
-                <b>Post Requirement / Match Preferences</b>
-                <span>I am looking for a room, flat, or flatmates to team up with</span>
-              </div>
-              <span className="nm-option-arrow">→</span>
-            </button>
-          </div>
-        </div>
-      </div>
       {/* Fast 2-Step Budget & Locality Drawer */}
       <div className="ov" id="nm-fast-prefs-ov" role="dialog" aria-modal="true" aria-label="Quick Matching Preferences">
         <div className="nm-drawer-card">
@@ -247,7 +217,7 @@ export default function ExplorePage({ initialNav = 'explore' }: ExplorePageProps
               <select id="nm-fast-city" className="pill" style={{ width: '100%', height: '44px' }}></select>
             </div>
             <div style={{ marginBottom: '16px' }}>
-              <label className="nm-field-label">Maximum Monthly Budget</label>
+              <label className="nm-field-label">Monthly Budget (₹)</label>
               <div className="nm-budget-pills" id="nm-fast-budget-pills">
                 <button type="button" className="nm-budget-pill" data-fast-budget="12000">₹12,000</button>
                 <button type="button" className="nm-budget-pill" data-fast-budget="18000">₹18,000</button>
@@ -255,8 +225,19 @@ export default function ExplorePage({ initialNav = 'explore' }: ExplorePageProps
                 <button type="button" className="nm-budget-pill" data-fast-budget="35000">₹35,000</button>
                 <button type="button" className="nm-budget-pill" data-fast-budget="50000">₹50,000+</button>
               </div>
-              <div className="pin" style={{ marginTop: '8px' }}>
-                <input type="number" id="nm-fast-budget-input" defaultValue="25000" placeholder="Custom max budget in ₹" />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '8px' }}>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: 'var(--ink2)', fontWeight: 600 }}>Minimum (₹)</span>
+                  <div className="pin">
+                    <input type="number" id="nm-fast-min-budget-input" defaultValue="10000" placeholder="Min ₹" />
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: 'var(--ink2)', fontWeight: 600 }}>Maximum (₹)</span>
+                  <div className="pin">
+                    <input type="number" id="nm-fast-budget-input" defaultValue="25000" placeholder="Max ₹" />
+                  </div>
+                </div>
               </div>
             </div>
             <div>
@@ -265,6 +246,16 @@ export default function ExplorePage({ initialNav = 'explore' }: ExplorePageProps
               <div className="pin" style={{ marginTop: '8px' }}>
                 <input type="text" id="nm-fast-custom-loc" placeholder="Add custom area &amp; press enter" />
               </div>
+            </div>
+            <div style={{ marginTop: '16px' }}>
+              <label className="nm-field-label">Roommates Tab Visibility</label>
+              <div className="nm-visibility-toggle" id="nm-fast-vis-group" style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                <button type="button" className="nm-budget-pill active" data-fast-vis="show">Show me in Roommates</button>
+                <button type="button" className="nm-budget-pill" data-fast-vis="hide">Rooms only (keep hidden)</button>
+              </div>
+              <span style={{ fontSize: '12px', color: 'var(--ink2)', display: 'block', marginTop: '4px' }}>
+                Turning this on lets verified members discover your profile to team up for rooms.
+              </span>
             </div>
             <div style={{ marginTop: '16px' }}>
               <label className="nm-field-label">Lifestyle &amp; Living Habits (Optional)</label>

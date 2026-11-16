@@ -1,4 +1,4 @@
-// Generated from src/lib/matching.ts (d3ce7b7658fbbaf8a12e7a75ecfcb3aecb14b55b9d0a8411f4f3ff6ff7ad0914).
+// Generated from src/lib/matching.ts (e858c021aa69a6b9b8620cd7520ff334fcadb6f346ce77b74005d3b26d8744b8).
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -123,7 +123,8 @@ function resolveSeekerCity(user = {}) {
 }
 function resolveSeekerLocalities(user = {}) {
   const u = user || {};
-  const values = u.housingPreferences?.preferredLocalities || u.localities;
+  const prefLocs = u.housingPreferences?.preferredLocalities;
+  const values = Array.isArray(prefLocs) && prefLocs.length > 0 ? prefLocs : u.localities;
   const rawList = Array.isArray(values) ? values : u.locality ? [u.locality] : [];
   return [
     ...new Set(

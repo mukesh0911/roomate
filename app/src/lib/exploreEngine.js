@@ -2544,11 +2544,45 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     sub = '<div class="ob-banner" role="region" aria-label="Personalized matching">' +
                         '<div class="ob-banner-t"><b>See rooms ranked by your budget, city &amp; lifestyle</b><span>Complete your Matching Preferences in 30 seconds to unlock personalized compatibility %.</span></div>' +
                         '<div class="ob-banner-actions">' +
-                        '<button class="ob-banner-btn" data-go-prefs="1">Personalized Matching</button>' +
+                        '<button class="ob-banner-btn" data-action="fast-prefs">Personalized Matching</button>' +
                         '<button class="ob-banner-snooze" data-snooze-prefs="48" title="Remind me later">Remind me later</button>' +
                         '</div>' +
                         '<button class="ob-banner-close" data-snooze-prefs="24" aria-label="Dismiss banner" title="Dismiss">&times;</button>' +
                         '</div>';
+                } else if (isProfileCalibrated()) {
+                    const savedCity = resolveSeekerCity(currentProfile) || (currentProfile && currentProfile.city) || "Bengaluru";
+                    const savedMin = (currentProfile && currentProfile.budgetMin) ? Number(currentProfile.budgetMin) : 0;
+                    const savedMax = resolveSeekerBudget(currentProfile) || (currentProfile && currentProfile.budget) || 0;
+                    const savedLocs = resolveSeekerLocalities(currentProfile);
+                    const bStr = (savedMin > 0 && savedMax > 0)
+                        ? ('₹' + savedMin.toLocaleString('en-IN') + ' - ₹' + savedMax.toLocaleString('en-IN'))
+                        : (savedMax ? ('Up to ₹' + savedMax.toLocaleString('en-IN')) : '');
+                    const locsStr = savedLocs.slice(0, 3).join(', ');
+
+                    sub = '<div class="nm-calibrated-bar" role="region" aria-label="Active matching preferences">' +
+                        '<div class="nm-calibrated-info">' +
+                            '<span class="nm-calibrated-badge"><span class="nm-calibrated-dot"></span> Personalized Matching Active</span>' +
+                            '<span class="nm-calibrated-details">' + esc(savedCity) + (locsStr ? ' · ' + esc(locsStr) : '') + (bStr ? ' · ' + esc(bStr) : '') + '</span>' +
+                        '</div>' +
+                        '<button type="button" class="nm-calibrated-edit-btn" data-action="fast-prefs">' +
+                            '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+                            '<span>Edit Preferences</span>' +
+                        '</button>' +
+                    '</div>';
+                }
+            }
+            if (N === "explore" && S.cat === 2) {
+                const isDiscoverable = Boolean(authUser && currentProfile && currentProfile.roommateDiscoveryEnabled);
+                if (!isDiscoverable) {
+                    sub = '<div class="nm-roommate-promo-bar" role="region" aria-label="Roommate Discovery">' +
+                        '<div class="nm-roommate-promo-text">' +
+                            '<b>Looking to team up or find flatmates?</b>' +
+                            '<span>Create your roommate profile to appear in this tab and let other seekers connect with you.</span>' +
+                        '</div>' +
+                        '<button type="button" class="nm-roommate-promo-btn" data-action="fast-prefs">' +
+                            '<span>Create Roommate Profile</span>' +
+                        '</button>' +
+                    '</div>';
                 }
             }
             if (N == "saved")
@@ -2714,7 +2748,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 if (isRm && !authUser)
                     h = em("Sign in to discover roommates", "Member discovery is available to signed-in members with a complete profile.", '<br><button class="post" data-n="profile">Sign in</button>');
                 else if (isRm && (!currentProfile || currentProfile.onboardingComplete !== true))
-                    h = em("Complete your profile", "Complete your profile before discovering other members.", '<br><button class="post" data-n="profile">Open profile</button>');
+                    h = em("Complete your profile", "Complete your profile before discovering other members.", '<br><button class="pill" data-action="fast-prefs" style="background:var(--brand);color:#fff;border-color:var(--brand);font-weight:600">Create Roommate Profile</button>');
                 else if (isRm ? PAGINATION_STATE.roommatesError : PAGINATION_STATE.placesError)
                     h = erm();
                 else if (isRm ? PAGINATION_STATE.roommatesLoading : PAGINATION_STATE.placesLoading)
@@ -2858,7 +2892,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 render();
             };
         }
-        ["nm-chooser-ov", "nm-fast-prefs-ov", "nm-breakdown-ov"].forEach(function(ovId) {
+        ["nm-fast-prefs-ov", "nm-breakdown-ov"].forEach(function(ovId) {
             const ovEl = $(ovId);
             if (ovEl) {
                 ovEl.onclick = function(e) {
@@ -2894,22 +2928,6 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         }
         addDocListener("click", function (e) {
             let o, o2, o3, id, isProfile, isPg, index, recordId, nextSaved, uid, q2;
-            const bChooserClose = e.target.closest("[data-close-chooser]");
-            if (bChooserClose) {
-                closePostChooser();
-                return;
-            }
-            const bChooserAct = e.target.closest("[data-chooser-action]");
-            if (bChooserAct) {
-                const act = bChooserAct.getAttribute("data-chooser-action");
-                closePostChooser();
-                if (act === "post-room") {
-                    openPost();
-                } else if (act === "post-pref") {
-                    openFastPrefsDrawer();
-                }
-                return;
-            }
             const bFastClose = e.target.closest("[data-close-fast-drawer]");
             if (bFastClose) {
                 closeFastPrefsDrawer();
@@ -2922,6 +2940,13 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 if (bInput) bInput.value = val;
                 document.querySelectorAll("#nm-fast-budget-pills .nm-budget-pill").forEach(function(p) {
                     p.classList.toggle("active", p === bFastBudget);
+                });
+                return;
+            }
+            const bFastVis = e.target.closest("#nm-fast-vis-group [data-fast-vis]");
+            if (bFastVis) {
+                document.querySelectorAll("#nm-fast-vis-group [data-fast-vis]").forEach(function(btn) {
+                    btn.classList.toggle("active", btn === bFastVis);
                 });
                 return;
             }
@@ -2982,17 +3007,15 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
             const bPrefs = e.target.closest("[data-go-prefs]");
             if (bPrefs) {
-                const currentDest = window.location.pathname + window.location.search;
-                const safeCurrent = getSafeReturnDestination(currentDest) || '/explore';
                 if (!authUser) {
                     openAuthModal({
                         title: 'Unlock Personalized Matching',
                         subtitle: 'Sign in and set your Matching Preferences to see live match % across rooms.',
-                        redirect: '/profile?section=prefs&returnTo=' + encodeURIComponent(safeCurrent),
+                        redirect: '/explore?openPrefs=1',
                     });
                     return;
                 }
-                navigate('/profile?section=prefs&returnTo=' + encodeURIComponent(safeCurrent));
+                openFastPrefsDrawer();
                 return;
             }
             const bPrefsBack = e.target.closest("[data-prefs-back]");
@@ -3149,9 +3172,6 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     if (S.nav == "saved")
                         render();
                 }).catch(function (error) { toast(error.message || "Could not save bookmark."); }).finally(function () { b.disabled = false; });
-            }
-            else if (b.dataset.n == "post-chooser") {
-                openPostChooser();
             }
             else if (b.dataset.n == "post" || b.dataset.openPost) {
                 openPost();
@@ -3485,15 +3505,6 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         function addf(fs) { [].slice.call(fs).slice(0, 10 - PF.ph.length).forEach(function (f) { const r = new FileReader(); r.onload = function () { PF.ph.push(r.result); PF.er = {}; pf(); }; r.readAsDataURL(f); }); }
         let fastSelectedLocs = [];
 
-        function openPostChooser() {
-            const ov = $("nm-chooser-ov");
-            if (ov) ov.classList.add("o");
-        }
-        function closePostChooser() {
-            const ov = $("nm-chooser-ov");
-            if (ov) ov.classList.remove("o");
-        }
-
         function renderFastLocalities() {
             const container = $("nm-fast-loc-chips");
             if (!container) return;
@@ -3513,7 +3524,6 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         }
 
         function openFastPrefsDrawer() {
-            closePostChooser();
             closeMatchBreakdown();
             const ov = $("nm-fast-prefs-ov");
             if (!ov) return;
@@ -3535,14 +3545,23 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 }).join("");
             }
 
-            const curBudget = resolveSeekerBudget(currentProfile) || 25000;
+            const curBudgetMax = resolveSeekerBudget(currentProfile) || (currentProfile && currentProfile.budget) || 35000;
+            const curBudgetMin = (currentProfile && currentProfile.budgetMin) ? Number(currentProfile.budgetMin) : Math.max(5000, Math.round(curBudgetMax * 0.4));
+            const minBudgetInput = $("nm-fast-min-budget-input");
+            if (minBudgetInput) minBudgetInput.value = curBudgetMin;
             const budgetInput = $("nm-fast-budget-input");
-            if (budgetInput) budgetInput.value = curBudget;
+            if (budgetInput) budgetInput.value = curBudgetMax;
 
             const pills = document.querySelectorAll("#nm-fast-budget-pills .nm-budget-pill");
             pills.forEach(function(pill) {
                 const val = Number(pill.getAttribute("data-fast-budget"));
-                pill.classList.toggle("active", val === curBudget);
+                pill.classList.toggle("active", val === curBudgetMax);
+            });
+
+            const isDiscoverable = currentProfile ? (currentProfile.roommateDiscoveryEnabled !== false) : true;
+            document.querySelectorAll("#nm-fast-vis-group [data-fast-vis]").forEach(function(btn) {
+                const mode = btn.getAttribute("data-fast-vis");
+                btn.classList.toggle("active", isDiscoverable ? (mode === "show") : (mode === "hide"));
             });
 
             fastSelectedLocs = resolveSeekerLocalities(currentProfile).slice(0, 3);
@@ -3578,17 +3597,22 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         async function submitFastPrefs() {
             const citySelect = $("nm-fast-city");
             const selectedCity = citySelect ? citySelect.value : (resolveSeekerCity(currentProfile) || "Bengaluru");
+            const minBudgetInput = $("nm-fast-min-budget-input");
             const budgetInput = $("nm-fast-budget-input");
-            const budgetVal = budgetInput ? Number(budgetInput.value) : 25000;
+            const minBudgetVal = minBudgetInput ? Number(minBudgetInput.value) : 10000;
+            const budgetVal = budgetInput ? Number(budgetInput.value) : 35000;
 
-            if (!budgetVal || budgetVal <= 0) {
-                toast("Please enter a valid monthly budget.");
+            if (!budgetVal || budgetVal <= 0 || minBudgetVal < 0 || minBudgetVal > budgetVal) {
+                toast("Please enter a valid budget range (Minimum ≤ Maximum).");
                 return;
             }
             if (!fastSelectedLocs.length) {
                 toast("Please pick at least one locality.");
                 return;
             }
+
+            const visBtn = document.querySelector("#nm-fast-vis-group [data-fast-vis].active");
+            const isShowInRoommates = visBtn ? (visBtn.getAttribute("data-fast-vis") === "show") : true;
 
             const nameInput = $("nm-fast-name");
             const enteredName = nameInput ? nameInput.value.trim() : "";
@@ -3614,7 +3638,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             try {
                 const draft = {
                     city: selectedCity,
-                    b: [Math.max(5000, Math.round(budgetVal * 0.4)), budgetVal],
+                    b: [minBudgetVal, budgetVal],
                     areas: fastSelectedLocs,
                     mv: (currentProfile && (currentProfile.moveInDate || (currentProfile.housingPreferences && currentProfile.housingPreferences.moveInDate))) || "Flexible",
                     types: (currentProfile && currentProfile.preferredRoomTypes) || ["Private room", "Full flat"],
@@ -3625,7 +3649,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     ...(selSmoke ? { smoke: selSmoke } : {}),
                     ...(selPets ? { pets: selPets } : {}),
                     ...(selSleep ? { sleep: selSleep } : {}),
-                    teamUpDiscoverable: Boolean(currentProfile && (currentProfile.roommateDiscoveryEnabled || (currentProfile.housingPreferences && currentProfile.housingPreferences.activeIntents && currentProfile.housingPreferences.activeIntents.includes('team_up'))))
+                    teamUpDiscoverable: isShowInRoommates
                 };
                 const payload = buildMatchingPreferencesUpdate(draft, currentProfile || {});
                 if (!payload.housingPreferences) payload.housingPreferences = {};
@@ -3643,11 +3667,35 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 } else {
                     currentProfile = Object.assign({}, payload);
                 }
+                if (payload.name) ME.n = payload.name;
+                if (payload.city) ME.city = payload.city;
+                if (Array.isArray(payload.localities) && payload.localities[0]) ME.area = payload.localities[0];
+                if (payload.quizAnswers) {
+                    if (payload.quizAnswers.diet) ME.diet = payload.quizAnswers.diet;
+                    if (payload.quizAnswers.smoke) ME.smoke = payload.quizAnswers.smoke;
+                    if (payload.quizAnswers.sleep) ME.sleep = payload.quizAnswers.sleep;
+                }
+                if (payload.housingPreferences && Array.isArray(payload.housingPreferences.activeIntents)) {
+                    ME.activeIntents = payload.housingPreferences.activeIntents.slice();
+                }
+                if (typeof payload.roommateDiscoveryEnabled === "boolean") {
+                    ME.discover = payload.roommateDiscoveryEnabled;
+                    TG.vis = payload.roommateDiscoveryEnabled ? "discoverable" : "hidden";
+                }
+                PR.b = [minBudgetVal, budgetVal];
+                PR.city = selectedCity;
+                PR.areas = fastSelectedLocs.slice();
+                PR.teamUpVisibility = isShowInRoommates ? "Show me in Roommates" : "Rooms only (keep hidden)";
+
                 syn();
                 D.forEach(function (x) { if (x) x[11] = calcRoomMatch(x).total; });
                 G.forEach(function (x) { if (x) x[9] = calcPGMatch(x); });
                 closeFastPrefsDrawer();
                 toast("Preferences saved! Live matches unlocked.");
+                void loadPlacesPage(true);
+                void loadRoommatesPage(true);
+                if (refreshProfile) refreshProfile();
+                render();
                 if (refreshProfile) refreshProfile();
                 render();
             } catch (err) {
@@ -7197,11 +7245,12 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 }
             }, 100);
         }
-        if (searchParams.get('onboarding') === '1') {
+        if (searchParams.get('openPrefs') === '1' || searchParams.get('onboarding') === '1') {
             setTimeout(function () {
-                openPostChooser();
+                openFastPrefsDrawer();
                 if (typeof window !== "undefined" && window.history && window.history.replaceState) {
                     const u = new URL(window.location.href);
+                    u.searchParams.delete('openPrefs');
                     u.searchParams.delete('onboarding');
                     window.history.replaceState(window.history.state, '', u.pathname + (u.search ? u.search : ''));
                 }
