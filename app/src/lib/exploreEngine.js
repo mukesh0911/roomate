@@ -445,53 +445,6 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         (RM = []);
         S.sub = 0;
         function chips(a) { return '<div class="subt">' + a.map(function (t, i) { return '<button class="chip" data-s="' + i + '" aria-pressed="' + (S.sub == i) + '">' + esc(t) + '</button>'; }).join("") + '</div>'; }
-        function getRoomHighlights(x) {
-            if (!x) return '';
-            const roomFit = calcRoomMatch(x);
-            let highlights = (roomFit && Array.isArray(roomFit.reasons) && roomFit.reasons.length > 0)
-                ? roomFit.reasons.slice(0, 3)
-                : [];
-            if (!highlights.length) {
-                const fallbackList = [];
-                if (x[8]) fallbackList.push("Furnished");
-                if (x[2]) fallbackList.push(x[2]);
-                if (x[10] === "Female") fallbackList.push("Women only");
-                else if (x[10] === "Male") fallbackList.push("Men only");
-                else fallbackList.push("All genders");
-                if (x[4] && x[3] && x[4] <= x[3] * 2) fallbackList.push("Low deposit");
-                highlights = fallbackList.slice(0, 2);
-            }
-            return '<div class="nm-highlights-row">' +
-                highlights.map(function (hl) { return '<span class="nm-hl-chip">✨ ' + esc(hl) + '</span>'; }).join("") +
-                '</div>';
-        }
-
-        function getRoommateHighlights(x, i) {
-            if (!x) return '';
-            let highlights = [];
-            if (currentProfile && x[17]) {
-                const pFit = calculateProfileCompatibility(currentProfile, x[17]);
-                if (pFit && Array.isArray(pFit.reasons) && pFit.reasons.length > 0) {
-                    highlights = pFit.reasons.slice(0, 3);
-                }
-            }
-            if (!highlights.length) {
-                const rx = (RX && RX[i]) || [];
-                const fallbackList = [];
-                if (rx[1] === "Non-smoker") fallbackList.push("Non-smoker");
-                if (rx[0] && rx[0] !== "Flexible" && rx[0]) fallbackList.push(rx[0]);
-                if (rx[2] === "Early riser" || rx[2] === "Night owl") fallbackList.push(rx[2]);
-                if (rx[4] === "Very tidy" || rx[4] === "Tidy") fallbackList.push("Tidy & clean");
-                if (fallbackList.length < 2 && x[8] && x[8].length) {
-                    x[8].slice(0, 2).forEach(function (t) { if (!fallbackList.includes(t)) fallbackList.push(t); });
-                }
-                highlights = fallbackList.slice(0, 3);
-            }
-            return '<div class="nm-highlights-row">' +
-                highlights.map(function (hl) { return '<span class="nm-hl-chip">🤝 ' + esc(hl) + '</span>'; }).join("") +
-                '</div>';
-        }
-
         function rc(x, i, m) {
             if (!x)
                 return '';
@@ -544,14 +497,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }).join(' ');
             const displayBudget = (x[4] && x[4] !== 'Not provided') ? esc(x[4]) : (isLiveInHost ? 'Room available' : 'Budget flexible');
             const displayMoveIn = (x[5] == "Now") ? "Move in now" : (x[5] && x[5] !== 'Not provided') ? ("From " + esc(x[5])) : "Flexible move-in";
-            const isSampleMate = Boolean(x[9] && (String(x[9]).startsWith('demo_') || String(x[9]).startsWith('curated_') || (x[17] && x[17].isCuratedSample)));
-            const sampleMateBadge = isSampleMate
-                ? '<span class="nm-curated-badge" title="Curated sample member to preview NestMate in this city">✨ Curated Member</span>'
-                : '';
-            const mateTrustPill = x[6]
-                ? '<span class="nm-trust-pill" title="Government ID Verified Member">🛡️ ID Verified</span>'
-                : '';
-            return '<article class="card rm" data-r="' + i + '"><div class="av2">' + avContent + (x[6] ? '<span class="vb" title="Verified">' + IC.chk + '</span>' : '') + '</div><div class="bd"><div class="tr"><div class="t">' + esc(x[1]) + '</div>' + sampleMateBadge + mateTrustPill + '<button class="ib sv" data-id="r' + i + '" aria-pressed="' + (isProfileSaved(x, i) ? "true" : "false") + '" aria-label="Save">' + IC.heart + '</button></div><div class="rm-badge-row">' + badgesHtml + '</div><div class="loc">' + IC.pin + '<span>' + esc(x[3]) + (x[2] ? ' · ' + esc(x[2]) : '') + '</span></div>' + getRoommateHighlights(x, i) + '<div class="fx"><div>' + IC.wal + displayBudget + '</div><div>' + IC.cal + displayMoveIn + '</div></div><div class="tg">' + x[8].map(function (t) { return '<span>' + esc(t) + '</span>'; }).join("") + '</div><div class="ft">' + ft + '</div></div></article>';
+            return '<article class="card rm" data-r="' + i + '"><div class="av2">' + avContent + (x[6] ? '<span class="vb" title="Verified">' + IC.chk + '</span>' : '') + '</div><div class="bd"><div class="tr"><div class="t">' + esc(x[1]) + '</div><button class="ib sv" data-id="r' + i + '" aria-pressed="' + (isProfileSaved(x, i) ? "true" : "false") + '" aria-label="Save">' + IC.heart + '</button></div><div class="rm-badge-row">' + badgesHtml + '</div><div class="loc">' + IC.pin + '<span>' + esc(x[3]) + (x[2] ? ' · ' + esc(x[2]) : '') + '</span></div><div class="fx"><div>' + IC.wal + displayBudget + '</div><div>' + IC.cal + displayMoveIn + '</div></div><div class="tg">' + x[8].map(function (t) { return '<span>' + esc(t) + '</span>'; }).join("") + '</div><div class="ft">' + ft + '</div></div></article>';
         }
         S.room = 0;
         function rd(i) {
@@ -1060,7 +1006,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 if (existingApp && ['applied', 'shortlisted', 'rejected', 'hired', 'roommate_connected'].includes(existingApp.status)) {
                     return '<button class="' + baseCls + '" data-apply-place="' + esc(listingId) + '" aria-label="View Application" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>View Application</em></button>';
                 }
-                return '<button class="' + baseCls + '" data-apply-place="' + esc(listingId) + '" aria-label="' + (!authUser ? 'Sign in' : 'Apply for this room') + '" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>' + (!authUser ? 'Sign in' : 'Apply / Connect') + '</em></button>';
+                return '<button class="' + baseCls + '" data-apply-place="' + esc(listingId) + '" aria-label="' + (!authUser ? 'Sign in to message' : 'Message host') + '" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>' + (!authUser ? 'Sign in to message' : 'Message') + '</em></button>';
             }
             if (!authUser) return '<button class="' + baseCls + '" data-msg="' + kind + ':' + i + '" aria-label="Sign in" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>Sign in</em></button>';
             return '<button class="' + baseCls + '" data-msg="' + kind + ':' + i + '" aria-label="Contact host" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>Contact Host</em></button>';
@@ -2478,6 +2424,14 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 PAGINATION_STATE.roommatesLoading = false;
                 PAGINATION_STATE.roommatesError = false;
                 PAGINATION_STATE.roommatesHasMore = false;
+                if (RM.length === 0 && !S.q) {
+                    const activeCity = S.city || (currentProfile && currentProfile.city) || 'Bengaluru';
+                    const fallback = getCityCuratedUniverse(activeCity);
+                    RM = fallback.roommates.map(mapRoommateToTuple);
+                    RX = fallback.roommates.map(function (p) {
+                        return [p.diet, p.smoking, p.sleep, p.guests, p.cleanliness, p.raw?.bio || 'Looking for compatible flatmates.'];
+                    });
+                }
                 render();
                 return;
             }
@@ -3047,14 +3001,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     const recentBadge = (act && (act.status === 'online' || act.status === 'recent'))
                         ? '<span class="nm-recent-badge">🟢 ' + esc(act.text) + '</span>'
                         : '';
-                    const isSampleRoom = Boolean(x[12] && (String(x[12]).startsWith('demo_') || String(x[12]).startsWith('curated_') || (x[21] && x[21].isCuratedSample)));
-                    const sampleBadge = isSampleRoom
-                        ? '<span class="nm-curated-badge" title="Curated sample listing to preview NestMate in this city">✨ Curated</span>'
-                        : '';
-                    const roomTrustPill = x[9]
-                        ? '<span class="nm-trust-pill" title="Verified Place & Host">🛡️ ID Verified</span>'
-                        : '';
-                    h += '<article class="card" data-i="' + i + '"><div class="ph">' + coverImg + '<span class="tag">' + esc(x[0]) + '</span>' + (x[9] ? '<span class="vb" title="Verified">' + IC.chk + '</span>' : '') + matchPillHtml(x[11], i) + '</div><div class="bd"><div class="tr"><div class="t">' + esc(x[1]) + '</div>' + sampleBadge + roomTrustPill + recentBadge + '<button class="ib sv" data-id="' + i + '" aria-pressed="' + (isRoomSaved(x, i) ? "true" : "false") + '" aria-label="Save">' + IC.heart + '</button></div><div class="loc">' + IC.pin + esc(x[2]) + (x[8] ? ' · Furnished' : '') + '</div>' + getRoomHighlights(x) + '<div class="fx"><div title="Room type">' + IC.bed + esc(x[7]) + '</div><div title="Looking for">' + IC.usr + esc(x[21] && Number.isInteger(x[21].partnersNeeded) ? x[21].partnersNeeded + ' roommate(s)' : 'Not provided') + '</div><div title="Deposit">' + IC.wal + cf(x[4]) + ' deposit</div><div title="Available">' + IC.cal + (x[6] == "Now" ? "Available now" : "From " + esc(x[6])) + '</div></div><div class="ft"><div class="pr"><b>' + fmt(x[3]) + '</b><span>/mo</span></div>' + (authUser && (x[20] === authUser.uid || (x[12] && MY.some(function (m) { return m && m.id === x[12]; }))) ? '<button class="msgb" data-la="edit" data-q="' + (x[12] || i) + '" style="background:var(--sf);color:var(--brand);border:1px solid var(--brand)"><em>Your Listing · Edit</em></button>' : listingCommunicationButtons('r', i)) + '</div></div></article>';
+                    h += '<article class="card" data-i="' + i + '"><div class="ph">' + coverImg + '<span class="tag">' + esc(x[0]) + '</span>' + (x[9] ? '<span class="vb" title="Verified">' + IC.chk + '</span>' : '') + matchPillHtml(x[11], i) + '</div><div class="bd"><div class="tr"><div class="t">' + esc(x[1]) + '</div>' + recentBadge + '<button class="ib sv" data-id="' + i + '" aria-pressed="' + (isRoomSaved(x, i) ? "true" : "false") + '" aria-label="Save">' + IC.heart + '</button></div><div class="loc">' + IC.pin + esc(x[2]) + (x[8] ? ' · Furnished' : '') + '</div><div class="fx"><div title="Room type">' + IC.bed + esc(x[7]) + '</div><div title="Looking for">' + IC.usr + esc(x[21] && Number.isInteger(x[21].partnersNeeded) ? x[21].partnersNeeded + ' roommate(s)' : 'Not provided') + '</div><div title="Deposit">' + IC.wal + cf(x[4]) + ' deposit</div><div title="Available">' + IC.cal + (x[6] == "Now" ? "Available now" : "From " + esc(x[6])) + '</div></div><div class="ft"><div class="pr"><b>' + fmt(x[3]) + '</b><span>/mo</span></div>' + (authUser && (x[20] === authUser.uid || (x[12] && MY.some(function (m) { return m && m.id === x[12]; }))) ? '<button class="msgb" data-la="edit" data-q="' + (x[12] || i) + '" style="background:var(--sf);color:var(--brand);border:1px solid var(--brand)"><em>Your Listing · Edit</em></button>' : listingCommunicationButtons('r', i)) + '</div></div></article>';
                 });
                 if (N === "explore" && PAGINATION_STATE.placesHasMore) {
                     h += '<div class="lm-wrap" style="grid-column:1/-1;display:flex;justify-content:center;padding:24px 0 32px"><button class="pill" data-act="load-more" style="height:44px;padding:0 24px;border-color:var(--brand);color:var(--brand);font-weight:600">' + (PAGINATION_STATE.placesLoading ? 'Loading...' : 'Load more places') + '</button></div>';
