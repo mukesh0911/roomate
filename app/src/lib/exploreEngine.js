@@ -140,7 +140,8 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         IC.wal = P('<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M16 14.500h2"/>');
         IC.cal = P('<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/>');
         const SB = '<i class="nb sc"></i>';
-        $("rail").innerHTML = sanitizeRenderedHtml('<div class="lg"><svg viewBox="0 0 24 24"><path d="M12 2.500 2.500 11H5v9h5.500v-6h3v6H19v-9h2.500z"/></svg></div>' + nv("explore", "Explore", IC.exp) + nv("saved", "Saved", IC.heart, SB) + nv("messages", "Inbox", IC.chat, '<i class="nb mu"></i>') + nv("listings", "My listings", IC.home) + '<div class="sp"></div>' + nv("profile", "Profile", IC.me));
+        const isCurrentAdmin = Boolean(authUser && (['mukvr46@gmail.com', 'mrmukeshram111@gmail.com'].includes((authUser.email || '').toLowerCase()) || (currentProfile && (currentProfile.role === 'admin' || currentProfile.isAdmin === true))));
+        $("rail").innerHTML = sanitizeRenderedHtml('<div class="lg"><svg viewBox="0 0 24 24"><path d="M12 2.500 2.500 11H5v9h5.500v-6h3v6H19v-9h2.500z"/></svg></div>' + nv("explore", "Explore", IC.exp) + nv("saved", "Saved", IC.heart, SB) + nv("messages", "Inbox", IC.chat, '<i class="nb mu"></i>') + nv("listings", "My listings", IC.home) + (isCurrentAdmin ? nv("admin", "Admin", '<svg viewBox="0 0 24 24" style="width:20px;height:20px" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5z"/></svg>') : '') + '<div class="sp"></div>' + nv("profile", "Profile", IC.me));
         $("bb").innerHTML = sanitizeRenderedHtml(nv("explore", "Explore", IC.exp) + nv("saved", "Saved", IC.heart, SB) + '<button class="nv" data-n="post" aria-label="Post a room"><span class="fab">' + IC.plus + '</span></button>' + nv("messages", "Inbox", IC.chat, '<i class="nb mu"></i>') + nv("me", "Me", IC.me));
         function cf(n) { return n >= 100000 ? "₹" + (n / 100000).toFixed(2).replace(/\.?0+$/, "") + "L" : "₹" + Math.round(n / 1000) + "k"; }
         function fmt(n) { return "₹" + n.toLocaleString("en-IN"); }
@@ -3182,6 +3183,10 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                         c.setAttribute("aria-pressed", c.dataset.c === b.dataset.cat ? "true" : "false");
                     });
                 }
+                if (b.dataset.n === "admin") {
+                    navigate("/admin");
+                    return;
+                }
                 S.nav = b.dataset.n;
                 if (b.dataset.as) {
                     S.as = b.dataset.as;
@@ -5187,7 +5192,9 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         function ac() {
             if (S.as === "edit" && !DR) DR = cl2(ME);
             if (S.as === "prefs" && !DR) DR = cl2(PR);
-            const h = '<div class="ac"><nav class="acn">' + ACS.map(function (a) { return '<button class="al" data-as="' + a[0] + '" aria-current="' + (S.as == a[0]) + '">' + a[2] + a[1] + (a[0] == "verify" ? '<span class="st3' + (ME.ver ? " ok" : "") + '"></span>' : "") + '</button>'; }).join("") + '<hr><button class="al" data-so="1">' + P('<path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9"/>') + 'Sign out</button></nav><div class="acc">' + ACS.map(function (a) { return '<button class="chip" data-as="' + a[0] + '" aria-pressed="' + (S.as == a[0]) + '">' + a[1] + '</button>'; }).join("") + '</div><div class="acm">' + (S.rs ? '<div class="rb">' + IC.sh + '<div><b>Your account is restricted</b><br>Messaging and posting are paused while we review a report. You can still browse.</div><button data-sup="1">Contact support</button></div>' : '') +
+            const isCurrentAdmin = Boolean(authUser && (['mukvr46@gmail.com', 'mrmukeshram111@gmail.com'].includes((authUser.email || '').toLowerCase()) || (currentProfile && (currentProfile.role === 'admin' || currentProfile.isAdmin === true))));
+            const adminButton = isCurrentAdmin ? '<button class="al" data-n="admin" style="color:var(--brand);font-weight:600"><svg class="i" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M12 2 4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5z"/></svg>Admin Portal</button>' : '';
+            const h = '<div class="ac"><nav class="acn">' + ACS.map(function (a) { return '<button class="al" data-as="' + a[0] + '" aria-current="' + (S.as == a[0]) + '">' + a[2] + a[1] + (a[0] == "verify" ? '<span class="st3' + (ME.ver ? " ok" : "") + '"></span>' : "") + '</button>'; }).join("") + adminButton + '<hr><button class="al" data-so="1">' + P('<path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9"/>') + 'Sign out</button></nav><div class="acc">' + ACS.map(function (a) { return '<button class="chip" data-as="' + a[0] + '" aria-pressed="' + (S.as == a[0]) + '">' + a[1] + '</button>'; }).join("") + (isCurrentAdmin ? '<button class="chip" data-n="admin" style="color:var(--brand);font-weight:600">Admin Portal</button>' : '') + '</div><div class="acm">' + (S.rs ? '<div class="rb">' + IC.sh + '<div><b>Your account is restricted</b><br>Messaging and posting are paused while we review a report. You can still browse.</div><button data-sup="1">Contact support</button></div>' : '') +
                 (S.as == "profile" ? acP() : S.as == "edit" ? acE() : S.as == "verify" ? acV() : S.as == "prefs" ? acR() : acS()) + '</div></div>';
             return h;
         }

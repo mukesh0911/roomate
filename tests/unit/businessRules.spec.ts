@@ -297,7 +297,7 @@ test.describe('Phase 3: Master Business Rules & Pure Logic Certification (RULE-0
   test('RULE-19: Safe wipe selectively removes seed/test entities while preserving production admin accounts', () => {
     const isSeedOrTestDoc = (doc: { uid?: string; email?: string; isTest?: boolean }) => {
       const email = (doc.email || '').toLowerCase().trim();
-      if (email === 'mukvr46@gmail.com' || email === 'admin@nestmate.in') return false; // protected
+      if (email === 'mukvr46@gmail.com' || email === 'mrmukeshram111@gmail.com' || email === 'admin@nestmate.in') return false; // protected
       return doc.isTest === true || (doc.uid && doc.uid.startsWith('test_user_')) || email.endsWith('@nestmate-test.com');
     };
 
