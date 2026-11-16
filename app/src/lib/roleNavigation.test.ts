@@ -20,9 +20,9 @@ describe('roleNavigation utilities', () => {
       expect(getDashboardRoute(false, 'seeker')).toBe('/login');
     });
 
-    it('routes users to /explore or /my-listings', () => {
+    it('routes users to /explore or /listings', () => {
       expect(getDashboardRoute(true, 'owner')).toBe('/explore?tab=rooms');
-      expect(getDashboardRoute(true, 'owner', 'listings')).toBe('/my-listings');
+      expect(getDashboardRoute(true, 'owner', 'listings')).toBe('/listings');
       expect(getDashboardRoute(true, 'owner', 'roommates')).toBe('/explore?tab=roommates');
     });
 
@@ -70,32 +70,32 @@ describe('roleNavigation utilities', () => {
   });
 
   describe('resolvePostRoomAction (Unified Account & Listing Creation)', () => {
-    it('prompts auth with redirect to /edit-listing/new when unauthenticated', () => {
+    it('prompts auth with redirect to /explore?post=1 when unauthenticated', () => {
       const action = resolvePostRoomAction(false, null);
       expect(action.type).toBe('auth_prompt');
-      expect(action.path).toBe('/edit-listing/new');
+      expect(action.path).toBe('/explore?post=1');
     });
 
-    it('navigates directly to /edit-listing/new for Owners', () => {
+    it('navigates directly to /explore?post=1 for Owners', () => {
       const action = resolvePostRoomAction(true, 'owner');
       expect(action.type).toBe('navigate_new_listing');
-      expect(action.path).toBe('/edit-listing/new');
+      expect(action.path).toBe('/explore?post=1');
     });
 
-    it('navigates seamlessly to /edit-listing/new for Seekers without requiring role switch', () => {
+    it('navigates seamlessly to /explore?post=1 for Seekers without requiring role switch', () => {
       const action = resolvePostRoomAction(true, 'seeker');
       expect(action.type).toBe('navigate_new_listing');
-      expect(action.path).toBe('/edit-listing/new');
+      expect(action.path).toBe('/explore?post=1');
     });
   });
 
   describe('Listing Management & Detail Routes', () => {
-    it('returns the standard management route /my-listings', () => {
-      expect(getManageListingsRoute()).toBe('/my-listings');
+    it('returns the standard management route /listings', () => {
+      expect(getManageListingsRoute()).toBe('/listings');
     });
 
     it('returns the public room detail route for a given listing ID', () => {
-      expect(getListingDetailRoute('listing-xyz-123')).toBe('/room/listing-xyz-123');
+      expect(getListingDetailRoute('listing-xyz-123')).toBe('/explore?room=listing-xyz-123');
     });
   });
 

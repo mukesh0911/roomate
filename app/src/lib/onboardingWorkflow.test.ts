@@ -5,6 +5,7 @@ import {
 } from './roleNavigation';
 import {
   buildMatchingPreferencesUpdate,
+  buildProfileEditorUpdate,
   buildSeekerLifestyleQuizPatch,
 } from './profileEditor';
 import { getRoomMatchReasons } from './matching';
@@ -263,6 +264,106 @@ describe('Room Seeker Matching Preferences & Personalization Workflow', () => {
 
       expect('roommateDiscoveryEnabled' in untouched).toBe(false);
       expect(untouched.housingPreferences.activeIntents).toEqual(['find_room']);
+    });
+
+    it('preserves multi-locality arrays up to 3 and updates canonical quiz traits including pets, guests, and clean in buildMatchingPreferencesUpdate', () => {
+      const updated = buildMatchingPreferencesUpdate(
+        {
+          city: 'Bengaluru',
+          b: [15000, 25000],
+          areas: ['Indiranagar', 'Koramangala'],
+          mv: 'Immediately',
+          types: ['Private room'],
+          gd: 'Any',
+          diet: 'Vegetarian',
+          smoke: 'Non-smoker',
+          sleep: 'Early riser',
+          pets: 'Pet-friendly',
+          guests: 'Occasionally',
+          clean: 'Daily',
+        },
+        {
+          name: 'Siddharth',
+          city: 'Bengaluru',
+        },
+      );
+
+      expect(updated.localities).toEqual(['Indiranagar', 'Koramangala']);
+      expect(updated.quizAnswers).toMatchObject({
+        diet: 'Vegetarian',
+        smoke: 'Non-smoker',
+        sleep: 'Early riser',
+        pets: 'yes',
+        guests: 'Occasionally',
+        clean: 'Daily',
+      });
+    });
+  });
+
+  describe('buildProfileEditorUpdate locality preservation & quiz traits', () => {
+    it('preserves up to 3 localities when editing profile within same city', () => {
+      const draft = {
+        n: 'Rohan Sharma',
+        job: 'Software Engineer',
+        city: 'Bengaluru',
+        area: 'HSR Layout',
+        bio: 'Quiet and tidy',
+        ph: '',
+        activeIntents: ['find_room' as const],
+        discover: true,
+        diet: 'Veg',
+        smoke: 'Never',
+        sleep: '11 PM',
+        guests: 'Never',
+        clean: 'Daily',
+        pets: 'No pets',
+      };
+
+      const existing = {
+        city: 'Bengaluru',
+        localities: ['Koramangala', 'Indiranagar'],
+        housingPreferences: {
+          activeIntents: ['find_room' as const],
+          preferredCities: ['Bengaluru'],
+          preferredLocalities: ['Koramangala', 'Indiranagar'],
+        },
+      };
+
+      const res = buildProfileEditorUpdate(draft, existing);
+      expect(res.localities).toEqual(['HSR Layout', 'Koramangala', 'Indiranagar']);
+      expect(res.housingPreferences.preferredLocalities).toEqual(['HSR Layout', 'Koramangala', 'Indiranagar']);
+      expect(res.quizAnswers.pets).toBe('No pets');
+      expect(res.quizAnswers.clean).toBe('Daily');
+      expect(res.quizAnswers.guests).toBe('Never');
+    });
+
+    it('resets localities when user switches city in profile editor', () => {
+      const draft = {
+        n: 'Rohan Sharma',
+        job: 'Software Engineer',
+        city: 'Mumbai',
+        area: 'Bandra West',
+        bio: 'Relocating to Mumbai',
+        ph: '',
+        activeIntents: ['find_room' as const],
+        discover: true,
+        diet: 'Veg',
+        smoke: 'Never',
+        sleep: '11 PM',
+        guests: 'Never',
+        clean: 'Daily',
+      };
+
+      const existing = {
+        city: 'Bengaluru',
+        localities: ['Koramangala', 'Indiranagar'],
+      };
+
+      const res = buildProfileEditorUpdate(draft, existing);
+      expect(res.city).toBe('Mumbai');
+      expect(res.localities).toEqual(['Bandra West']);
+      expect(res.housingPreferences.preferredLocalities).toEqual(['Bandra West']);
+      expect(res.housingPreferences.preferredCities).toEqual(['Mumbai']);
     });
   });
 });

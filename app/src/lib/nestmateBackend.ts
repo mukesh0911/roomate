@@ -1300,16 +1300,22 @@ export async function createNewListingBackend(listingData: any, currentUser: any
   };
 
   // Atomically commit listing document and host intent on user profile
-  const batch = writeBatch(db);
-  batch.set(listingRef, { ...newDoc });
-  batch.set(userRef, {
-    isLandlord: true,
+  const isLandlordVal = listingData.isLiveInRoom !== true;
+  const userPayload: any = {
+    isLandlord: isLandlordVal,
     housingPreferences: {
       ...existingHousingPrefs,
       activeIntents: nextIntents,
     },
     updatedAt: serverTimestamp(),
-  }, { merge: true });
+  };
+  if (listingData.isLiveInRoom === true) {
+    userPayload.housingPreferences.associatedListingId = listingRef.id;
+  }
+
+  const batch = writeBatch(db);
+  batch.set(listingRef, { ...newDoc });
+  batch.set(userRef, userPayload, { merge: true });
 
   await batch.commit();
 
@@ -1325,12 +1331,63 @@ export async function createNewListingBackend(listingData: any, currentUser: any
       throw failure;
     }
   }
-  return { id: listingRef.id, ...newDoc };
+  return { ...newDoc, id: listingRef.id };
+}
+
+export async function reconcileHostProfileState(uid: string): Promise<void> {
+  if (!uid) return;
+  try {
+    const userRef = doc(db, 'users', uid);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap || !userSnap.exists()) return;
+    const userData = userSnap.data() || {};
+    const existingHousingPrefs = userData.housingPreferences || {};
+
+    const listingsQuery = query(
+      collection(db, 'listings'),
+      where('ownerId', '==', uid),
+      where('status', 'in', ['active', 'pending_verification'])
+    );
+    const listingsSnap = await getDocs(listingsQuery);
+    const activeCount = listingsSnap ? listingsSnap.size : 0;
+
+    if (activeCount === 0) {
+      const currentIntents: string[] = Array.isArray(existingHousingPrefs.activeIntents)
+        ? [...existingHousingPrefs.activeIntents]
+        : (userData.housingIntent ? [userData.housingIntent] : []);
+      const nextIntents = currentIntents.filter(i => i !== 'have_room');
+      const budgetVal = Number(existingHousingPrefs.budgetMax || existingHousingPrefs.budget || userData.budget || userData.budgetMax || 0);
+      if (nextIntents.length === 0 && budgetVal > 0) {
+        nextIntents.push('find_room');
+      }
+      await updateDoc(userRef, {
+        isLandlord: false,
+        'housingPreferences.activeIntents': nextIntents,
+        'housingPreferences.associatedListingId': deleteField(),
+        updatedAt: serverTimestamp(),
+      });
+    }
+  } catch (err) {
+    console.warn('[reconcileHostProfileState] error reconciling host state for user:', uid, err);
+  }
 }
 
 export async function updateListingStatusBackend(listingId: string, newStatus: string): Promise<void> {
   const ref = doc(db, 'listings', listingId);
+  let ownerId = '';
+  try {
+    const snap = await getDoc(ref);
+    if (snap && snap.exists()) {
+      ownerId = snap.data()?.ownerId || '';
+    }
+  } catch (_) {}
+  if (!ownerId) ownerId = auth.currentUser?.uid || '';
+
   await updateDoc(ref, { status: newStatus.toLowerCase(), updatedAt: serverTimestamp() });
+
+  if (ownerId) {
+    await reconcileHostProfileState(ownerId);
+  }
 }
 
 export async function updateListingBackend(listingId: string, updatedData: any): Promise<void> {
@@ -1371,7 +1428,20 @@ export async function updateListingBackend(listingId: string, updatedData: any):
 
 export async function deleteListingBackend(listingId: string): Promise<void> {
   const ref = doc(db, 'listings', listingId);
+  let ownerId = '';
+  try {
+    const snap = await getDoc(ref);
+    if (snap && snap.exists()) {
+      ownerId = snap.data()?.ownerId || '';
+    }
+  } catch (_) {}
+  if (!ownerId) ownerId = auth.currentUser?.uid || '';
+
   await deleteDoc(ref);
+
+  if (ownerId) {
+    await reconcileHostProfileState(ownerId);
+  }
 }
 
 

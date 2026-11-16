@@ -34,7 +34,7 @@ export function getDashboardRoute(
   tab?: string | null
 ): string {
   if (!isAuthenticated) return '/login';
-  if (tab === 'listings') return '/my-listings';
+  if (tab === 'listings') return '/listings';
   return tab ? `/explore?tab=${tab}` : '/explore?tab=rooms';
 }
 
@@ -46,11 +46,6 @@ export function getBrowseSeekersRoute(_role?: UserRole): string {
   return '/explore?tab=roommates';
 }
 
-/**
- * Resolves room browsing route by role:
- * - Owners navigate to their property listings management (/owner-dashboard?tab=listings)
- * - Seekers navigate to the public room discovery tab (/explore?tab=rooms)
- */
 /**
  * Resolves room browsing route:
  * - Directs to public room discovery (/explore?tab=rooms)
@@ -80,29 +75,29 @@ export function getLogoDestination(_role?: UserRole): string {
 
 /**
  * Action resolver when user clicks "+ Post Room":
- * - Unauthenticated: prompts auth with /edit-listing/new redirect
- * - Authenticated (Seeker or Owner): navigates directly to /edit-listing/new
+ * - Unauthenticated: prompts auth with /explore?post=1 redirect
+ * - Authenticated (Seeker or Owner): navigates directly to /explore?post=1
  */
 export function resolvePostRoomAction(
   isAuthenticated: boolean,
   _role?: UserRole
 ): { type: 'auth_prompt' | 'navigate_new_listing'; path: string } {
   if (!isAuthenticated) {
-    return { type: 'auth_prompt', path: '/edit-listing/new' };
+    return { type: 'auth_prompt', path: '/explore?post=1' };
   }
-  return { type: 'navigate_new_listing', path: '/edit-listing/new' };
+  return { type: 'navigate_new_listing', path: '/explore?post=1' };
 }
 
 /**
  * Route to manage properties and applicants
  */
 export function getManageListingsRoute(): string {
-  return '/my-listings';
+  return '/listings';
 }
 
 /**
  * Route to view public room listing detail
  */
 export function getListingDetailRoute(listingId: string): string {
-  return `/room/${listingId}`;
+  return `/explore?room=${encodeURIComponent(listingId)}`;
 }

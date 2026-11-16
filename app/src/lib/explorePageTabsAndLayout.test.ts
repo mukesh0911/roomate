@@ -218,7 +218,7 @@ describe('ExplorePage Unified Portal & Layout Architecture', () => {
       expect(css).toContain('.nm-explore-root .decline-reasons{');
 
       expect(engine).toContain('nv("messages", "Inbox", IC.chat');
-      expect(engine).toContain('["messages", "Inbox", "Chats, room applications & requests", IC.chat]');
+      expect(engine).toContain('["connections", "Connections & Applications", "Your room applications and connection requests", IC.chat]');
       expect(engine).toContain('getSubmittedApplicationRoom');
       expect(engine).toContain('subscribeActiveChatMessages');
       expect(engine).toContain('function openInboxThread(');

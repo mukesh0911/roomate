@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   hasActiveSeekerIntent,
+  isHostOnlyWithoutSeekerPrefs,
   isUserMatchingCalibrated,
   resolveSeekerBudget,
   resolveSeekerCity,
@@ -96,6 +97,64 @@ describe('Decoupled Matching Calibration & Intent Separation', () => {
     it('defaults to true for legacy seekers without host markers', () => {
       expect(hasActiveSeekerIntent({})).toBe(true);
       expect(hasActiveSeekerIntent({ name: 'Seeker', city: 'Bengaluru' }, [])).toBe(true);
+    });
+  });
+
+  describe('isHostOnlyWithoutSeekerPrefs', () => {
+    it('returns true for a pure host without seeker budget or localities', () => {
+      expect(isHostOnlyWithoutSeekerPrefs({
+        isLandlord: true,
+        housingPreferences: { activeIntents: ['have_room'] },
+      })).toBe(true);
+
+      expect(isHostOnlyWithoutSeekerPrefs(
+        { name: 'Host With Room' },
+        [{ id: 'room_123', title: '2BHK Indiranagar' }],
+      )).toBe(true);
+    });
+
+    it('returns false for pure seekers or users without host markers', () => {
+      expect(isHostOnlyWithoutSeekerPrefs({
+        housingPreferences: { activeIntents: ['find_room'] },
+        budget: 20000,
+        localities: ['Koramangala'],
+      })).toBe(false);
+
+      expect(isHostOnlyWithoutSeekerPrefs(null)).toBe(false);
+      expect(isHostOnlyWithoutSeekerPrefs({})).toBe(false);
+    });
+
+    it('returns false for dual-intent users who also configured seeker preferences', () => {
+      expect(isHostOnlyWithoutSeekerPrefs({
+        isLandlord: true,
+        housingPreferences: {
+          activeIntents: ['have_room', 'find_room'],
+          budgetMax: 22000,
+          preferredLocalities: ['Indiranagar'],
+        },
+      })).toBe(false);
+
+      expect(isHostOnlyWithoutSeekerPrefs(
+        {
+          housingPreferences: {
+            activeIntents: ['have_room', 'find_room'],
+            preferredLocalities: ['Indiranagar'],
+          },
+          budget: 18000,
+        },
+        [{ id: 'room_host_1' }],
+      )).toBe(false);
+    });
+
+    it('returns true for dual-intent users who declared find_room but never configured budget or localities', () => {
+      expect(isHostOnlyWithoutSeekerPrefs({
+        isLandlord: true,
+        housingPreferences: {
+          activeIntents: ['have_room', 'find_room'],
+          budgetMax: 0,
+          preferredLocalities: [],
+        },
+      })).toBe(true);
     });
   });
 

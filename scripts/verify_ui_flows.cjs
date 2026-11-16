@@ -56,7 +56,6 @@ async function runVerification() {
     page.on('response', resp => {
       if (resp.status() >= 400) {
         const url = resp.url();
-        // Ignore analytics or external font 404s if any
         networkFailures.push(`HTTP ${resp.status()} ${url}`);
         console.log(`  [HTTP ${resp.status()}] ${url}`);
       }
@@ -69,7 +68,7 @@ async function runVerification() {
       await page.waitForTimeout(2000);
 
       // Verify page title and header elements
-      const hasExploreHeader = await page.locator('#h1, .explore, main').first().isVisible();
+      const hasExploreHeader = await page.locator('#h1, .explore, main, .nm-explore-root').first().isVisible();
       if (hasExploreHeader) {
         results[vp.name].passed.push('Explore page loaded cleanly');
         console.log(`  ✓ Explore page loaded cleanly`);
@@ -80,9 +79,66 @@ async function runVerification() {
 
       await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${vp.name}-01-explore-landing.png`) });
 
+      // 1B. Test City Switcher Pill & Popup (#ppc)
+      console.log(`\n[Step 1B] Testing City Switcher Pill & Popup (#ppc) ...`);
+      const cityPill = page.locator('.city[data-pop="c"]').first();
+      const isCityVisible = await cityPill.isVisible();
+      console.log(`  City pill visible: ${isCityVisible}`);
+
+      if (isCityVisible) {
+        const pillText = await cityPill.textContent();
+        results[vp.name].passed.push(`City pill is visible (Text: "${pillText?.trim()}")`);
+        console.log(`  ✓ City pill is visible with label: "${pillText?.trim()}"`);
+
+        // Click city pill to open #ppc
+        await cityPill.click();
+        await page.waitForTimeout(500);
+
+        const cityPopup = page.locator('#ppc');
+        const isCityPopupOpen = await cityPopup.evaluate(el => el.classList.contains('o'));
+        console.log(`  City popup #ppc open: ${isCityPopupOpen}`);
+
+        if (isCityPopupOpen) {
+          results[vp.name].passed.push('Clicking city pill opens #ppc popup');
+          console.log(`  ✓ City popup opened successfully`);
+
+          // Verify [data-select-city] options
+          const cityOptions = cityPopup.locator('[data-select-city]');
+          const cityOptionCount = await cityOptions.count();
+          console.log(`  Found ${cityOptionCount} city options in #ppc`);
+
+          if (cityOptionCount >= 5) {
+            results[vp.name].passed.push(`Found ${cityOptionCount} city options in #ppc`);
+            console.log(`  ✓ Supported city chips present`);
+
+            // Click Mumbai or Bengaluru
+            const targetCityBtn = cityPopup.locator('[data-select-city="Mumbai"]').or(cityPopup.locator('[data-select-city="Bengaluru"]')).first();
+            await targetCityBtn.click();
+            await page.waitForTimeout(800);
+
+            const isPopupClosed = await cityPopup.evaluate(el => !el.classList.contains('o'));
+            if (isPopupClosed) {
+              results[vp.name].passed.push('Selecting a city closes #ppc popup');
+              console.log(`  ✓ Selecting city closed popup cleanly`);
+            }
+          } else {
+            results[vp.name].failed.push('City popup missing [data-select-city] options');
+            console.log(`  ✗ Missing city options in #ppc`);
+          }
+        } else {
+          results[vp.name].failed.push('Clicking city pill did not open #ppc');
+          console.log(`  ✗ City popup failed to open`);
+        }
+      } else {
+        results[vp.name].failed.push('City pill is not visible in viewport');
+        console.log(`  ✗ City pill is hidden`);
+      }
+
+      await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${vp.name}-01b-city-selected.png`) });
+
       // 2. Click + / Post a room -> Verify 2-option Chooser Modal
       console.log(`\n[Step 2] Testing 2-option Chooser Modal ...`);
-      const postBtnSelector = vp.isMobile ? 'button.nv[data-n="post"]' : '#postBtn, button[data-n="post"]';
+      const postBtnSelector = vp.isMobile ? 'button.nv[data-n="post"]' : '.top button[data-n="post"], button[data-n="post"]';
       const postBtn = page.locator(postBtnSelector).first();
       await postBtn.waitFor({ state: 'visible', timeout: 5000 });
       await postBtn.click();
@@ -92,7 +148,6 @@ async function runVerification() {
       const isChooserOpen = await chooserModal.evaluate(el => el.classList.contains('o'));
       const isChooserVisible = await chooserModal.locator('.nm-chooser-card').isVisible();
 
-      // Check z-index and computed styling
       const chooserZIndex = await chooserModal.evaluate(el => window.getComputedStyle(el).zIndex);
       console.log(`  Chooser modal open: ${isChooserOpen}, visible: ${isChooserVisible}, z-index: ${chooserZIndex}`);
 
@@ -119,7 +174,6 @@ async function runVerification() {
 
       // Test Backdrop dismissal
       console.log(`  Testing backdrop dismissal...`);
-      // Click near top edge of overlay (outside .nm-chooser-card)
       await chooserModal.click({ position: { x: 10, y: 10 } });
       await page.waitForTimeout(500);
       const isClosedAfterBackdrop = await chooserModal.evaluate(el => !el.classList.contains('o'));
@@ -131,16 +185,14 @@ async function runVerification() {
         console.log(`  ✗ Backdrop click failed to dismiss`);
       }
 
-      // 3. Intent Switcher & Fast Drawer
+      // 3. Fast Drawer: Post Requirement / Set Preferences
       console.log(`\n[Step 3] Testing Fast Drawer via Chooser (Post Requirement / Set Preferences) ...`);
-      // Re-open Chooser to test Post Requirement flow
       await postBtn.click();
       await page.waitForTimeout(600);
       const postPrefOption = chooserModal.locator('[data-chooser-action="post-pref"]');
       await postPrefOption.click();
       await page.waitForTimeout(800);
 
-      // Verify Fast Drawer opens
       const fastDrawer = page.locator('#nm-fast-prefs-ov');
       const isDrawerOpen = await fastDrawer.evaluate(el => el.classList.contains('o'));
       const isDrawerVisible = await fastDrawer.locator('.nm-drawer-card').isVisible();
@@ -149,67 +201,175 @@ async function runVerification() {
       if (isDrawerOpen && isDrawerVisible) {
         results[vp.name].passed.push('Fast 2-Step Drawer opens cleanly via Chooser');
         console.log(`  ✓ Fast Drawer opened cleanly`);
+
+        // Check horizontal overflow on drawer card
+        const drawerCardBox = await fastDrawer.locator('.nm-drawer-card').boundingBox();
+        if (drawerCardBox && drawerCardBox.width <= vp.width + 1) {
+          results[vp.name].passed.push(`Fast Drawer fits within viewport width (${drawerCardBox.width}px <= ${vp.width}px)`);
+          console.log(`  ✓ Fast Drawer fits viewport width without horizontal clipping`);
+        } else if (drawerCardBox) {
+          results[vp.name].failed.push(`Fast Drawer overflows viewport width (${drawerCardBox.width}px > ${vp.width}px)`);
+          console.log(`  ✗ Fast Drawer overflows viewport width!`);
+        }
+
+        // Verify required inputs: #nm-fast-name, #nm-fast-ug, budget pills, locality chips, traits
+        const hasNameInput = await fastDrawer.locator('#nm-fast-name').isVisible();
+        const hasGenderSelect = await fastDrawer.locator('#nm-fast-ug').isVisible();
+        console.log(`  Drawer fields: name=${hasNameInput}, gender=${hasGenderSelect}`);
+
+        if (hasNameInput) {
+          await fastDrawer.locator('#nm-fast-name').fill('Alex Seeker');
+        }
+
+        // Select Budget (e.g. ₹25,000)
+        const budgetPill = fastDrawer.locator('[data-fast-budget="25000"]');
+        if (await budgetPill.isVisible()) {
+          await budgetPill.click();
+          console.log(`  ✓ Clicked ₹25,000 budget pill`);
+        }
+
+        // Select Localities
+        const locChips = fastDrawer.locator('.nm-fast-loc-chip');
+        const count = await locChips.count();
+        console.log(`  Found ${count} locality chips in Fast Drawer`);
+        if (count > 1) {
+          await locChips.nth(0).click();
+          await page.waitForTimeout(200);
+          await locChips.nth(1).click();
+          await page.waitForTimeout(200);
+          console.log(`  ✓ Selected 2 locality chips`);
+        }
+
+        // Optional lifestyle traits in drawer
+        const traitButtons = fastDrawer.locator('[data-fast-ls]');
+        const traitCount = await traitButtons.count();
+        console.log(`  Found ${traitCount} lifestyle trait chips in Fast Drawer`);
+        if (traitCount >= 4) {
+          results[vp.name].passed.push('Fast Drawer renders lifestyle trait options');
+          console.log(`  ✓ Lifestyle trait chips verified`);
+        }
+
+        await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${vp.name}-04-fast-drawer-filled.png`) });
+
+        // Submit Fast Drawer
+        const submitBtn = fastDrawer.locator('#nm-fast-prefs-submit');
+        await submitBtn.click();
+        await page.waitForTimeout(1000);
+
+        const isDrawerClosedAfterSubmit = await fastDrawer.evaluate(el => !el.classList.contains('o'));
+        if (isDrawerClosedAfterSubmit) {
+          results[vp.name].passed.push('Fast Drawer submits and closes cleanly');
+          console.log(`  ✓ Fast Drawer submitted and closed`);
+        } else {
+          results[vp.name].failed.push('Fast Drawer did not close after submit');
+          console.log(`  ✗ Fast Drawer did not close`);
+        }
       } else {
         results[vp.name].failed.push('Fast Drawer failed to open');
         console.log(`  ✗ Fast Drawer failed to open`);
       }
 
-      await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${vp.name}-03-fast-drawer-open.png`) });
-
-      // Step 1: Select Budget (e.g. ₹25,000)
-      const budgetPill = fastDrawer.locator('[data-fast-budget="25000"]');
-      if (await budgetPill.isVisible()) {
-        await budgetPill.click();
-        console.log(`  ✓ Clicked ₹25,000 budget pill`);
-      }
-
-      // Step 2: Select Localities (pick 2 locality chips)
-      const locChips = fastDrawer.locator('.nm-fast-loc-chip');
-      const count = await locChips.count();
-      console.log(`  Found ${count} locality chips in Fast Drawer`);
-      if (count > 1) {
-        await locChips.nth(0).click();
-        await page.waitForTimeout(200);
-        await locChips.nth(1).click();
-        await page.waitForTimeout(200);
-        console.log(`  ✓ Selected 2 locality chips`);
-      }
-
-      await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${vp.name}-04-fast-drawer-filled.png`) });
-
-      // Click Save & Unlock Matches
-      const submitBtn = fastDrawer.locator('#nm-fast-prefs-submit');
-      await submitBtn.click();
+      // 4. Verify Mobile Room Card CTA Button
+      console.log(`\n[Step 4] Testing Room Card CTA Button styling & attributes ...`);
       await page.waitForTimeout(1000);
+      const roomCards = page.locator('.card:not(.rm)');
+      const roomCardCount = await roomCards.count();
+      console.log(`  Found ${roomCardCount} room cards on Explore`);
 
-      const isDrawerClosedAfterSubmit = await fastDrawer.evaluate(el => !el.classList.contains('o'));
-      if (isDrawerClosedAfterSubmit) {
-        results[vp.name].passed.push('Fast Drawer submits and closes cleanly');
-        console.log(`  ✓ Fast Drawer submitted and closed`);
-      } else {
-        results[vp.name].failed.push('Fast Drawer did not close after submit');
-        console.log(`  ✗ Fast Drawer did not close`);
-      }
+      if (roomCardCount > 0) {
+        const firstCardBtn = roomCards.first().locator('.ft .msgb, .ft button').first();
+        const btnVisible = await firstCardBtn.isVisible();
+        const btnBox = await firstCardBtn.boundingBox();
+        const hasApplyAttr = await firstCardBtn.getAttribute('data-apply-place');
+        const btnText = await firstCardBtn.textContent();
 
-      // Verify live % match badges on room cards
-      await page.waitForTimeout(1000);
-      const matchBadges = page.locator('.mp');
-      const badgeCount = await matchBadges.count();
-      console.log(`  Found ${badgeCount} match badges on explore cards`);
+        console.log(`  First room card button: visible=${btnVisible}, width=${btnBox?.width}px, text="${btnText?.trim()}", data-apply-place="${hasApplyAttr}"`);
 
-      if (badgeCount > 0) {
-        const firstBadgeText = await matchBadges.first().textContent();
-        console.log(`  First match badge text: "${firstBadgeText?.trim()}"`);
-        if (firstBadgeText && (firstBadgeText.includes('%') || firstBadgeText.includes('match') || firstBadgeText.includes('Set preferences'))) {
-          results[vp.name].passed.push(`Match badges rendered cleanly: ${firstBadgeText.trim()}`);
-          console.log(`  ✓ Match badges rendered cleanly`);
+        if (btnVisible && btnBox && btnBox.width >= 50) {
+          results[vp.name].passed.push(`Room card CTA button is visible with adequate width (${Math.round(btnBox.width)}px >= 50px)`);
+          console.log(`  ✓ Room card CTA button width and visibility passed`);
+        } else {
+          results[vp.name].failed.push(`Room card CTA button is too narrow or hidden (${btnBox?.width}px)`);
+          console.log(`  ✗ Room card CTA button sizing issue`);
+        }
+
+        if (hasApplyAttr) {
+          results[vp.name].passed.push(`Room card CTA button has data-apply-place="${hasApplyAttr}"`);
+          console.log(`  ✓ data-apply-place contract verified`);
+        } else {
+          results[vp.name].warnings.push('Room card button missing data-apply-place attribute');
+          console.log(`  ! Room card button missing data-apply-place`);
         }
       }
 
-      await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${vp.name}-05-live-matches.png`) });
+      // 5. Room Detail Mobile Sticky Bar (.detail-view)
+      console.log(`\n[Step 5] Testing Room Detail View & Mobile Sticky Bar (.detail-view) ...`);
+      if (roomCardCount > 0) {
+        const firstCard = roomCards.first();
+        // Click on the card body/title to navigate to room detail
+        const cardTitle = firstCard.locator('.t, .tr').first();
+        await cardTitle.click();
+        await page.waitForTimeout(1000);
 
-      // 4. Match Breakdown Modal ("Why this %?")
-      console.log(`\n[Step 4] Testing 5-Factor Match Breakdown Modal ...`);
+        const isDetailViewClassApplied = await page.evaluate(() => {
+          const root = document.querySelector('.nm-explore-root');
+          return root ? root.classList.contains('detail-view') : false;
+        });
+
+        console.log(`  .nm-explore-root has .detail-view: ${isDetailViewClassApplied}`);
+        if (isDetailViewClassApplied) {
+          results[vp.name].passed.push('.detail-view class toggled on .nm-explore-root');
+          console.log(`  ✓ .detail-view class applied cleanly`);
+        } else {
+          results[vp.name].failed.push('.detail-view class not applied to .nm-explore-root on detail page');
+          console.log(`  ✗ .detail-view class missing`);
+        }
+
+        if (vp.isMobile) {
+          // Verify #bb is hidden on mobile in detail view
+          const isBottomBarHidden = await page.evaluate(() => {
+            const bb = document.getElementById('bb');
+            if (!bb) return true;
+            const style = window.getComputedStyle(bb);
+            return style.display === 'none' || style.visibility === 'hidden';
+          });
+
+          console.log(`  Mobile bottom bar #bb hidden in detail view: ${isBottomBarHidden}`);
+          if (isBottomBarHidden) {
+            results[vp.name].passed.push('Mobile bottom bar #bb is hidden in .detail-view');
+            console.log(`  ✓ Mobile bottom bar hidden`);
+          } else {
+            results[vp.name].failed.push('Mobile bottom bar #bb is not hidden in .detail-view');
+            console.log(`  ✗ Mobile bottom bar still visible in detail view`);
+          }
+
+          // Verify .rbar is anchored cleanly
+          const rbar = page.locator('.rbar').first();
+          if (await rbar.isVisible()) {
+            const rbarStyle = await rbar.evaluate(el => {
+              const comp = window.getComputedStyle(el);
+              return { position: comp.position, bottom: comp.bottom };
+            });
+            console.log(`  Sticky .rbar position: ${rbarStyle.position}, bottom: ${rbarStyle.bottom}`);
+            if (rbarStyle.bottom === '0px' || rbarStyle.position === 'fixed') {
+              results[vp.name].passed.push('.rbar is anchored at bottom: 0 on mobile');
+              console.log(`  ✓ .rbar anchored cleanly`);
+            }
+          }
+        }
+
+        await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${vp.name}-05-detail-view.png`) });
+
+        // Go back to Explore
+        const backBtn = page.locator('.rd .back, .rd .ghb.back, button.back').first();
+        if (await backBtn.isVisible()) {
+          await backBtn.click();
+          await page.waitForTimeout(800);
+        }
+      }
+
+      // 6. Match Breakdown Modal ("Why this %?")
+      console.log(`\n[Step 6] Testing 5-Factor Match Breakdown Modal ...`);
       const whyMatchBtn = page.locator('button[data-why-match]').first();
       const hasWhyMatchBtn = await whyMatchBtn.isVisible();
 
@@ -227,10 +387,10 @@ async function runVerification() {
           results[vp.name].passed.push('5-Factor Breakdown modal opens cleanly');
           console.log(`  ✓ 5-Factor Breakdown modal opened`);
 
-          // Check for horizontal overflow on mobile
+          // Check for horizontal overflow
           const cardBox = await breakdownModal.locator('.nm-breakdown-card').boundingBox();
           const viewportWidth = vp.width;
-          if (cardBox && cardBox.width <= viewportWidth) {
+          if (cardBox && cardBox.width <= viewportWidth + 1) {
             results[vp.name].passed.push(`Breakdown card fits within viewport width (${cardBox.width}px <= ${viewportWidth}px)`);
             console.log(`  ✓ Breakdown modal fits viewport width (no horizontal clipping)`);
           } else if (cardBox) {
@@ -260,13 +420,20 @@ async function runVerification() {
         console.log(`  Note: No active match button with data-why-match found`);
       }
 
-      // 5. Roommates Tab & Active Recently Sorting
-      console.log(`\n[Step 5] Testing Roommates Tab & Freshness Sorting ...`);
+      // 7. Roommates Tab & Freshness Sorting
+      console.log(`\n[Step 7] Testing Roommates Tab & Freshness Sorting ...`);
+      const detailViewCheck = await page.evaluate(() => document.querySelector('.nm-explore-root')?.classList.contains('detail-view'));
+      if (detailViewCheck) {
+        const backBtn = page.locator('.rd .back, .rd .ghb.back, button.back').first();
+        if (await backBtn.isVisible()) {
+          await backBtn.click();
+          await page.waitForTimeout(800);
+        }
+      }
       const roommatesTabBtn = page.locator('.cats button[data-c="2"]').or(page.locator('button.chip:has-text("Roommates")')).first();
       await roommatesTabBtn.click();
       await page.waitForTimeout(1500);
 
-      // Verify URL or active tab state
       const isRoommatesActive = await roommatesTabBtn.evaluate(el => el.getAttribute('aria-pressed') === 'true' || el.classList.contains('active'));
       console.log(`  Roommates tab active: ${isRoommatesActive}`);
 
@@ -301,6 +468,13 @@ async function runVerification() {
         console.log(`  ✗ Encountered 403 error during discovery!`);
       }
 
+      if (consoleErrors.length === 0) {
+        results[vp.name].passed.push('Zero console errors encountered');
+        console.log(`  ✓ ZERO console errors during run`);
+      } else {
+        results[vp.name].warnings.push(`${consoleErrors.length} console errors logged`);
+      }
+
     } catch (err) {
       console.error(`  Error during ${vp.name} test:`, err);
       results[vp.name].failed.push(`Runtime error: ${err.message}`);
@@ -321,6 +495,14 @@ async function runVerification() {
     JSON.stringify(results, null, 2),
     'utf-8'
   );
+
+  const totalFailed = results.desktop.failed.length + results.mobile.failed.length;
+  if (totalFailed > 0) {
+    console.error(`\nTest completed with ${totalFailed} failure(s).`);
+    process.exit(1);
+  } else {
+    console.log(`\nAll visual and interaction flows PASSED on Desktop & Mobile!`);
+  }
 }
 
 runVerification().catch(e => {

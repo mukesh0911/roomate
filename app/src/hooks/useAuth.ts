@@ -160,6 +160,7 @@ function setAuthSingleton(partial: Partial<AuthSingletonState>) {
 
 let authListenerInitialized = false;
 let authLoadGeneration = 0;
+let activeSignupUid: string | null = null;
 
 function initSharedAuthListener() {
   if (authListenerInitialized) return;
@@ -185,6 +186,10 @@ function initSharedAuthListener() {
           if (!isCurrent()) return;
           setAuthSingleton({ user: firebaseUser, profile: hydrated, isLoading: false, error: null });
         } else {
+          if (activeSignupUid === firebaseUser.uid) {
+            // Explicit signup handler is in flight to create/hydrate user doc.
+            return;
+          }
           // Signup may have committed and hydrated the same account while this
           // earlier missing-document read was in flight. Preserve that result.
           const createdProfile = authSingleton.profile?.uid === firebaseUser.uid ? authSingleton.profile : null;
@@ -308,62 +313,67 @@ export function useAuth() {
       try {
         const result = await signInWithEmailAndPassword(auth, email, password);
         const firebaseUser = result.user;
+        activeSignupUid = firebaseUser.uid;
 
-        const userRef = doc(db, 'users', firebaseUser.uid);
-        const userSnap = await getDoc(userRef);
-        const isNew = !userSnap.exists();
+        try {
+          const userRef = doc(db, 'users', firebaseUser.uid);
+          const userSnap = await getDoc(userRef);
+          const isNew = !userSnap.exists();
 
-        if (isNew) {
-          const defaultName = firebaseUser.displayName || email.split('@')[0];
-          const phone = firebaseUser.phoneNumber || '';
-          const userEmail = firebaseUser.email || email;
-          const newProfile: UserProfile = {
-            uid: firebaseUser.uid,
-            phone: '',
-            name: defaultName,
-            email: '',
-            role: null,
-            city: '',
-            localities: [],
-            budget: 0,
-            moveInDate: '',
-            profession: '',
-            company: '',
-            bio: '',
-            // Sprint 4A (truth): age/gender are NOT invented at signup.
-            age: 0,
-            gender: '',
-            avatar: firebaseUser.photoURL || '',
-            quizAnswers: {},
-            onboardingComplete: false,
-            isPremium: false,
-            connectsUsed: 0,
-            connectsLimit: 5,
-            // Sprint 4A (truth): unverified by default — no implied verification.
-            verificationLevel: 0,
-            isVerified: false,
-            workEmailVerified: false,
-            savedProfileIds: [],
-            savedRoomIds: [],
-            skippedUserIds: [],
-            blockedUserIds: [],
-            status: 'active',
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          };
-          await persistPublicUser(
-            firebaseUser.uid,
-            newProfile as unknown as Record<string, unknown>,
-            { phone, email: userEmail }
-          );
-          setProfile(await hydrateOwnProfile({ ...newProfile, phone, email: userEmail }));
-          setUser(firebaseUser);
-          return { isNew: true, role: null, onboardingComplete: false };
-        } else {
-          const data = userSnap.data() as UserProfile;
-          setProfile(await hydrateOwnProfile({ ...data, uid: firebaseUser.uid }));
-          setUser(firebaseUser);
-          return { isNew: false, role: data.role || null, onboardingComplete: !!data.onboardingComplete };
+          if (isNew) {
+            const defaultName = firebaseUser.displayName || email.split('@')[0];
+            const phone = firebaseUser.phoneNumber || '';
+            const userEmail = firebaseUser.email || email;
+            const newProfile: UserProfile = {
+              uid: firebaseUser.uid,
+              phone: '',
+              name: defaultName,
+              email: '',
+              role: null,
+              city: '',
+              localities: [],
+              budget: 0,
+              moveInDate: '',
+              profession: '',
+              company: '',
+              bio: '',
+              // Sprint 4A (truth): age/gender are NOT invented at signup.
+              age: 0,
+              gender: '',
+              avatar: firebaseUser.photoURL || '',
+              quizAnswers: {},
+              onboardingComplete: false,
+              isPremium: false,
+              connectsUsed: 0,
+              connectsLimit: 5,
+              // Sprint 4A (truth): unverified by default — no implied verification.
+              verificationLevel: 0,
+              isVerified: false,
+              workEmailVerified: false,
+              savedProfileIds: [],
+              savedRoomIds: [],
+              skippedUserIds: [],
+              blockedUserIds: [],
+              status: 'active',
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            };
+            await persistPublicUser(
+              firebaseUser.uid,
+              newProfile as unknown as Record<string, unknown>,
+              { phone, email: userEmail }
+            );
+            setProfile(await hydrateOwnProfile({ ...newProfile, phone, email: userEmail }));
+            setUser(firebaseUser);
+            return { isNew: true, role: null, onboardingComplete: false };
+          } else {
+            const data = userSnap.data() as UserProfile;
+            setProfile(await hydrateOwnProfile({ ...data, uid: firebaseUser.uid }));
+            setUser(firebaseUser);
+            return { isNew: false, role: data.role || null, onboardingComplete: !!data.onboardingComplete };
+          }
+        } finally {
+          activeSignupUid = null;
         }
       } catch (err: any) {
         let msg = err.message || 'Sign in failed';
@@ -386,52 +396,59 @@ export function useAuth() {
    * Creates a minimal Firestore profile; caller lands on /explore and can calibrate via Matching Preferences.
    */
   const signUpWithEmail = useCallback(
-    async (email: string, password: string): Promise<{ isNew: boolean; role: string | null; onboardingComplete: boolean; email: string | null }> => {
+    async (email: string, password: string, fullName?: string): Promise<{ isNew: boolean; role: string | null; onboardingComplete: boolean; email: string | null }> => {
       setError(null);
       try {
         const result = await createUserWithEmailAndPassword(auth, email, password);
         const firebaseUser = result.user;
+        activeSignupUid = firebaseUser.uid;
 
-        const newProfile: Partial<UserProfile> = {
-          uid: firebaseUser.uid,
-          phone: '',
-          name: '',
-          email: '',
-          role: null,
-          city: '',
-          localities: [],
-          // BUG-2 FIX: budget is collected during onboarding, not fabricated.
-          budget: 0,
-          moveInDate: '',
-          profession: '',
-          company: '',
-          age: 0,
-          gender: '',
-          avatar: '',
-          quizAnswers: {},
-          onboardingComplete: false,
-          isPremium: false,
-          connectsUsed: 0,
-          connectsLimit: 5,
-          verificationLevel: 0,
-          isVerified: false,
-          status: 'active',
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        };
-        await persistPublicUser(
-          firebaseUser.uid,
-          newProfile as Record<string, unknown>,
-          { email: firebaseUser.email || email, phone: '' }
-        );
-        setProfile(await hydrateOwnProfile({ ...newProfile, uid: firebaseUser.uid, email: firebaseUser.email || email } as UserProfile));
-        setUser(firebaseUser);
-        return {
-          isNew: true,
-          role: null,
-          onboardingComplete: false,
-          email: firebaseUser.email || email,
-        };
+        try {
+          const userEmail = firebaseUser.email || email;
+          const resolvedName = (fullName && fullName.trim()) || (userEmail ? userEmail.split('@')[0] : 'User');
+          const newProfile: Partial<UserProfile> = {
+            uid: firebaseUser.uid,
+            phone: '',
+            name: resolvedName,
+            email: '',
+            role: null,
+            city: '',
+            localities: [],
+            // BUG-2 FIX: budget is collected during onboarding, not fabricated.
+            budget: 0,
+            moveInDate: '',
+            profession: '',
+            company: '',
+            age: 0,
+            gender: '',
+            avatar: '',
+            quizAnswers: {},
+            onboardingComplete: false,
+            isPremium: false,
+            connectsUsed: 0,
+            connectsLimit: 5,
+            verificationLevel: 0,
+            isVerified: false,
+            status: 'active',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          };
+          await persistPublicUser(
+            firebaseUser.uid,
+            newProfile as Record<string, unknown>,
+            { email: userEmail, phone: '' }
+          );
+          setProfile(await hydrateOwnProfile({ ...newProfile, uid: firebaseUser.uid, email: userEmail } as UserProfile));
+          setUser(firebaseUser);
+          return {
+            isNew: true,
+            role: null,
+            onboardingComplete: false,
+            email: userEmail,
+          };
+        } finally {
+          activeSignupUid = null;
+        }
       } catch (err: any) {
         let msg = err.message || 'Account creation failed';
         if (err.code === 'auth/email-already-in-use') {
@@ -439,7 +456,7 @@ export function useAuth() {
         } else if (err.code === 'auth/invalid-email') {
           msg = 'Please enter a valid email address.';
         } else if (err.code === 'auth/weak-password') {
-          msg = 'Password is too weak. Use at least 6 characters.';
+          msg = 'Password is too weak. Use at least 8 characters.';
         }
         setError(msg);
         throw new Error(msg);
@@ -475,70 +492,76 @@ export function useAuth() {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const firebaseUser = result.user;
-      const additionalInfo = getAdditionalUserInfo(result);
-      const googlePhoto = extractGooglePhoto(firebaseUser, additionalInfo?.profile);
+      activeSignupUid = firebaseUser.uid;
 
-      const userRef = doc(db, 'users', firebaseUser.uid);
-      const userSnap = await getDoc(userRef);
-      const isNew = !userSnap.exists();
+      try {
+        const additionalInfo = getAdditionalUserInfo(result);
+        const googlePhoto = extractGooglePhoto(firebaseUser, additionalInfo?.profile);
 
-      if (isNew) {
-        const defaultName = firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split('@')[0] : 'User');
-        const phone = firebaseUser.phoneNumber || '';
-        const email = firebaseUser.email || '';
-        const newProfile: UserProfile = {
-          uid: firebaseUser.uid,
-          phone: '',
-          name: defaultName,
-          email: '',
-          role: null,
-          city: '',
-          localities: [],
-          budget: 0,
-          moveInDate: '',
-          profession: '',
-          company: '',
-          bio: '',
-          // Sprint 4A (truth): age/gender are NOT invented at signup.
-          age: 0,
-          gender: '',
-          avatar: googlePhoto || '',
-          quizAnswers: {},
-          onboardingComplete: false,
-          isPremium: false,
-          connectsUsed: 0,
-          connectsLimit: 5,
-          // Sprint 4A (truth): unverified by default — no implied verification.
-          verificationLevel: 0,
-          isVerified: false,
-          status: 'active',
-          workEmailVerified: false,
-          savedProfileIds: [],
-          savedRoomIds: [],
-          skippedUserIds: [],
-          blockedUserIds: [],
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        };
-        await persistPublicUser(
-          firebaseUser.uid,
-          newProfile as unknown as Record<string, unknown>,
-          { phone, email }
-        );
-        setProfile(await hydrateOwnProfile({ ...newProfile, phone, email }));
-        setUser(firebaseUser);
-        const hasPhone = !!firebaseUser.phoneNumber;
-        return { isNew: true, role: null, onboardingComplete: false, email: firebaseUser.email, hasPhone };
-      } else {
-        const existingProfile = userSnap.data() as UserProfile;
-        if (googlePhoto && (!existingProfile.avatar || existingProfile.avatar.trim() === '' || existingProfile.avatar.includes('dicebear'))) {
-          existingProfile.avatar = googlePhoto;
+        const userRef = doc(db, 'users', firebaseUser.uid);
+        const userSnap = await getDoc(userRef);
+        const isNew = !userSnap.exists();
+
+        if (isNew) {
+          const defaultName = firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split('@')[0] : 'User');
+          const phone = firebaseUser.phoneNumber || '';
+          const email = firebaseUser.email || '';
+          const newProfile: UserProfile = {
+            uid: firebaseUser.uid,
+            phone: '',
+            name: defaultName,
+            email: '',
+            role: null,
+            city: '',
+            localities: [],
+            budget: 0,
+            moveInDate: '',
+            profession: '',
+            company: '',
+            bio: '',
+            // Sprint 4A (truth): age/gender are NOT invented at signup.
+            age: 0,
+            gender: '',
+            avatar: googlePhoto || '',
+            quizAnswers: {},
+            onboardingComplete: false,
+            isPremium: false,
+            connectsUsed: 0,
+            connectsLimit: 5,
+            // Sprint 4A (truth): unverified by default — no implied verification.
+            verificationLevel: 0,
+            isVerified: false,
+            status: 'active',
+            workEmailVerified: false,
+            savedProfileIds: [],
+            savedRoomIds: [],
+            skippedUserIds: [],
+            blockedUserIds: [],
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          };
+          await persistPublicUser(
+            firebaseUser.uid,
+            newProfile as unknown as Record<string, unknown>,
+            { phone, email }
+          );
+          setProfile(await hydrateOwnProfile({ ...newProfile, phone, email }));
+          setUser(firebaseUser);
+          const hasPhone = !!firebaseUser.phoneNumber;
+          return { isNew: true, role: null, onboardingComplete: false, email: firebaseUser.email, hasPhone };
+        } else {
+          const existingProfile = userSnap.data() as UserProfile;
+          if (googlePhoto && (!existingProfile.avatar || existingProfile.avatar.trim() === '' || existingProfile.avatar.includes('dicebear'))) {
+            existingProfile.avatar = googlePhoto;
+          }
+          const hydrated = await hydrateOwnProfile({ ...existingProfile, uid: firebaseUser.uid });
+          setProfile(hydrated);
+          setUser(firebaseUser);
+          const hasPhone = existingProfile.phoneVerified === true || !!firebaseUser.phoneNumber || !!(hydrated.phone && hydrated.phone.trim().length > 0);
+          return { isNew: false, role: existingProfile.role || null, onboardingComplete: !!existingProfile.onboardingComplete, email: firebaseUser.email, hasPhone };
         }
-        const hydrated = await hydrateOwnProfile({ ...existingProfile, uid: firebaseUser.uid });
-        setProfile(hydrated);
-        setUser(firebaseUser);
-        const hasPhone = existingProfile.phoneVerified === true || !!firebaseUser.phoneNumber || !!(hydrated.phone && hydrated.phone.trim().length > 0);
-        return { isNew: false, role: existingProfile.role || null, onboardingComplete: !!existingProfile.onboardingComplete, email: firebaseUser.email, hasPhone };
+      } finally {
+        activeSignupUid = null;
       }
     } catch (err: any) {
       let msg = err.message || 'Google Sign-in failed';

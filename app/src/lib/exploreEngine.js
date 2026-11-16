@@ -2,12 +2,13 @@ import { prepareAccountExportBackend, ACCOUNT_EXPORT_AVAILABLE } from './account
 import { readExploreLocation, buildExploreLocation } from './exploreNavigation';
 import { getSafeReturnDestination } from './roleNavigation';
 // Existing imperative renderer, isolated from the typed React lifecycle.
-import { getRoomMatchReasons, calculateRoomCompatibility, calculateProfileCompatibility, resolveCanonicalRoomCompatibility, calculateCanonicalRoomCompatibility, isUserMatchingCalibrated, hasActiveSeekerIntent, getActiveStatus, resolveSeekerCity, resolveSeekerBudget, resolveSeekerLocalities } from '@/lib/matching';
+import { getRoomMatchReasons, calculateRoomCompatibility, calculateProfileCompatibility, resolveCanonicalRoomCompatibility, calculateCanonicalRoomCompatibility, isUserMatchingCalibrated, hasActiveSeekerIntent, isHostOnlyWithoutSeekerPrefs, getActiveStatus, resolveSeekerCity, resolveSeekerBudget, resolveSeekerLocalities } from '@/lib/matching';
 import { applicationLabels } from '@/lib/applicationState';
 import { relationshipState } from '@/lib/relationshipState';
 import { sanitizeRenderedHtml } from '@/lib/sanitizeRenderedHtml';
 import { buildProfileEditorUpdate, buildMatchingPreferencesUpdate } from '@/lib/profileEditor';
 import { cities, localitiesByCity } from '@/lib/staticData';
+import { areSameCityAlias } from '@/lib/cityNormalization';
 import { resolveUserHousingIntent } from '@/lib/userIntent';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, verifyBeforeUpdateEmail } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
@@ -122,7 +123,8 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             home: P('<path d="M3 11 12 3l9 8v9H3z"/><path d="M9 20v-6h6v6"/>'),
             me: P('<circle cx="12" cy="8" r="4"/><path d="M4 20c.8-4 4-6 8-6s7.200 2 8 6"/>'),
             sh: P('<path d="M12 3 4.500 6v6c0 4.500 3.200 7.700 7.500 9 4.300-1.300 7.500-4.500 7.500-9V6z"/>'),
-            plus: P('<path d="M12 5v14M5 12h14"/>'), chev: P('<path d="m9 6 6 6-6 6"/>')
+            plus: P('<path d="M12 5v14M5 12h14"/>'), chev: P('<path d="m9 6 6 6-6 6"/>'),
+            shr: P('<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/>')
         };
         function nv(n, l, ic, x) { return '<button class="nv" data-n="' + n + '"><span class="ic">' + ic + '</span>' + l + (x || "") + '</button>'; }
         IC.bed = P('<path d="M3 18V7M3 14h18v4M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="1.500"/>');
@@ -319,7 +321,22 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             return "";
         }
         function list() {
-            let r = D.filter(function (x) { return x[3] >= (S.min || 0) && x[3] <= S.max && x[5] <= S.move && (!S.types.length || S.types.indexOf(x[7]) > -1) && (!S.furn || x[8]) && (!S.ver || x[9]) && (S.gender == "Any" || x[10] == "Any" || x[10] == S.gender) && [x[1], x[2], x[21] && x[21].city].filter(Boolean).join(" ").toLowerCase().indexOf(S.q.toLowerCase().trim()) > -1; });
+            let r = D.filter(function (x) {
+                if (x[3] < (S.min || 0) || x[3] > S.max) return false;
+                if (x[5] > S.move) return false;
+                if (S.types.length && S.types.indexOf(x[7]) < 0) return false;
+                if (S.furn && !x[8]) return false;
+                if (S.ver && !x[9]) return false;
+                if (S.gender !== "Any" && x[10] !== "Any" && x[10] !== S.gender) return false;
+                if (S.city) {
+                    const roomCity = (x[21] && x[21].city) || (x[2] && localitiesByCity && Object.keys(localitiesByCity).find(function(c) {
+                        return (localitiesByCity[c] || []).some(function(loc) { return loc.toLowerCase() === x[2].toLowerCase(); });
+                    })) || "Bengaluru";
+                    if (!areSameCityAlias(roomCity.toLowerCase(), S.city.toLowerCase())) return false;
+                }
+                if (S.q && [x[1], x[2], x[21] && x[21].city].filter(Boolean).join(" ").toLowerCase().indexOf(S.q.toLowerCase().trim()) < 0) return false;
+                return true;
+            });
             r.forEach(function (x) { x[11] = calcRoomMatch(x).total; });
             if (S.hiMatch && isProfileCalibrated()) {
                 r = r.filter(function (x) { return x[11] >= 70; });
@@ -334,6 +351,13 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 const x = RM[i];
                 if (!x || (S.nav === 'explore' && x[16] && x[16].isDiscoveryEligible === false))
                     continue;
+                if (S.city) {
+                    const mateCity = (x[17] && x[17].city) || (x[3] && localitiesByCity && Object.keys(localitiesByCity).find(function(c) {
+                        return (localitiesByCity[c] || []).some(function(loc) { return loc.toLowerCase() === x[3].toLowerCase(); });
+                    })) || (x[17] && x[17].housingPreferences && x[17].housingPreferences.preferredCities && x[17].housingPreferences.preferredCities[0]) || "Bengaluru";
+                    if (!areSameCityAlias(mateCity.toLowerCase(), S.city.toLowerCase()))
+                        continue;
+                }
                 const y = RX[i] || [];
                 x[7] = calcRoommateMatch(x, y);
                 const b = parseBudget(x[4]);
@@ -382,7 +406,12 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         const ART = '<svg viewBox="0 0 160 120" width="160" height="120" aria-hidden="true"><circle cx="80" cy="64" r="46" fill="var(--bs)"/><path d="M52 94V62l28-22 28 22v32z" fill="#f0541e"/><rect x="72" y="70" width="16" height="24" rx="4" fill="#fff"/><rect x="57" y="66" width="9" height="9" rx="2.500" fill="#fff" opacity=".7"/><rect x="94" y="66" width="9" height="9" rx="2.500" fill="#fff" opacity=".7"/><path d="M128 26l2.500 7 7 2.500-7 2.500-2.500 7-2.500-7-7-2.500 7-2.500z" fill="#f0541e"/><circle cx="32" cy="40" r="4" fill="#ff8a3d"/><circle cx="134" cy="86" r="3" fill="#ff8a3d"/></svg>';
         function em(t, d, x) { return '<div class="empty">' + ART + '<b>' + esc(t) + '</b>' + d + (x || "") + '</div>'; }
         const CAT_NAMES = ["All listings", "Rooms & flats", "Roommates", "PG & coliving"];
-        const HUB = [["messages", "Inbox", "Chats, room applications & requests", IC.chat], ["profile", "Profile", "Your details and preferences", IC.me], ["listings", "My listings", "Rooms you have posted", IC.home]];
+        const HUB = [
+            ["listings", "My listings", "Rooms you have posted & draft listings", IC.home],
+            ["connections", "Connections & Applications", "Your room applications and connection requests", IC.chat],
+            ["notifications", "Notifications", "Alerts and activity updates", IC.usr],
+            ["profile", "Profile & Preferences", "Your habits, budget, localities & details", IC.me]
+        ];
         (RM = []);
         S.sub = 0;
         function chips(a) { return '<div class="subt">' + a.map(function (t, i) { return '<button class="chip" data-s="' + i + '" aria-pressed="' + (S.sub == i) + '">' + esc(t) + '</button>'; }).join("") + '</div>'; }
@@ -489,9 +518,8 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     '</div>';
             }
             else if (imgs.length === 1) {
-                galHtml = '<div class="gal" style="display:block;height:360px;margin-bottom:28px">' +
+                galHtml = '<div class="gal single" style="display:block;margin-bottom:24px">' +
                     '<div class="ph" data-gal="1" style="width:100%;height:100%;border-radius:22px;overflow:hidden;cursor:pointer"><img src="' + esc(imgs[0]) + '" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:22px"></div>' +
-                    '<button class="ghb ga" data-gal="1">Show photo (1)</button>' +
                     '</div>';
             }
             else if (imgs.length === 2) {
@@ -550,29 +578,31 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 : '<div style="display:flex;align-items:center;gap:8px;margin-left:auto">' +
                     (hasActiveApp
                         ? '<button class="ghb" data-apply-place="' + esc(x[12] || i) + '" style="height:42px;padding:0 16px;border-radius:12px;font-weight:700;font-size:13.5px;border-color:var(--brand);color:var(--brand);background:#fff8f5">' + (existingApp.status === 'pending' ? '🟡 Inquiry Sent · Chat' : existingApp.status === 'shortlisted' ? '🔵 Shortlisted · Chat' : '🟢 Open Chat') + '</button>'
-                        : '<button class="msgb" data-apply-place="' + esc(x[12] || i) + '" style="height:42px;padding:0 18px;border-radius:12px;font-weight:700;font-size:13.5px;white-space:nowrap;background:var(--brand);color:#fff"><em>Connect &amp; Message Host</em></button>'
+                        : '<button class="msgb" data-apply-place="' + esc(x[12] || i) + '" style="height:42px;padding:0 18px;border-radius:12px;font-weight:700;font-size:13.5px;white-space:nowrap;background:var(--brand);color:#fff"><em>' + (!authUser ? 'Sign in' : 'Connect &amp; Message') + '</em></button>'
                     ) +
                   '</div>';
+            const hostSection = '<section class="sec-host"><div class="host-card" style="display:flex;align-items:center;gap:14px;padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--sf)"><div class="av2" style="width:52px;height:52px;border-radius:16px;font-size:18px;flex:none">' + posterAvContent + '</div><div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span>Hosted by ' + esc(posterName) + '</span>' + (x[9] ? '<span class="ok" title="Verified Host" style="color:var(--ok);font-size:12px;background:#e4f5ee;padding:1px 8px;border-radius:999px;font-weight:600;display:inline-flex;align-items:center;gap:3px">✓ Verified</span>' : '') + '</div><div style="color:var(--ink2);font-size:13px;margin-top:3px">' + (isOwn ? 'Your listing' : 'Live-in Host · Active on NestMate') + '</div></div></div></section>';
             return '<div class="rd"><button class="ghb back" data-n="' + (S.back || "explore") + '">← Back</button>' + galHtml +
-                '<div class="rl"><div class="mn"><section><div class="tgs"><span>' + esc(x[0]) + '</span>' + (x[9] ? '<span class="ok">✓ Verified listing</span>' : '') + (x[8] ? '<span>Furnished</span>' : '') + '<span>' + esc(x[7]) + '</span></div><h2>' + esc(x[1]) + '</h2><div class="tl"><div class="loc">' + IC.pin + esc(addr) + '</div><span class="sp2"></span><button class="ghb" data-shr2="1">Share</button>' + st + '<button class="ghb" data-rpt="l">Report</button></div></section>' +
-                '<section><div class="kf"><div><small>Rent</small><b>' + fmt(x[3]) + '</b><span>per month</span></div><div><small>Deposit</small><b>' + (x[21] && x[21].deposit != null ? fmt(x[4]) : 'Not provided') + '</b><span>' + (x[21] && x[21].deposit != null ? (x[4] === 0 ? 'No deposit' : 'As listed') : '') + '</span></div><div><small>Available</small><b>' + (x[6] == "Now" ? "Now" : esc(x[6])) + '</b><span>move-in</span></div><div><small>Looking for</small><b>' + esc(x[21] && Number.isInteger(x[21].partnersNeeded) ? x[21].partnersNeeded + ' roommate(s)' : 'Not provided') + '</b><span>' + (x[10] == "Any" ? "Any gender" : esc(x[10])) + '</span></div></div></section>' +
+                '<div class="rl"><div class="mn"><section class="sec-head"><div class="tgs"><span>' + esc(x[0]) + '</span>' + (x[9] ? '<span class="ok">✓ Verified listing</span>' : '') + (x[8] ? '<span>Furnished</span>' : '') + '<span>' + esc(x[7]) + '</span></div><h2>' + esc(x[1]) + '</h2><div class="tl"><div class="loc">' + IC.pin + '<span>' + esc(addr) + '</span></div><div class="tl-actions"><button class="ghb tl-btn" data-shr2="1" aria-label="Share listing">' + IC.shr + '<span>Share</span></button><button class="ghb tl-btn sv" data-id="' + i + '" aria-pressed="' + (isRoomSaved(x, i) ? "true" : "false") + '" aria-label="Save listing">' + IC.heart + '<span>' + (isRoomSaved(x, i) ? "Saved" : "Save") + '</span></button></div></div>' +
+                '<div class="kf" style="margin-top:18px"><div><small>Rent</small><b>' + fmt(x[3]) + '</b><span>per month</span></div><div><small>Deposit</small><b>' + (x[21] && x[21].deposit != null ? fmt(x[4]) : 'Not provided') + '</b><span>' + (x[21] && x[21].deposit != null ? (x[4] === 0 ? 'Zero deposit' : 'Security deposit') : '') + '</span></div><div><small>Available</small><b>' + (x[6] == "Now" ? "Now" : esc(x[6])) + '</b><span>move-in</span></div><div><small>Looking for</small><b>' + esc(x[21] && Number.isInteger(x[21].partnersNeeded) ? x[21].partnersNeeded + ' roommate(s)' : 'Not provided') + '</b><span>' + (x[10] == "Any" ? "Any gender" : esc(x[10])) + '</span></div></div></section>' +
+                hostSection +
                 '<section><h3>About this place</h3><p style="color:var(--ink2);line-height:1.65;font-size:15px;margin:0 0 16px">' + esc(desc) + '</p></section>' +
                 (inc.length ? '<section><h3>Included in rent</h3><div class="inc">' + inc.map(function (t) { return '<div><i>' + IC.chk + '</i>' + esc(t) + '</div>'; }).join("") + '</div></section>' : '') +
                 (rules.length ? '<section><h3>House rules</h3><div class="inc">' + rules.map(function (t) { return '<div><i>' + IC.chk + '</i>' + esc(t) + '</div>'; }).join("") + '</div></section>' : '') +
                 ((!isProfileCalibrated() || !rmMatch.hasProfilePreferences || (rmMatch.budgetPct === null && rmMatch.locationPct === null && rmMatch.lifestylePct === null))
-                    ? '<section class="match-pref-prompt" style="background:var(--sunk);border:1px dashed var(--line);border-radius:18px;padding:22px 20px">' +
+                    ? '<section class="match-pref-prompt" style="background:linear-gradient(135deg,rgba(240,84,30,0.06) 0%,rgba(240,84,30,0.02) 100%),var(--sf);border:1px solid rgba(240,84,30,0.22);border-radius:20px;padding:20px">' +
                         '<div style="display:flex;align-items:flex-start;gap:14px">' +
                         '<div style="width:44px;height:44px;border-radius:12px;background:var(--bs);color:var(--brand);display:grid;place-items:center;font-size:22px;flex:none">🎯</div>' +
                         '<div style="flex:1">' +
                         '<h3 style="margin:0 0 4px;font-size:17px;font-weight:700">Calculate your compatibility match</h3>' +
-                        '<p style="margin:0 0 14px;color:var(--ink2);font-size:14px;line-height:1.5">You have not set your living preferences yet. Add your budget, preferred localities, and lifestyle habits to see your personalized compatibility score for this room.</p>' +
-                        '<button class="ghb" data-go-prefs="1" style="border-color:var(--brand);color:var(--brand);font-weight:600;display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 16px">' +
-                        '<span>Set your preferences</span>' +
+                        '<p style="margin:0 0 14px;color:var(--ink2);font-size:14px;line-height:1.5">Set your budget, target areas, and lifestyle habits to unlock a personalized compatibility score for this room.</p>' +
+                        '<button class="msgb" data-go-prefs="1" style="height:40px;padding:0 20px;border-radius:999px;font-size:13.5px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%">' +
+                        '<span>Set preferences to see match %</span>' +
                         '<svg style="width:14px;height:14px;stroke-width:2.5" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" d="M5 12h14M12 5l7 7-7 7"/></svg>' +
                         '</button>' +
                         '</div></div></section>'
                     : '<section><div class="mh"><div class="ring" style="--m:' + rmMatch.total + '"><b>' + rmMatch.total + '%</b></div><div><h3 style="margin:0">Why this matches you</h3><span style="color:var(--ink2);font-size:14px">Based on your matching preferences</span></div></div><div class="bars">' + [['Budget', rmMatch.budgetPct], ['Location', rmMatch.locationPct], ['Lifestyle', rmMatch.lifestylePct]].map(function (factor) { return '<div>' + factor[0] + '<u style="--w:' + (factor[1] == null ? 0 : factor[1]) + '%"></u><b>' + (factor[1] == null ? 'Not specified' : factor[1] + '%') + '</b></div>'; }).join('') + '</div></section>') +
-                '<section><div class="safe">' + IC.sh + '<div><b>Stay safe</b><br>Never pay before you visit and verify the place. <a href="#">Read the Trust center</a></div></div></section>' +
+                '<section><div class="safe">' + IC.sh + '<div><b>Stay safe</b><br>Never pay before you visit and verify the place. <a href="/help">Read the Trust center</a></div></div><div style="text-align:center;margin-top:14px"><button class="ghb rpt-link" data-rpt="l" style="border:none;background:transparent;color:var(--ink2);font-size:13px;text-decoration:underline;cursor:pointer">⚐ Report this listing</button></div></section>' +
                 (ot.length ? '<section><h3>Similar rooms</h3><div class="sim">' + ot.map(function (k) {
                     const y = D[k];
                     const simImg = (y[13] && y[13][0]) ? '<img src="' + esc(y[13][0]) + '" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover">' : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--bs);color:var(--brand)"><svg style="width:36px;height:36px" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M3 11 12 3l9 8v9H3z"/></svg></div>';
@@ -931,7 +961,15 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             if (relation.state === 'sent') return '<div style="display:flex;align-items:center;gap:8px;width:100%;min-width:0;margin-top:10px"><span style="position:static;flex:1;min-width:0;height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 12px;border-radius:12px;background:var(--bs);color:var(--brandt);border:1px solid rgba(240,84,30,.24);font-size:13.5px;font-weight:600;white-space:nowrap">Inquiry Sent</span><button class="ghb" data-withdraw="' + esc(relation.connectionId) + '" style="width:auto;height:44px;margin-top:0;padding:0 16px;white-space:nowrap;flex:none;justify-content:center">Withdraw</button></div>';
             if (relation.state === 'received') return '<div style="display:flex;align-items:center;gap:8px;width:100%;margin-top:10px"><button class="ghb" data-conn-act="decline" data-conn-id="' + esc(relation.connectionId) + '" style="flex:1;width:auto;height:44px;margin-top:0;justify-content:center">Decline</button><button class="msgb" data-conn-act="accept" data-conn-id="' + esc(relation.connectionId) + '" style="flex:1;width:auto;height:44px;margin-top:0;justify-content:center">Accept</button></div>';
             if (relation.state === 'accepted') return '<button class="' + baseCls + '" data-msg="' + kind + ':' + i + '" aria-label="Message the poster" ' + (isOutline ? 'style="' + outlineStyle + 'border-color:var(--brand);color:var(--brand);"' : '') + '>' + IC.chat + '<em>Message Host</em></button>';
-            if (!authUser) return '<button class="' + baseCls + '" data-msg="' + kind + ':' + i + '" aria-label="Sign in to contact" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>Sign in to contact</em></button>';
+            if (kind === 'r') {
+                const listingId = (row && row[12]) || i;
+                const existingApp = (SEEKER_APPS || []).find(function (a) { return a && String(a.listingId) === String(listingId); });
+                if (existingApp && ['applied', 'shortlisted', 'rejected', 'hired', 'roommate_connected'].includes(existingApp.status)) {
+                    return '<button class="' + baseCls + '" data-apply-place="' + esc(listingId) + '" aria-label="View Application" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>View Application</em></button>';
+                }
+                return '<button class="' + baseCls + '" data-apply-place="' + esc(listingId) + '" aria-label="' + (!authUser ? 'Sign in' : 'Apply for this room') + '" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>' + (!authUser ? 'Sign in' : 'Apply / Connect') + '</em></button>';
+            }
+            if (!authUser) return '<button class="' + baseCls + '" data-msg="' + kind + ':' + i + '" aria-label="Sign in" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>Sign in</em></button>';
             return '<button class="' + baseCls + '" data-msg="' + kind + ':' + i + '" aria-label="Contact host" ' + (isOutline ? 'style="' + outlineStyle + '"' : '') + '>' + IC.chat + '<em>Contact Host</em></button>';
         }
         let CONN_ID_MAP = {};
@@ -1381,6 +1419,37 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     const hAv = (roomObj && roomObj[17]) || '';
                     const qs = (roomObj && roomObj[21] && roomObj[21].screeningQuestions) || [];
 
+                    const applicantName = (currentProfile && (currentProfile.name || currentProfile.displayName)) || (authUser && authUser.displayName) || '';
+                    const applicantGender = (currentProfile && currentProfile.gender) || '';
+                    const applicantBudget = resolveSeekerBudget(currentProfile) || 0;
+                    const roomPrefGender = (roomObj && ((roomObj[21] && (roomObj[21].preferredGender || roomObj[21].genderPreference)) || roomObj[10])) || 'Any';
+
+                    let genderWarning = '';
+                    if (applicantGender && roomPrefGender && roomPrefGender !== 'Any') {
+                        const rG = roomPrefGender.toLowerCase();
+                        const aG = applicantGender.toLowerCase();
+                        if ((rG === 'female' && aG === 'male') || (rG === 'male' && aG === 'female')) {
+                            genderWarning = '<div class="v-alert" style="background:#fff3cd;border:1px solid #ffeeba;border-radius:10px;padding:10px 14px;margin:10px 0;font-size:13px;color:#856404;display:flex;align-items:center;gap:8px">' +
+                                '⚠️ <b>Gender Notice:</b> Host specified gender preference: <b>' + esc(roomPrefGender) + '</b>. Your profile lists <b>' + esc(applicantGender) + '</b>.</div>';
+                        }
+                    }
+
+                    let jitFields = '';
+                    if (!applicantName || !applicantGender || applicantBudget <= 0) {
+                        jitFields = '<div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:12px;padding:12px 14px;margin:12px 0">' +
+                            '<b style="font-size:13px;color:var(--ink);display:block;margin-bottom:8px">Quick Details for the Host</b>';
+                        if (!applicantName) {
+                            jitFields += '<div style="margin-bottom:10px"><label for="jit-name" style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Your Full Name <span style="color:var(--brand)">*</span></label><div class="pin"><input type="text" id="jit-name" placeholder="Full legal name" style="width:100%" required></div></div>';
+                        }
+                        if (!applicantGender) {
+                            jitFields += '<div style="margin-bottom:10px"><label for="jit-gender" style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Your Gender <span style="color:var(--brand)">*</span></label><select id="jit-gender" class="pill" style="width:100%;height:40px"><option value="">Select gender</option><option value="Female">Female</option><option value="Male">Male</option><option value="Non-binary">Non-binary</option><option value="Prefer not to say">Prefer not to say</option></select></div>';
+                        }
+                        if (applicantBudget <= 0) {
+                            jitFields += '<div style="margin-bottom:6px"><label for="jit-budget" style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Your Max Monthly Budget (₹) <span style="color:var(--brand)">*</span></label><div class="pin"><input type="number" id="jit-budget" placeholder="e.g. 25000" style="width:100%" required></div></div>';
+                        }
+                        jitFields += '</div>';
+                    }
+
                     const myProfileSummary = (currentProfile && currentProfile.name)
                         ? '<div style="display:flex;align-items:center;gap:10px;background:var(--bs);padding:10px 14px;border-radius:12px;margin:12px 0">' +
                           ((currentProfile.avatarUrl || currentProfile.avatar) ? '<img src="' + esc(currentProfile.avatarUrl || currentProfile.avatar) + '" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover">' : '<span style="width:36px;height:36px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-weight:700">' + esc(currentProfile.name.slice(0, 1)) + '</span>') +
@@ -1392,6 +1461,8 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                         '<div class="app-dlg-h"><div style="min-width:0;flex:1"><h3 style="margin:0 0 4px;font-size:18px;line-height:1.25">Connect for ' + esc(rTitle) + '</h3>' +
                         '<div class="loc" style="font-size:13.5px;margin-top:2px">' + IC.pin + '<span style="min-width:0">' + esc(rLoc) + ' · <b>' + fmt(rRent) + '</b>/month</span></div></div><button type="button" class="ghb" data-cf="no" aria-label="Close" style="width:34px;height:34px;min-width:34px;padding:0;border-radius:50%;display:grid;place-items:center;font-size:16px;line-height:1;flex:none">✕</button></div><div class="app-dlg-b">',
                         myProfileSummary,
+                        genderWarning,
+                        jitFields,
                         '<div style="margin:10px 0"><b style="font-size:13px;color:var(--ink)">Target Move-in Date</b><div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">' +
                         '<button type="button" class="pill" data-set-move="immediate" aria-pressed="false" style="padding:0 14px;height:34px;font-size:12.5px">Immediate</button>' +
                         '<button type="button" class="pill" data-set-move="15days" aria-pressed="true" style="background:var(--brand);color:#fff;border-color:var(--brand);padding:0 14px;height:34px;font-size:12.5px">Within 15 days</button>' +
@@ -1446,6 +1517,61 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                         if (firstMissing) firstMissing.focus();
                         toast("Please answer every host screening question before submitting.");
                         return;
+                    }
+
+                    const jitNameEl = $('jit-name');
+                    const jitGenderEl = $('jit-gender');
+                    const jitBudgetEl = $('jit-budget');
+
+                    const jitName = jitNameEl ? jitNameEl.value.trim() : '';
+                    const jitGender = jitGenderEl ? jitGenderEl.value : '';
+                    const jitBudget = jitBudgetEl ? Number(jitBudgetEl.value) : 0;
+
+                    if (jitNameEl && !jitName) {
+                        toast("Please enter your name before sending request.");
+                        jitNameEl.focus();
+                        return;
+                    }
+                    if (jitGenderEl && !jitGender) {
+                        toast("Please select your gender before sending request.");
+                        jitGenderEl.focus();
+                        return;
+                    }
+                    if (jitBudgetEl && (!jitBudget || jitBudget <= 0)) {
+                        toast("Please enter a valid monthly budget before sending request.");
+                        jitBudgetEl.focus();
+                        return;
+                    }
+
+                    const jitProfileUpdates = {};
+                    if (jitName) {
+                        jitProfileUpdates.name = jitName;
+                        jitProfileUpdates.displayName = jitName;
+                    }
+                    if (jitGender) {
+                        jitProfileUpdates.gender = jitGender;
+                    }
+                    if (jitBudget > 0) {
+                        jitProfileUpdates.budget = jitBudget;
+                        jitProfileUpdates.budgetMax = jitBudget;
+                        if (!jitProfileUpdates.housingPreferences) jitProfileUpdates.housingPreferences = Object.assign({}, currentProfile && currentProfile.housingPreferences);
+                        jitProfileUpdates.housingPreferences.budgetMax = jitBudget;
+                    }
+                    if (Object.keys(jitProfileUpdates).length > 0) {
+                        try {
+                            if (authUser) {
+                                await updateUserProfileBackend(jitProfileUpdates);
+                            }
+                            if (currentProfile) {
+                                Object.assign(currentProfile, jitProfileUpdates);
+                                if (jitProfileUpdates.housingPreferences) {
+                                    currentProfile.housingPreferences = Object.assign({}, currentProfile.housingPreferences, jitProfileUpdates.housingPreferences);
+                                }
+                            }
+                            syn();
+                        } catch (saveErr) {
+                            console.warn("Could not save profile JIT fields:", saveErr);
+                        }
                     }
 
                     const roomFit = roomObj ? calcRoomMatch(roomObj) : { total: 0, reasons: [] };
@@ -1570,8 +1696,6 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                         photoHint: rPhoto,
                     });
                     return;
-                    render();
-                    return;
                 }
                 else if (b.dataset.submitMateConn !== undefined) {
                     const i = +b.dataset.submitMateConn;
@@ -1586,7 +1710,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                         ? matchedListing[21].screeningQuestions
                         : ((targetPerson[17] && Array.isArray(targetPerson[17].screeningQuestions) && targetPerson[17].screeningQuestions.length > 0)
                             ? targetPerson[17].screeningQuestions
-                            : ["Do you smoke or drink?", "What is your occupation?"]);
+                            : []);
                     const qs = rawQs.slice(0, 3);
 
                     const note = (($('seeker-note') && $('seeker-note').value) || '').trim();
@@ -1599,6 +1723,80 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                         answers[qs[qi]] = val;
                     }
 
+                    const jitNameEl = $('jit-name');
+                    const jitGenderEl = $('jit-gender');
+                    const jitBudgetEl = $('jit-budget');
+
+                    const jitName = jitNameEl ? jitNameEl.value.trim() : '';
+                    const jitGender = jitGenderEl ? jitGenderEl.value : '';
+                    const jitBudget = jitBudgetEl ? Number(jitBudgetEl.value) : 0;
+
+                    if (jitNameEl && !jitName) {
+                        toast("Please enter your name before sending request.");
+                        jitNameEl.focus();
+                        return;
+                    }
+                    if (jitGenderEl && !jitGender) {
+                        toast("Please select your gender before sending request.");
+                        jitGenderEl.focus();
+                        return;
+                    }
+                    if (jitBudgetEl && (!jitBudget || jitBudget <= 0)) {
+                        toast("Please enter a valid monthly budget before sending request.");
+                        jitBudgetEl.focus();
+                        return;
+                    }
+
+                    const jitProfileUpdates = {};
+                    if (jitName) {
+                        jitProfileUpdates.name = jitName;
+                        jitProfileUpdates.displayName = jitName;
+                    }
+                    if (jitGender) {
+                        jitProfileUpdates.gender = jitGender;
+                    }
+                    if (jitBudget > 0) {
+                        jitProfileUpdates.budget = jitBudget;
+                        jitProfileUpdates.budgetMax = jitBudget;
+                        if (!jitProfileUpdates.housingPreferences) jitProfileUpdates.housingPreferences = Object.assign({}, currentProfile && currentProfile.housingPreferences);
+                        jitProfileUpdates.housingPreferences.budgetMax = jitBudget;
+                    }
+                    if (Object.keys(jitProfileUpdates).length > 0) {
+                        try {
+                            if (authUser) {
+                                await updateUserProfileBackend(jitProfileUpdates);
+                            }
+                            if (currentProfile) {
+                                Object.assign(currentProfile, jitProfileUpdates);
+                                if (jitProfileUpdates.housingPreferences) {
+                                    currentProfile.housingPreferences = Object.assign({}, currentProfile.housingPreferences, jitProfileUpdates.housingPreferences);
+                                }
+                            }
+                        } catch (jitErr) {
+                            console.warn("Could not save JIT details:", jitErr);
+                        }
+                    }
+
+                    let canonicalScore = 0;
+                    let matchReasons = [];
+                    if (matchedListing) {
+                        const roomFit = calcRoomMatch(matchedListing);
+                        if (typeof roomFit.total === 'number' && roomFit.total > 0) {
+                            canonicalScore = roomFit.total;
+                            matchReasons = roomFit.reasons || [];
+                        }
+                    } else if (targetPerson && targetPerson[17]) {
+                        const personFit = calculateProfileCompatibility(currentProfile || {}, targetPerson[17]);
+                        if (typeof personFit.score === 'number' && personFit.score > 0) {
+                            canonicalScore = Math.round(personFit.score);
+                            matchReasons = personFit.reasons || [];
+                        } else if (typeof targetPerson[7] === 'number' && targetPerson[7] > 0) {
+                            canonicalScore = targetPerson[7];
+                        }
+                    } else if (typeof targetPerson[7] === 'number' && targetPerson[7] > 0) {
+                        canonicalScore = targetPerson[7];
+                    }
+
                     if (targetUid && targetUid.startsWith("demo_")) {
                         toast("Connection request sent to " + personName + "! View in Connections → Sent.");
                         LIVE_CONNS.sent.push({
@@ -1609,25 +1807,13 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                             note: note,
                             moveIn: moveIn,
                             screeningAnswers: answers,
-                            matchScore: (targetPerson && typeof targetPerson[7] === 'number') ? targetPerson[7] : 78,
+                            matchScore: canonicalScore || (targetPerson && typeof targetPerson[7] === 'number' ? targetPerson[7] : 0),
                             status: "pending"
                         });
                         const cfo = $("cfo");
                         if (cfo) cfo.classList.remove("o");
                         render();
                         return;
-                    }
-
-                    let canonicalScore = 78;
-                    let matchReasons = [];
-                    if (matchedListing) {
-                        const roomFit = calcRoomMatch(matchedListing);
-                        if (typeof roomFit.total === 'number' && roomFit.total > 0) {
-                            canonicalScore = roomFit.total;
-                            matchReasons = roomFit.reasons || [];
-                        }
-                    } else if (typeof targetPerson[7] === 'number' && targetPerson[7] > 0) {
-                        canonicalScore = targetPerson[7];
                     }
 
                     if (targetListingId && matchedListing && !String(targetListingId).startsWith("demo_")) {
@@ -2176,7 +2362,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
             const trustBanner = (ME && ME.ver)
                 ? '<div style="background:#e6fcf5;border:1px solid #c3fae8;border-radius:14px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px"><span style="font-size:24px">🛡️</span><div><b style="color:#0ca678;font-size:14.5px">You are an ID Verified Seeker</b><div style="color:var(--ink2);font-size:13px;margin-top:2px">Your verified badge gives hosts confidence to shortlist and accept your applications faster.</div></div></div>'
-                : '<div style="background:#fff9db;border:1px solid #ffe066;border-radius:14px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px"><div style="display:flex;align-items:center;gap:12px"><span style="font-size:24px">⭐</span><div><b style="color:#d9480f;font-size:14.5px">Boost your acceptance rate by 3x</b><div style="color:var(--ink2);font-size:13px;margin-top:2px">Hosts prioritize verified seekers. Verify your Government ID in under 2 minutes.</div></div></div><button class="pill" data-as="verify" style="background:#f59f00;color:#fff;border-color:#f59f00;cursor:pointer;font-weight:600;padding:0 18px;height:38px">Verify ID now</button></div>';
+                : '<div style="background:#fff9db;border:1px solid #ffe066;border-radius:14px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px"><div style="display:flex;align-items:center;gap:12px"><span style="font-size:24px">⭐</span><div><b style="color:#d9480f;font-size:14.5px">Boost your acceptance rate by 3x</b><div style="color:var(--ink2);font-size:13px;margin-top:2px">Hosts prioritize verified seekers. Verify your Government ID in under 2 minutes.</div></div></div><button class="pill" data-n="profile" data-as="verify" style="background:#f59f00;color:#fff;border-color:#f59f00;cursor:pointer;font-weight:600;padding:0 18px;height:38px">Verify ID now</button></div>';
 
             let cardsHtml = '';
             apps.forEach(function (app) {
@@ -2344,15 +2530,26 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 return;
             }
             let RMODE = (N == "explore" && S.cat == 2) || (N == "saved" && S.sub == 1) || N == "connections", sub = "";
-            if (N === "explore" && authUser && !isProfileCalibrated() && hasActiveSeekerIntent(currentProfile, MY) && !isPrefsSnoozed()) {
-                sub = '<div class="ob-banner" role="region" aria-label="Personalized matching">' +
-                    '<div class="ob-banner-t"><b>See rooms ranked by your budget, city &amp; lifestyle</b><span>Complete your Matching Preferences in 30 seconds to unlock personalized compatibility %.</span></div>' +
-                    '<div class="ob-banner-actions">' +
-                    '<button class="ob-banner-btn" data-go-prefs="1">Personalized Matching</button>' +
-                    '<button class="ob-banner-snooze" data-snooze-prefs="48" title="Remind me later">Remind me later</button>' +
-                    '</div>' +
-                    '<button class="ob-banner-close" data-snooze-prefs="24" aria-label="Dismiss banner" title="Dismiss">&times;</button>' +
-                    '</div>';
+            if (N === "explore" && authUser && !isPrefsSnoozed()) {
+                if (isHostOnlyWithoutSeekerPrefs(currentProfile, MY)) {
+                    sub = '<div class="ob-banner ob-banner-pivot" role="region" aria-label="Seeker discovery">' +
+                        '<div class="ob-banner-t"><b>Hosting a place, or also searching for a room for yourself?</b><span>Set your seeker preferences to see live match scores across explore listings.</span></div>' +
+                        '<div class="ob-banner-actions">' +
+                        '<button class="ob-banner-btn pill" data-action="fast-prefs">Set Seeker Preferences to see Match %</button>' +
+                        '<button class="ob-banner-snooze" data-snooze-prefs="48" title="Remind me later">Remind me later</button>' +
+                        '</div>' +
+                        '<button class="ob-banner-close" data-snooze-prefs="24" aria-label="Dismiss banner" title="Dismiss">&times;</button>' +
+                        '</div>';
+                } else if (!isProfileCalibrated() && hasActiveSeekerIntent(currentProfile, MY)) {
+                    sub = '<div class="ob-banner" role="region" aria-label="Personalized matching">' +
+                        '<div class="ob-banner-t"><b>See rooms ranked by your budget, city &amp; lifestyle</b><span>Complete your Matching Preferences in 30 seconds to unlock personalized compatibility %.</span></div>' +
+                        '<div class="ob-banner-actions">' +
+                        '<button class="ob-banner-btn" data-go-prefs="1">Personalized Matching</button>' +
+                        '<button class="ob-banner-snooze" data-snooze-prefs="48" title="Remind me later">Remind me later</button>' +
+                        '</div>' +
+                        '<button class="ob-banner-close" data-snooze-prefs="24" aria-label="Dismiss banner" title="Dismiss">&times;</button>' +
+                        '</div>';
+                }
             }
             if (N == "saved")
                 sub = chips(["Saved rooms", "Saved roommates"]);
@@ -2505,7 +2702,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 if (N === "explore" && r.length > 0) {
                     h += '<div class="miss-cta" style="grid-column:1/-1">' +
                         '<div><b>Missing a room or need a flatmate?</b><span>Share a vacant room or full flat with photos so matched seekers can apply directly.</span></div>' +
-                        '<button class="pill miss-btn" data-n="post">+ Add a room listing</button>' +
+                        '<button class="pill miss-btn" data-open-post="1">+ Add a room listing</button>' +
                         '</div>';
                 }
             }
@@ -2569,6 +2766,18 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             $("h1").textContent = t;
             $("h1").style.display = N == "explore" ? "none" : "block";
             $("hero").style.display = N == "explore" ? "block" : "none";
+            const activeCity = S.city || resolveSeekerCity(currentProfile) || "All Cities";
+            const heroCity = S.city || resolveSeekerCity(currentProfile) || "India";
+            const cityHeadBtn = document.querySelector('.top .city[data-pop="c"]') || document.querySelector('[data-pop="c"]');
+            if (cityHeadBtn) {
+                cityHeadBtn.innerHTML = sanitizeRenderedHtml(
+                    esc(activeCity) + ' <svg class="i" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>'
+                );
+            }
+            const heroSub = document.querySelector('#hero p');
+            if (heroSub) {
+                heroSub.textContent = 'Verified places in ' + heroCity + ', matched to you.';
+            }
             if (N == "connections" && S.sub == 3) {
                 const appCount = (SEEKER_APPS || []).filter(function (a) { return a && a.status !== 'withdrawn' && a.status !== 'declined_by_applicant'; }).length;
                 $("n").textContent = appCount + (appCount === 1 ? " application" : " applications");
@@ -2716,6 +2925,16 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 });
                 return;
             }
+            const bFastLs = e.target.closest("[data-fast-ls]");
+            if (bFastLs) {
+                const group = bFastLs.closest(".nm-lifestyle-group");
+                if (group) {
+                    group.querySelectorAll("[data-fast-ls]").forEach(function(b) {
+                        b.classList.toggle("active", b === bFastLs);
+                    });
+                }
+                return;
+            }
             const bFastLoc = e.target.closest(".nm-fast-loc-chip");
             if (bFastLoc) {
                 const loc = bFastLoc.getAttribute("data-fast-loc");
@@ -2837,7 +3056,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             o = e.target.closest("[data-i]");
             o2 = e.target.closest("[data-r]");
             o3 = e.target.closest("[data-g]");
-            if ((o || o2 || o3) && !e.target.closest("button")) {
+            if ((o || o2 || o3) && !e.target.closest("button, a, input, label, .ap-ft, .ap-acts, .ap-qa")) {
                 if (S.nav != "room" && S.nav != "roommate" && S.nav != "pg")
                     S.back = S.nav;
                 if (o) {
@@ -2931,8 +3150,11 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                         render();
                 }).catch(function (error) { toast(error.message || "Could not save bookmark."); }).finally(function () { b.disabled = false; });
             }
-            else if (b.dataset.n == "post") {
+            else if (b.dataset.n == "post-chooser" || b.dataset.n == "post") {
                 openPostChooser();
+            }
+            else if (b.dataset.openPost) {
+                openPost();
             }
             else if (d.ada == "refresh") {
                 loadAdminData();
@@ -3009,6 +3231,12 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
             else if (b.dataset.n) {
                 pop("");
+                if (b.dataset.cat !== undefined) {
+                    S.cat = +b.dataset.cat;
+                    document.querySelectorAll(".chip[data-c]").forEach(function (c) {
+                        c.setAttribute("aria-pressed", c.dataset.c === b.dataset.cat ? "true" : "false");
+                    });
+                }
                 S.nav = b.dataset.n;
                 if (b.dataset.as) {
                     S.as = b.dataset.as;
@@ -3096,7 +3324,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
         });
         const LOC = ["Koramangala", "Indiranagar", "HSR Layout", "BTM Layout", "Whitefield", "Bellandur", "Marathahalli", "JP Nagar", "Jayanagar"], SQ = ["What is your work or study schedule?", "Do you smoke or drink?", "When can you move in?", "How long do you plan to stay?", "Do you have pets or plan to?"], INC = ["Wi-Fi", "Water", "Electricity", "Maintenance", "Housekeeping", "Cook"], LFS = ["Non-smoker", "Vegetarian", "Early riser", "Night owl", "Pet friendly", "No parties"], PS = ["Photos", "Place", "Rent", "People", "Review"];
-        function pf0() { return { s: 0, ph: [], type: "", bhk: "", loc: "", title: "", desc: "", rent: "", dep: "", av: "", furn: "", inc: [], lk: "1 roommate", gd: "Any", lf: [], qs: [], er: {}, pub: 0, edit: null, isLiveInRoom: false }; }
+        function pf0() { return { s: 0, ph: [], city: (currentProfile && currentProfile.city) || S.city || "Bengaluru", type: "", bhk: "", loc: "", title: "", desc: "", rent: "", dep: "", av: "", furn: "", inc: [], lk: "1 roommate", gd: "Any", lf: [], qs: [], er: {}, pub: 0, edit: null, isLiveInRoom: false }; }
         let PF = pf0();
         function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
         function pk(k, v, m) { return 'data-pk="' + k + '" data-pv="' + esc(v) + '"' + (m ? ' data-m="1"' : '') + ' aria-pressed="' + (m ? PF[k].indexOf(v) > -1 : PF[k] === v) + '"'; }
@@ -3150,7 +3378,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 return;
             const m = pst();
             $("pstr").innerHTML = sanitizeRenderedHtml('<span>Listing strength</span><div class="pring" style="--m:' + m + '"><b>' + m + '%</b></div>');
-            $("pfp").innerHTML = sanitizeRenderedHtml('<div class="sk"><div class="pvh"><b>How seekers will see it</b><span>Live preview</span></div>' + pvc() + '<div class="hint"><div class="pring" style="--m:' + m + '"><b>' + m + '%</b></div><div><b>Next:</b> ' + pnext() + '</div></div></div>');
+            $("pfp").innerHTML = sanitizeRenderedHtml('<div class="sk"><div class="pvh"><b>How seekers will see it</b><span>Live preview</span><button type="button" class="ghb" data-p="pv" style="height:30px;padding:0 10px;font-size:12px">Close ✕</button></div>' + pvc() + '<div class="hint"><div class="pring" style="--m:' + m + '"><b>' + m + '%</b></div><div><b>Next:</b> ' + pnext() + '</div></div></div>');
             const s = PF.s, is = s == 4 ? pis() : [];
             $("pfbar").innerHTML = sanitizeRenderedHtml(PF.pub ? '<span></span><span></span>' : (s ? '<button class="gb" data-p="bk">Back</button>' : '<span></span>') + '<button class="pvb" data-p="pv">Preview</button>' + (s == 4 ? '<button class="go2" data-p="pub"' + (is.length ? ' disabled' : '') + '>' + (PF.edit != null ? 'Save changes' : 'Publish listing') + '</button>' : '<button class="go2" data-p="nx">Continue</button>'));
         }
@@ -3203,8 +3431,14 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
             else if (s == 0)
                 h = '<h2>Show your place</h2><p class="sub">Good light and a tidy room make the first impression. Your first photo is the cover.</p>' + fl("ph", "", '<label class="drop" id="drop"><input type="file" id="pfile" accept="image/*" multiple hidden><svg viewBox="0 0 84 84"><rect x="8" y="18" width="68" height="52" rx="12" fill="var(--bs)"/><rect x="8" y="18" width="68" height="52" rx="12" fill="none" stroke="#f0541e" stroke-width="2"/><circle cx="42" cy="44" r="13" fill="#f0541e"/><circle cx="42" cy="44" r="6" fill="#fff"/><rect x="28" y="12" width="20" height="9" rx="4" fill="#f0541e"/></svg><b>Drag photos here, or browse</b><span>JPG or PNG · up to 10 photos</span></label>' + (p.ph.length ? '<div class="thumbs">' + p.ph.map(function (u, i) { return '<div class="th"><img src="' + u + '" alt=""><button class="rmv" data-p="rm" data-q="' + i + '" aria-label="Remove photo">×</button>' + (i ? '<button class="mk" data-p="cv" data-q="' + i + '">Make cover</button>' : '<span class="cv">Cover</span>') + '</div>'; }).join("") + '</div>' : ''), p.ph.length ? p.ph.length + " of 10 added" + (p.ph.length < 4 ? " · four or more works best" : "") : "");
-            else if (s == 1)
-                h = '<h2>Tell us about the place</h2><p class="sub">The basics seekers filter by.</p>' + fl("type", "What are you listing?", '<div class="pot">' + [["Private room", "A room in a shared flat"], ["Full flat", "The whole flat"], ["PG / Coliving", "A managed shared stay"]].map(function (x, i) { return '<button ' + pk("type", x[0]) + '><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="' + PI[i == 2 ? 2 : i == 1 ? 0 : 1] + '"/></svg></span><div><b>' + esc(x[0]) + '</b><span class="d">' + esc(x[1]) + '</span></div></button>'; }).join("") + '</div>') + (p.type && p.type != "PG / Coliving" ? fl("bhk", "How big is the flat?", chs("bhk", ["1 BHK", "2 BHK", "3 BHK", "4+ BHK"])) : "") + fl("loc", "Locality", chs("loc", LOC)) + fl("title", "Title", '<div class="pin"><input id="ptitle" maxlength="60" placeholder="e.g. Sunny private room in Koramangala" value="' + esc(p.title) + '"><em id="tc">' + esc(p.title.length) + '/60</em></div>', '<button class="lk2" data-p="sg" style="color:var(--brand);font-weight:600">Suggest a title</button>') + fl("desc", "Description", '<textarea class="tx" id="pdesc" placeholder="The flat, the neighbourhood, the people already living there">' + esc(p.desc) + '</textarea>', 'Minimum 30 characters.');
+            else if (s == 1) {
+                const curCity = p.city || (currentProfile && currentProfile.city) || S.city || "Bengaluru";
+                const cityLocs = (localitiesByCity && (localitiesByCity[curCity] || localitiesByCity[Object.keys(localitiesByCity).find(function(k) { return k.toLowerCase() === curCity.toLowerCase(); })])) || LOC || [];
+                const citySelectHtml = '<select id="pcity" class="pill" style="width:100%;height:44px">' + cities.map(function(c) {
+                    return '<option value="' + esc(c) + '"' + (c.toLowerCase() === curCity.toLowerCase() ? ' selected' : '') + '>' + esc(c) + '</option>';
+                }).join("") + '</select>';
+                h = '<h2>Tell us about the place</h2><p class="sub">The basics seekers filter by.</p>' + fl("type", "What are you listing?", '<div class="pot">' + [["Private room", "A room in a shared flat"], ["Full flat", "The whole flat"], ["PG / Coliving", "A managed shared stay"]].map(function (x, i) { return '<button ' + pk("type", x[0]) + '><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="' + PI[i == 2 ? 2 : i == 1 ? 0 : 1] + '"/></svg></span><div><b>' + esc(x[0]) + '</b><span class="d">' + esc(x[1]) + '</span></div></button>'; }).join("") + '</div>') + (p.type && p.type != "PG / Coliving" ? fl("bhk", "How big is the flat?", chs("bhk", ["1 BHK", "2 BHK", "3 BHK", "4+ BHK"])) : "") + fl("city", "City", citySelectHtml) + fl("loc", "Locality", chs("loc", cityLocs)) + fl("title", "Title", '<div class="pin"><input id="ptitle" maxlength="60" placeholder="e.g. Sunny private room in ' + esc(curCity) + '" value="' + esc(p.title) + '"><em id="tc">' + esc(p.title.length) + '/60</em></div>', '<button class="lk2" data-p="sg" style="color:var(--brand);font-weight:600">Suggest a title</button>') + fl("desc", "Description", '<textarea class="tx" id="pdesc" placeholder="The flat, the neighbourhood, the people already living there">' + esc(p.desc) + '</textarea>', 'Minimum 30 characters.');
+            }
             else if (s == 2)
                 h = '<h2>Rent and move-in</h2><p class="sub">Clear numbers earn replies from serious people.</p>' + fl("rent", "Monthly rent", '<div class="pin"><span>₹</span><input id="prent" inputmode="numeric" placeholder="14000" value="' + esc(p.rent) + '"><em>/ month</em></div>') + fl("dep", "Security deposit", '<div class="pin"><span>₹</span><input id="pdep" inputmode="numeric" placeholder="28000" value="' + esc(p.dep) + '"></div><div class="pfc" style="margin-top:10px">' + [1, 2, 3].map(function (n) { return '<button data-p="dp" data-q="' + n + '">' + n + (n > 1 ? " months" : " month") + ' rent</button>'; }).join("") + '<button data-p="dp" data-q="0">No deposit</button></div>') + fl("av", "Available from", chs("av", ["Now", "In 15 days", "In a month"])) + fl("furn", "Furnishing", chs("furn", ["Fully furnished", "Semi-furnished", "Unfurnished"])) + fl("inc", "Included in rent", chs("inc", INC, 1), "Pick everything the rent already covers.");
             else if (s == 3) {
@@ -3213,7 +3447,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
             else {
                 const is = pis();
-                const placeMain = (p.type || "–") + (p.bhk ? " · " + p.bhk : "") + " · " + (p.loc || "–");
+                const placeMain = (p.type || "–") + (p.bhk ? " · " + p.bhk : "") + " · " + (p.loc || "–") + (p.city ? " · " + p.city : "");
                 const placeTitle = p.title.trim() ? '<br><span style="font-weight:400;color:var(--ink2);display:inline-block;margin-top:2px">' + esc(p.title.trim()) + '</span>' : '';
                 h = '<h2>Review your listing</h2><p class="sub">One last look. You can edit anything after publishing.</p>' +
                     (is.length ? '<div class="bad"><b>A few things need attention</b><br>' + is.map(function (x) { return '<button data-p="go" data-q="' + esc(x[0]) + '">' + PS[x[0]] + ': ' + esc(x[1]) + '</button>'; }).join("<br>") + '</div>' : '') +
@@ -3239,6 +3473,14 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         addDocListener("change", function (event) {
             if (event.target.id == "resident-confirm")
                 PF.isLiveInRoom = event.target.checked;
+            else if (event.target.id == "pcity") {
+                PF.city = event.target.value;
+                const curLocs = (localitiesByCity && (localitiesByCity[PF.city] || localitiesByCity[Object.keys(localitiesByCity).find(function(k) { return k.toLowerCase() === PF.city.toLowerCase(); })])) || LOC || [];
+                if (!curLocs.includes(PF.loc)) {
+                    PF.loc = "";
+                }
+                pf();
+            }
         });
         function addf(fs) { [].slice.call(fs).slice(0, 10 - PF.ph.length).forEach(function (f) { const r = new FileReader(); r.onload = function () { PF.ph.push(r.result); PF.er = {}; pf(); }; r.readAsDataURL(f); }); }
         let fastSelectedLocs = [];
@@ -3276,6 +3518,15 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             const ov = $("nm-fast-prefs-ov");
             if (!ov) return;
 
+            const nameInput = $("nm-fast-name");
+            if (nameInput) {
+                nameInput.value = (currentProfile && (currentProfile.name || currentProfile.displayName)) || (authUser && authUser.displayName) || "";
+            }
+            const ugSelect = $("nm-fast-ug");
+            if (ugSelect) {
+                ugSelect.value = (currentProfile && currentProfile.gender) || "";
+            }
+
             const citySelect = $("nm-fast-city");
             if (citySelect) {
                 const curCity = resolveSeekerCity(currentProfile) || (currentProfile && currentProfile.city) || "Bengaluru";
@@ -3301,6 +3552,20 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 if (cityLocs[0]) fastSelectedLocs.push(cityLocs[0]);
             }
 
+            const curQuiz = (currentProfile && currentProfile.quizAnswers) || {};
+            const curDiet = (currentProfile && (currentProfile.foodPreference || currentProfile.diet)) || curQuiz.diet || "";
+            const curSmoke = (currentProfile && (currentProfile.smokingPreference || currentProfile.smoke)) || curQuiz.smoke || "";
+            const curPets = (currentProfile && (currentProfile.petPreference || currentProfile.pets)) || curQuiz.pets || "";
+            const curSleep = (currentProfile && currentProfile.sleep) || curQuiz.sleep || "";
+
+            const lsMap = { diet: curDiet, smoke: curSmoke, pets: curPets, sleep: curSleep };
+            document.querySelectorAll("#nm-fast-prefs-ov [data-fast-ls]").forEach(function(btn) {
+                const k = btn.getAttribute("data-fast-ls");
+                const v = btn.getAttribute("data-val") || "";
+                const targetVal = lsMap[k] || "";
+                btn.classList.toggle("active", v === targetVal);
+            });
+
             renderFastLocalities();
             ov.classList.add("o");
         }
@@ -3325,6 +3590,24 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 return;
             }
 
+            const nameInput = $("nm-fast-name");
+            const enteredName = nameInput ? nameInput.value.trim() : "";
+            const ugSelect = $("nm-fast-ug");
+            const enteredGender = ugSelect ? ugSelect.value : "";
+
+            let selDiet = "";
+            let selSmoke = "";
+            let selPets = "";
+            let selSleep = "";
+            document.querySelectorAll("#nm-fast-prefs-ov [data-fast-ls].active").forEach(function(btn) {
+                const k = btn.getAttribute("data-fast-ls");
+                const v = btn.getAttribute("data-val") || "";
+                if (k === "diet") selDiet = v;
+                else if (k === "smoke") selSmoke = v;
+                else if (k === "pets") selPets = v;
+                else if (k === "sleep") selSleep = v;
+            });
+
             const btn = $("nm-fast-prefs-submit");
             if (btn) btn.disabled = true;
 
@@ -3336,10 +3619,12 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     mv: (currentProfile && (currentProfile.moveInDate || (currentProfile.housingPreferences && currentProfile.housingPreferences.moveInDate))) || "Flexible",
                     types: (currentProfile && currentProfile.preferredRoomTypes) || ["Private room", "Full flat"],
                     gd: (currentProfile && currentProfile.roommateGenderPreference) || "Any",
-                    diet: (currentProfile && (currentProfile.foodPreference || currentProfile.diet)) || "Flexible",
-                    smoke: (currentProfile && (currentProfile.smokingPreference || currentProfile.smoke)) || "Non-smoker",
-                    pets: (currentProfile && (currentProfile.petPreference || currentProfile.pets)) || "Pet-friendly",
-                    sleep: (currentProfile && currentProfile.sleep) || "Flexible",
+                    ...(enteredName ? { name: enteredName } : {}),
+                    ...(enteredGender ? { ug: enteredGender } : {}),
+                    ...(selDiet ? { diet: selDiet } : {}),
+                    ...(selSmoke ? { smoke: selSmoke } : {}),
+                    ...(selPets ? { pets: selPets } : {}),
+                    ...(selSleep ? { sleep: selSleep } : {}),
                     teamUpDiscoverable: Boolean(currentProfile && (currentProfile.roommateDiscoveryEnabled || (currentProfile.housingPreferences && currentProfile.housingPreferences.activeIntents && currentProfile.housingPreferences.activeIntents.includes('team_up'))))
                 };
                 const payload = buildMatchingPreferencesUpdate(draft, currentProfile || {});
@@ -3480,6 +3765,25 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             if (ov) ov.classList.remove("o");
         }
 
+        function clearPostUrlParams() {
+            try {
+                const url = new URL(window.location.href);
+                if (url.searchParams.has('post') || url.searchParams.has('action')) {
+                    url.searchParams.delete('post');
+                    if (url.searchParams.get('action') === 'post') {
+                        url.searchParams.delete('action');
+                    }
+                    window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+                    if (searchParams) {
+                        searchParams.delete('post');
+                        if (searchParams.get('action') === 'post') {
+                            searchParams.delete('action');
+                        }
+                    }
+                }
+            } catch (_) {}
+        }
+
         function openPost() {
             $("pf").classList.add("o"); if (PF.pub || PF.edit != null)
                 PF = pf0(); pf();
@@ -3509,8 +3813,11 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             const a = d.p;
             if (!a)
                 return;
-            if (a == "exit")
+            if (a == "exit") {
+                clearPostUrlParams();
                 $("pf").classList.remove("o");
+                PF = pf0();
+            }
             else if (a == "nx") {
                 if (pval(PF.s)) {
                     PF.s++;
@@ -3545,7 +3852,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 pf();
             }
             else if (a == "sg") {
-                PF.title = ((PF.bhk ? PF.bhk + " " : "") + (PF.type || "Room") + " in " + (PF.loc || "Bengaluru")).slice(0, 60);
+                PF.title = ((PF.bhk ? PF.bhk + " " : "") + (PF.type || "Room") + " in " + (PF.loc || PF.city || "Bengaluru")).slice(0, 60);
                 pf();
             }
             else if (a == "dp") {
@@ -3574,11 +3881,13 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 }
             }
             else if (a == "verify") {
+                clearPostUrlParams();
                 $("pf").classList.remove("o");
                 S.nav = "profile";
                 go("verify");
             }
             else if (a == "view") {
+                clearPostUrlParams();
                 $("pf").classList.remove("o");
                 S.nav = "listings";
                 render();
@@ -3696,6 +4005,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 delete f.isLiveInRoom;
             f.title = raw.title || item.t || "";
             f.loc = raw.locality || item.loc || "";
+            f.city = raw.city || item.city || (currentProfile && currentProfile.city) || S.city || "Bengaluru";
             f.rent = String(raw.partnerShare || raw.monthlyRent || raw.totalRent || item.rent || "");
             f.dep = String(raw.deposit !== undefined && raw.deposit !== null ? raw.deposit : "");
             f.ph = (Array.isArray(raw.images) && raw.images.length > 0) ? raw.images.slice() : (Array.isArray(raw.ph) ? raw.ph.slice() : (item.photo ? [item.photo] : []));
@@ -4117,7 +4427,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 }
             }
             if (!S.sbd) {
-                h += '<div class="sb2">' + IC.sh + '<div>Keep payments and documents out of chat until you have visited. <a href="#">Trust center</a></div><button data-sbx="1" aria-label="Dismiss">×</button></div>';
+                h += '<div class="sb2">' + IC.sh + '<div>Keep payments and documents out of chat until you have visited. <a href="/help">Trust center</a></div><button data-sbx="1" aria-label="Dismiss">×</button></div>';
             }
             if (info) {
                 const navAttr = info.idx >= 0 ? (info.kind === "pg" ? ' data-g="' + info.idx + '"' : ' data-i="' + info.idx + '"') : (info.id ? ' data-view-room-id="' + esc(info.id) + '" role="button" tabindex="0"' : '');
@@ -4760,7 +5070,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         function dty() { return DR && JSON.stringify(DR) != JSON.stringify(S.as == "edit" ? ME : PR); }
         function sbu() {
             const e = $("svb"); if (e)
-                e.style.display = dty() ? "flex" : "none";
+                e.style.display = (dty() && S.as !== "prefs") ? "flex" : "none";
         }
         function pm() {
             const b = DR ? DR : PR;
@@ -4776,7 +5086,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         function ck(l, d, sec) { return '<div class="ck"><i class="' + (d ? "d" : "n") + '">' + (d ? "✓" : "") + '</i><div>' + l + '</div>' + (d ? '' : '<button data-as="' + sec + '">Do this</button>') + '</div>'; }
         function chp(k, a, m, src) { const o = src || DR; return '<div class="pfc">' + a.map(function (v) { const on = m ? o[k].indexOf(v) > -1 : o[k] === v; return '<button data-k2="' + k + '" data-v2="' + esc(v) + '"' + (m ? ' data-m2="1"' : '') + ' aria-pressed="' + on + '">' + esc(v) + '</button>'; }).join("") + '</div>'; }
         function ff(id, l, c, h) { return '<div class="pff' + (ER[id] ? " e" : "") + '"><label>' + l + '</label>' + c + (h ? '<div class="hp">' + h + '</div>' : '') + '<div class="er">' + (ER[id] || "") + '</div></div>'; }
-        function sv() { return '<div class="svb" id="svb" style="display:' + (dty() ? "flex" : "none") + '"><span>You have unsaved changes</span><div style="display:flex;gap:8px"><button class="ghb" data-ds="1" style="height:44px">Discard</button><button class="msgb" data-sv="1"><em>Save changes</em></button></div></div>'; }
+        function sv() { return '<div class="svb" id="svb" style="display:' + ((dty() && S.as !== "prefs") ? "flex" : "none") + '"><span>You have unsaved changes</span><div style="display:flex;gap:8px"><button class="ghb" data-ds="1" style="height:44px">Discard</button><button class="msgb" data-sv="1"><em>Save changes</em></button></div></div>'; }
         function swt(k, v, lock) { return '<button class="sw" role="switch" aria-checked="' + (v ? "true" : "false") + '" data-sw="' + k + '"' + (lock ? " disabled" : "") + '></button>'; }
         function acP() {
             const m = ME, p = ps(), lf = [["Diet", m.diet], ["Smoking", m.smoke], ["Sleep", m.sleep], ["Guests", m.guests], ["Cleanliness", m.clean], ["Budget", "₹" + PR.b[0] / 1000 + "k–" + PR.b[1] / 1000 + "k"]];
@@ -4876,7 +5186,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 '<div class="cd">' + ff("n", "Full name", '<div class="pin"><input id="ed-n" aria-label="Full name" value="' + esc(d.n || '') + '" placeholder="Your name"></div>') + ff("job", "What do you do?", '<div class="pin"><input id="ed-job" value="' + esc(d.job || '') + '" placeholder="e.g. Product manager"></div>') + ff("city", "City", '<div class="pin"><input id="ed-city" aria-label="City" value="' + esc(d.city || '') + '" placeholder="Your city" maxlength="64"></div>') + ff("area", "Locality", '<div class="pin"><input id="ed-area" aria-label="Locality" value="' + esc(d.area || '') + '" placeholder="Your locality" maxlength="128"></div>') + ff("bio", "About you", '<textarea class="tx" id="ed-bio" placeholder="A few lines about how you live">' + esc(d.bio || '') + '</textarea><div class="hp"><span id="bc">' + esc((d.bio || '').length) + '</span>/280</div>') + '</div>' +
                 intentCardsHtml +
                 discoverySectionHtml +
-                '<div class="cd"><h3>Lifestyle</h3><div class="s2">Used to calculate your match with rooms and roommates.</div>' + [["diet", "Diet", ["Vegetarian", "Eggetarian", "Non-vegetarian"]], ["smoke", "Smoking", ["Non-smoker", "Smoker"]], ["sleep", "Sleep", ["Early riser", "Night owl", "Flexible"]], ["guests", "Guests", ["Rarely", "Sometimes", "Often"]], ["clean", "Cleanliness", ["Very tidy", "Tidy", "Relaxed"]]].map(function (q) { return ff(q[0], q[1], chp(q[0], q[2])); }).join("") + '</div>' + sv();
+                '<div class="cd"><h3>Lifestyle</h3><div class="s2">Used to calculate your match with rooms and roommates.</div>' + [["diet", "Diet", ["Vegetarian", "Eggetarian", "Non-vegetarian"]], ["smoke", "Smoking", ["Non-smoker", "Smoker"]], ["sleep", "Sleep", ["Early riser", "Night owl", "Flexible"]], ["pets", "Pets", ["No pets / allergic", "Pet-friendly", "Has pets"]], ["guests", "Guests", ["Rarely", "Sometimes", "Often"]], ["clean", "Cleanliness", ["Very tidy", "Tidy", "Relaxed"]]].map(function (q) { return ff(q[0], q[1], chp(q[0], q[2])); }).join("") + '</div>' + sv();
         }
         function acV() {
             const isApproved = (USER_KYC.status === 'approved' || (ME && ME.ver));
@@ -4983,7 +5293,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     : '');
             return '<h1>Matching preferences</h1><div class="sub3">Tell us what you are looking for. Your match scores update automatically.</div>' + topBanner + hostNotice + '<div class="cd"><h3>Budget</h3><div class="s2">Monthly rent you are comfortable with.</div><div class="rg2"><div><label>Minimum · <b id="pl0">₹' + budgetMin.toLocaleString("en-IN") + '</b></label><input type="range" id="pb0" min="5000" max="' + sliderMax + '" step="1000" value="' + esc(budgetMin) + '"></div><div><label>Maximum · <b id="pl1">₹' + budgetMax.toLocaleString("en-IN") + '</b></label><input type="range" id="pb1" min="5000" max="' + sliderMax + '" step="1000" value="' + esc(budgetMax) + '"></div></div>' + (ER.b ? '<div class="er" style="display:block;color:#d92d20;font-size:13.5px;margin-top:6px">' + ER.b + '</div>' : '') + '</div>' +
                 '<div class="cd">' + nameField + cityField + ff("areas", "Preferred areas", areaFieldHtml, "Pick 1 to 3 areas in " + esc(selectedCity) + ".") + ff("types", "Place type", chp("types", ["Private room", "Full flat", "PG / Coliving"], 1)) + ff("mv", "Move-in timeline", chp("mv", ["Immediately", "Within 2 weeks", "Next month", "Flexible"])) + ff("ug", "Your gender", chp("ug", ["Female", "Male", "Non-binary", "Prefer not to say"]), "Used only to score women-only or men-only listings accurately.") + ff("gd", "Roommate gender preference", chp("gd", ["Any", "Female", "Male"])) + '</div>' +
-                '<div class="cd"><h3>Your living habits</h3><div class="s2">Optional lifestyle details that power compatibility scores with flatmates and house rules.</div>' + ff("diet", "Diet", chp("diet", ["Vegetarian", "Non-vegetarian", "Eggetarian", "Flexible"])) + ff("smoke", "Smoking", chp("smoke", ["Non-smoker", "Outside only", "Smoker"])) + ff("pets", "Pets", chp("pets", ["No pets / allergic", "Pet-friendly", "Has pets"])) + ff("sleep", "Sleep schedule", chp("sleep", ["Early riser", "Night owl", "Flexible"])) + '</div>' +
+                '<div class="cd"><h3>Your living habits</h3><div class="s2">Optional lifestyle details that power compatibility scores with flatmates and house rules.</div>' + ff("diet", "Diet", chp("diet", ["Vegetarian", "Non-vegetarian", "Eggetarian", "Flexible"])) + ff("smoke", "Smoking", chp("smoke", ["Non-smoker", "Outside only", "Smoker"])) + ff("pets", "Pets", chp("pets", ["No pets / allergic", "Pet-friendly", "Has pets"])) + ff("sleep", "Sleep schedule", chp("sleep", ["Early riser", "Night owl", "Flexible"])) + ff("guests", "Guests", chp("guests", ["Rarely", "Sometimes", "Often"])) + ff("clean", "Cleanliness", chp("clean", ["Very tidy", "Tidy", "Relaxed"])) + '</div>' +
                 '<div class="cd"><h3>Roommates tab visibility</h3><div class="s2">Choose whether other verified members looking to team up can discover your profile in the Roommates tab.</div>' + ff("teamUpVisibility", "Appear in Roommates", chp("teamUpVisibility", ["Show me in Roommates", "Rooms only (keep hidden)"]), "Turning this on adds Team-Up intent so your profile appears alongside roommates once your profile is active.") + '</div>' +
                 '<div class="hint" style="background:var(--bs)">' + IS.spk + '<div><b id="pmc">' + pm() + ' of ' + esc(D.length) + '</b> loaded rooms fit these preferences right now.</div></div><div class="pr-actions">' + (returnTarget ? '<button type="button" class="ghb" data-prefs-back="1">← Back to rooms</button>' : '') + '<button type="button" class="msgb" data-sv="1"><em>' + (returnTarget || !calibrated ? 'Save preferences &amp; see matches' : 'Save preferences') + '</em></button></div>';
         }
@@ -5256,9 +5566,11 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     }).catch(function (error) { console.error("Save preferences/profile error:", error); toast(error && error.code === "permission-denied" ? "Missing or insufficient permissions while saving. Refresh after signing in or verify Firestore rules are deployed." : ((error && error.message) || "Could not save changes. Your edits are still here.")); }).finally(function () { b.disabled = false; });
                 }
             }
-            else if (d.rph) {
-                DR.ph = "";
+            else if ("rph" in d || d.rph) {
+                if (DR) DR.ph = "";
                 render();
+                sbu();
+                return;
             }
             else if (d.pvw)
                 pvw();
@@ -5419,6 +5731,13 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     if (mDays > S.move)
                         return false;
                 }
+                if (S.city) {
+                    const pgCity = (x[18] && x[18].city) || (x[1] && localitiesByCity && Object.keys(localitiesByCity).find(function(c) {
+                        return (localitiesByCity[c] || []).some(function(loc) { return loc.toLowerCase() === x[1].toLowerCase(); });
+                    })) || "Bengaluru";
+                    if (!areSameCityAlias(pgCity.toLowerCase(), S.city.toLowerCase()))
+                        return false;
+                }
                 if (q && [x[0], x[1], x[18] && x[18].city].filter(Boolean).join(" ").toLowerCase().indexOf(q) < 0)
                     return false;
                 return true;
@@ -5494,10 +5813,10 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 return em("No roommates match these filters", "Try a higher budget or a wider move-in window.", '<br><button class="pill" data-rs="1" style="margin:16px auto 0">Reset filters</button>');
             }
             if (D.length === 0) {
-                return em("No places available right now", "Rooms and flats will appear here when posted.", '<br><button class="pill" data-n="post" style="margin:16px auto 0">Post a room</button>');
+                return em("No places available right now", "Rooms and flats will appear here when posted.", '<br><button class="pill" data-open-post="1" style="margin:16px auto 0">Post a room</button>');
             }
             if (S.hiMatch) {
-                return em("No 70%+ matches in this view yet", "Expand below to compare all active rooms and PGs sorted by compatibility, or add a listing.", '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px"><button class="pill" data-widen-match="1">Show all matches</button><button class="pill" data-n="post">+ Add a room listing</button></div>');
+                return em("No 70%+ matches in this view yet", "Expand below to compare all active rooms and PGs sorted by compatibility, or add a listing.", '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px"><button class="pill" data-widen-match="1">Show all matches</button><button class="pill" data-open-post="1">+ Add a room listing</button></div>');
             }
             return em("No places match these filters", "Try a higher budget or a wider move-in window.", '<br><button class="pill" data-rs="1" style="margin:16px auto 0">Reset filters</button>');
         }
@@ -5505,11 +5824,26 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             ["ppc", "ppq", "ppb"].forEach(function (i) { $(i).classList.remove("o"); });
             $("pps").classList.toggle("o", !!k && k != "q");
             document.body.classList.toggle("ppo", !!k);
+            const rootEl = document.querySelector(".nm-explore-root");
+            if (rootEl) rootEl.classList.toggle("ppo", !!k);
             if (!k)
                 return;
             const el = $("pp" + k);
-            if (k == "c")
-                el.innerHTML = sanitizeRenderedHtml('<div class="pph" style="padding:6px 8px 4px">Choose your city</div><button class="cti" data-pop="">' + IC.pin + 'Bengaluru<span class="ck2">✓</span></button>' + ["Hyderabad", "Mumbai", "Delhi NCR", "Chennai"].map(function (c) { return '<button class="cti" disabled>' + IC.pin + c + '<span class="sm">Coming soon</span></button>'; }).join(""));
+            if (k == "c") {
+                const currentCity = S.city || (currentProfile && currentProfile.city) || "";
+                el.innerHTML = sanitizeRenderedHtml(
+                    '<div class="pph" style="padding:6px 8px 4px">Choose your city</div>' +
+                    '<button type="button" class="cti ' + (!S.city ? "on" : "") + '" data-select-city="">' +
+                    IC.pin + 'All Cities' + (!S.city ? '<span class="ck2">✓</span>' : '') +
+                    '</button>' +
+                    cities.map(function (c) {
+                        const isSel = S.city ? areSameCityAlias(c.toLowerCase(), S.city.toLowerCase()) : false;
+                        return '<button type="button" class="cti ' + (isSel ? "on" : "") + '" data-select-city="' + esc(c) + '">' +
+                            IC.pin + esc(c) + (isSel ? '<span class="ck2">✓</span>' : '') +
+                            '</button>';
+                    }).join("")
+                );
+            }
             else if (k == "q")
                 sgp();
             else {
@@ -5522,13 +5856,15 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             el.classList.add("o");
         }
         function sgp() {
+            const activeCity = S.city || resolveSeekerCity(currentProfile) || "Bengaluru";
+            const cityLocs = localitiesByCity[activeCity] || LOC;
             let q = ($("q").value || "").trim().toLowerCase(), el = $("ppq"), h = '<button class="pcl" data-pop="">Cancel</button>';
             if (!q) {
-                h += '<div class="pph">Popular localities</div><div class="ppc2">' + LOC.map(function (l) { return '<button data-sq="' + l + '">' + l + '</button>'; }).join("") + '</div>' + (RS.length ? '<div class="pph">Recent searches</div>' + RS.map(function (r) { return '<button class="sgr" data-sq="' + esc(r) + '">' + P('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>') + r + '</button>'; }).join("") : '');
+                h += '<div class="pph">Popular localities</div><div class="ppc2">' + cityLocs.map(function (l) { return '<button data-sq="' + l + '">' + l + '</button>'; }).join("") + '</div>' + (RS.length ? '<div class="pph">Recent searches</div>' + RS.map(function (r) { return '<button class="sgr" data-sq="' + esc(r) + '">' + P('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>') + r + '</button>'; }).join("") : '');
             }
             else {
-                const m = LOC.filter(function (l) { return l.toLowerCase().indexOf(q) > -1; }).slice(0, 4), t = D.filter(function (d) { return d[1].toLowerCase().indexOf(q) > -1; }).slice(0, 3);
-                h += (m.length ? '<div class="pph">Localities</div>' + m.map(function (l) { return '<button class="sgr" data-sq="' + l + '">' + IC.pin + '<div>' + l + '<small>Bengaluru</small></div></button>'; }).join("") : '') + (t.length ? '<div class="pph" style="margin-top:8px">Places</div>' + t.map(function (d) { return '<button class="sgr" data-sq="' + esc(d[1].replace(/&amp;/g, "&")) + '">' + IC.home + '<div>' + esc(d[1]) + '<small>' + esc(d[2]) + '</small></div></button>'; }).join("") : '') || '<div class="pph" style="margin:8px 4px">No suggestions. Press Enter to search anyway.</div>';
+                const m = cityLocs.filter(function (l) { return l.toLowerCase().indexOf(q) > -1; }).slice(0, 4), t = D.filter(function (d) { return d[1].toLowerCase().indexOf(q) > -1; }).slice(0, 3);
+                h += (m.length ? '<div class="pph">Localities</div>' + m.map(function (l) { return '<button class="sgr" data-sq="' + l + '">' + IC.pin + '<div>' + l + '<small>' + esc(activeCity) + '</small></div></button>'; }).join("") : '') + (t.length ? '<div class="pph" style="margin-top:8px">Places</div>' + t.map(function (d) { return '<button class="sgr" data-sq="' + esc(d[1].replace(/&amp;/g, "&")) + '">' + IC.home + '<div>' + esc(d[1]) + '<small>' + esc(d[2]) + '</small></div></button>'; }).join("") : '') || '<div class="pph" style="margin:8px 4px">No suggestions. Press Enter to search anyway.</div>';
             }
             el.innerHTML = sanitizeRenderedHtml(h);
         }
@@ -5556,10 +5892,12 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         }
         addDocListener("scroll", function (e) {
             const t = e.target; if (t && t.id == "gsl") {
-                const i = Math.max(0, Math.min(GC.length - 1, Math.round(t.scrollLeft / (t.clientWidth * .88 + 10))));
+                const total = t.children.length || GC.length || 1;
+                const i = Math.max(0, Math.min(total - 1, Math.round(t.scrollLeft / (t.clientWidth * .88 + 10))));
                 if (i != GI) {
                     GI = i;
-                    $("gcn").textContent = (i + 1) + " / " + GC.length;
+                    const counterEl = $("gcn");
+                    if (counterEl) counterEl.textContent = (i + 1) + " / " + total;
                     document.querySelectorAll(".gdt i").forEach(function (d, j) { d.classList.toggle("on", j == i); });
                 }
             }
@@ -5585,6 +5923,29 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
             if (t.closest("[data-n=\"signin\"]")) {
                 openAuthModal();
+                return;
+            }
+            const cityBtn = t.closest("[data-select-city], [data-set-city]");
+            if (cityBtn) {
+                const chosen = cityBtn.hasAttribute("data-select-city")
+                    ? (cityBtn.getAttribute("data-select-city") || "")
+                    : (cityBtn.getAttribute("data-set-city") || "");
+                S.city = chosen;
+                S.q = "";
+                const qInput = $("q");
+                if (qInput) qInput.value = "";
+                $("sqc").style.display = "none";
+                pop("");
+                const cityHeadBtn = document.querySelector('.top .city[data-pop="c"]') || document.querySelector('[data-pop="c"]');
+                if (cityHeadBtn) {
+                    const disp = chosen || resolveSeekerCity(currentProfile) || "All Cities";
+                    cityHeadBtn.innerHTML = sanitizeRenderedHtml(
+                        esc(disp) + ' <svg class="i" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>'
+                    );
+                }
+                loadPlacesPage(true);
+                loadRoommatesPage(true);
+                render();
                 return;
             }
             const b = t.closest("button,a,[data-gt]");
@@ -5695,8 +6056,14 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 h.style.display = v ? "flex" : "none";
             document.body.classList.toggle("ns", !isExplore);
             const rootEl = document.querySelector(".nm-explore-root");
-            if (rootEl)
+            if (rootEl) {
                 rootEl.classList.toggle("ns", !isExplore);
+                rootEl.classList.toggle("detail-view", ["room", "pg", "roommate"].includes(S.nav));
+            }
+            if (S.nav !== "messages") {
+                S.cid = null;
+                document.body.classList.remove("chat");
+            }
             const sBox = document.querySelector(".top .search");
             if (sBox)
                 sBox.style.display = isExplore ? "" : "none";
@@ -5916,7 +6283,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             const C = ["All", "Active", "Paused", "Draft", "Filled"], q = (S.lq || "").toLowerCase(), cn = function (c) { return c == "All" ? MY.length : MY.filter(function (x) { return x.st == c; }).length; }, ncount = function (k) { return MY[k].ap.filter(function (i) { return stg(k, i) == "New"; }).length; }, totNew = MY.reduce(function (a, x, k) { return a + ncount(k); }, 0), totSl = MY.reduce(function (a, x, k) { return a + x.ap.filter(function (i) { return stg(k, i) == "Shortlisted"; }).length; }, 0), L = MY.map(function (x, k) { return [x, k]; }).filter(function (a) { return (S.lt == 0 || a[0].st == C[S.lt]) && (!q || (a[0].t + a[0].loc).toLowerCase().indexOf(q) > -1); });
             let h = '<div class="lw">';
             if (!MY.length)
-                return h + em("You have not posted a room", "Post a room and matching people can message you.") + '</div>';
+                return h + em("You have not posted a room", "Post a room and matching people can message you.", '<br><button class="pill" data-open-post="1" style="margin:16px auto 0;background:var(--brand);color:#fff;border-color:var(--brand)">+ Post a room</button>') + '</div>';
             const hasPendingListings = MY.some(function (x) { return x && (x.st === "Pending verification" || x.st === "pending_verification"); });
             const isUserVerified = (ME && (ME.ver || (USER_KYC && USER_KYC.status === 'approved')));
             const isKycPending = (USER_KYC && USER_KYC.status === 'pending');
@@ -6436,12 +6803,12 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 ? '<img src="' + esc(managerAv) + '" alt="' + esc(managerName) + '" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">'
                 : (managerName.split(' ').map(function (w) { return w[0]; }).join('') || 'PG');
             return '<div class="rd"><button class="ghb back" data-n="' + (S.back || "explore") + '">← Back</button>' + galHtml + '<div class="rl"><div class="mn">' +
-                '<section><div class="tgs"><span>' + esc(x[10]) + '</span>' + (x[8] ? '<span class="ok">✓ Verified</span>' : '') + '<span>' + esc(x[5]) + '</span></div><h2>' + esc(x[0]) + '</h2><div class="tl"><div class="loc">' + IC.pin + esc(x[1]) + ', Bengaluru</div><span class="sp2"></span><button class="ghb" data-shr2="1">Share</button>' + st + '<button class="ghb" data-rpt="l">Report</button></div></section>' +
+                '<section><div class="tgs"><span>' + esc(x[10]) + '</span>' + (x[8] ? '<span class="ok">✓ Verified</span>' : '') + '<span>' + esc(x[5]) + '</span></div><h2>' + esc(x[0]) + '</h2><div class="tl"><div class="loc">' + IC.pin + '<span>' + esc(x[1]) + ', ' + esc((x[18] && x[18].city) || S.city || 'Bengaluru') + '</span></div><span class="sp2"></span><div class="tl-actions"><button class="ghb tl-btn" data-shr2="1" aria-label="Share listing">' + IC.shr + '<span>Share</span></button><button class="ghb tl-btn sv" data-id="p' + i + '" aria-pressed="' + (isPgSaved(x, i) ? "true" : "false") + '" aria-label="Save listing">' + IC.heart + '<span>' + (isPgSaved(x, i) ? "Saved" : "Save") + '</span></button></div></div></section>' +
                 '<section><div class="kf"><div><small>From</small><b>' + fmt(x[2]) + '</b><span>per bed / month</span></div><div><small>Deposit</small><b>' + fmt(x[6]) + '</b><span>refundable</span></div><div><small>Available</small><b>' + (x[7] == "Available now" ? "Now" : x[7].replace("From ", "")) + '</b><span>move-in</span></div><div><small>For</small><b>' + esc(x[5]) + '</b><span>residents</span></div></div></section>' +
                 '<section><h3>Room options</h3><table class="rtb"><thead><tr><th>Type</th><th>Per bed</th><th>Beds left</th></tr></thead><tbody>' + opts.map(function (o) { return '<tr><td><b>' + o[0] + '</b></td><td>' + fmt(o[1]) + '</td><td><span class="bds' + (o[2] < 2 ? " lo" : "") + '">' + o[2] + ' left</span></td></tr>'; }).join("") + '</tbody></table></section>' +
                 '<section><h3>Food and amenities</h3><div class="inc"><div><i>' + IC.chk + '</i>' + esc(x[4]) + '</div>' + am.map(function (a) { return '<div><i>' + IC.chk + '</i>' + a + '</div>'; }).join("") + '</div></section>' +
                 rulesSection +
-                '<section><div class="safe">' + IC.sh + '<div><b>Stay safe</b><br>Visit before you pay and read the agreement. <a href="#">Read the Trust center</a></div></div></section>' +
+                '<section><div class="safe">' + IC.sh + '<div><b>Stay safe</b><br>Visit before you pay and read the agreement. <a href="/help">Read the Trust center</a></div></div><div style="text-align:center;margin-top:14px"><button class="ghb rpt-link" data-rpt="l" style="border:none;background:transparent;color:var(--ink2);font-size:13px;text-decoration:underline;cursor:pointer">⚐ Report this listing</button></div></section>' +
                 simSection + '</div>' +
                 '<aside class="ra"><div class="rc2"><div class="rp"><b>' + fmt(x[2]) + '</b><span> / bed</span></div><div class="sm">Deposit ' + fmt(x[6]) + ' · ' + esc(x[7]) + '</div>' + listingCommunicationButtons('p', i, true) + '<button class="ghb" data-save="p' + i + '">' + (isPgSaved(x, i) ? "Saved ✓" : "Save for later") + '</button><div class="who"><div class="av2">' + mgrAvContent + '</div><div>' + managerName + (x[8] ? ' <span style="color:var(--ok)">✓</span>' : '') + '<small>Manages this place</small></div></div></div></aside></div><div class="rbar"><div><b>' + fmt(x[2]) + '</b><span> / bed</span></div><button class="msgb" data-msg="p:' + i + '"><em>Message ' + esc(f) + '</em></button></div></div>';
         }
@@ -6596,8 +6963,39 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     ? matchedListing[21].screeningQuestions
                     : ((targetPerson[17] && Array.isArray(targetPerson[17].screeningQuestions) && targetPerson[17].screeningQuestions.length > 0)
                         ? targetPerson[17].screeningQuestions
-                        : ["Do you smoke or drink?", "What is your occupation?"]);
+                        : []);
                 const qs = rawQs.slice(0, 3);
+
+                const applicantName = (currentProfile && (currentProfile.name || currentProfile.displayName)) || (authUser && authUser.displayName) || '';
+                const applicantGender = (currentProfile && currentProfile.gender) || '';
+                const applicantBudget = resolveSeekerBudget(currentProfile) || 0;
+                const roomPrefGender = (matchedListing && ((matchedListing[21] && (matchedListing[21].preferredGender || matchedListing[21].genderPreference)) || matchedListing[10])) || (targetPerson[17] && targetPerson[17].preferredGender) || 'Any';
+
+                let genderWarning = '';
+                if (applicantGender && roomPrefGender && roomPrefGender !== 'Any') {
+                    const rG = roomPrefGender.toLowerCase();
+                    const aG = applicantGender.toLowerCase();
+                    if ((rG === 'female' && aG === 'male') || (rG === 'male' && aG === 'female')) {
+                        genderWarning = '<div class="v-alert" style="background:#fff3cd;border:1px solid #ffeeba;border-radius:10px;padding:10px 14px;margin:10px 0;font-size:13px;color:#856404;display:flex;align-items:center;gap:8px">' +
+                            '⚠️ <b>Gender Notice:</b> Host/Roommate specified gender preference: <b>' + esc(roomPrefGender) + '</b>. Your profile lists <b>' + esc(applicantGender) + '</b>.</div>';
+                    }
+                }
+
+                let jitFields = '';
+                if (!applicantName || !applicantGender || applicantBudget <= 0) {
+                    jitFields = '<div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:12px;padding:12px 14px;margin:12px 0">' +
+                        '<b style="font-size:13px;color:var(--ink);display:block;margin-bottom:8px">Quick Details for Roommate Connect</b>';
+                    if (!applicantName) {
+                        jitFields += '<div style="margin-bottom:10px"><label for="jit-name" style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Your Full Name <span style="color:var(--brand)">*</span></label><div class="pin"><input type="text" id="jit-name" placeholder="Full legal name" style="width:100%" required></div></div>';
+                    }
+                    if (!applicantGender) {
+                        jitFields += '<div style="margin-bottom:10px"><label for="jit-gender" style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Your Gender <span style="color:var(--brand)">*</span></label><select id="jit-gender" class="pill" style="width:100%;height:40px"><option value="">Select gender</option><option value="Female">Female</option><option value="Male">Male</option><option value="Non-binary">Non-binary</option><option value="Prefer not to say">Prefer not to say</option></select></div>';
+                    }
+                    if (applicantBudget <= 0) {
+                        jitFields += '<div style="margin-bottom:6px"><label for="jit-budget" style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Your Max Monthly Budget (₹) <span style="color:var(--brand)">*</span></label><div class="pin"><input type="number" id="jit-budget" placeholder="e.g. 25000" style="width:100%" required></div></div>';
+                    }
+                    jitFields += '</div>';
+                }
 
                 const myProfileSummary = (currentProfile && currentProfile.name)
                     ? '<div style="display:flex;align-items:center;gap:10px;background:var(--bs);padding:10px 14px;border-radius:12px;margin:12px 0">' +
@@ -6610,6 +7008,8 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     '<div class="app-dlg-h"><div style="min-width:0;flex:1"><h3 style="margin:0 0 4px;font-size:18px;line-height:1.25">' + esc(modalTitle) + '</h3>' +
                     '<div class="loc" style="font-size:13.5px;margin-top:2px">' + IC.pin + '<span style="min-width:0">' + esc(modalLoc) + '</span></div></div><button type="button" class="ghb" data-cf="no" aria-label="Close" style="width:34px;height:34px;min-width:34px;padding:0;border-radius:50%;display:grid;place-items:center;font-size:16px;line-height:1;flex:none">✕</button></div><div class="app-dlg-b">',
                     myProfileSummary,
+                    genderWarning,
+                    jitFields,
                     '<div style="margin:10px 0"><b style="font-size:13px;color:var(--ink)">Target Move-in Date</b><div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">' +
                     '<button type="button" class="pill" data-set-move="immediate" aria-pressed="false" style="padding:0 14px;height:34px;font-size:12.5px">Immediate</button>' +
                     '<button type="button" class="pill" data-set-move="15days" aria-pressed="true" style="background:var(--brand);color:#fff;border-color:var(--brand);padding:0 14px;height:34px;font-size:12.5px">Within 15 days</button>' +
@@ -6786,6 +7186,26 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         const postParam = searchParams.get('post') || searchParams.get('action');
         if (postParam === '1' || postParam === 'post') {
             setTimeout(openPost, 150);
+        }
+        if (searchParams.get('openCity') === '1') {
+            setTimeout(function () {
+                pop("c");
+                if (typeof window !== "undefined" && window.history && window.history.replaceState) {
+                    const u = new URL(window.location.href);
+                    u.searchParams.delete('openCity');
+                    window.history.replaceState(window.history.state, '', u.pathname + (u.search ? u.search : ''));
+                }
+            }, 100);
+        }
+        if (searchParams.get('onboarding') === '1') {
+            setTimeout(function () {
+                openPostChooser();
+                if (typeof window !== "undefined" && window.history && window.history.replaceState) {
+                    const u = new URL(window.location.href);
+                    u.searchParams.delete('onboarding');
+                    window.history.replaceState(window.history.state, '', u.pathname + (u.search ? u.search : ''));
+                }
+            }, 150);
         }
         if (searchParams.get('sample') === '1' || searchParams.get('demo') === '1') {
             setTimeout(function () { loadDevSampleRoommates(true); }, 150);

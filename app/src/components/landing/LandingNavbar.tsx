@@ -359,7 +359,7 @@ export default function LandingNavbar({ onListSpace }: LandingNavbarProps) {
               type="button"
               onClick={() => {
                 setMobileMenuOpen(false);
-                navigate('/explore');
+                navigate('/explore?openCity=1');
               }}
               className="text-[11px] font-bold text-[#FF5A36] hover:underline cursor-pointer"
             >

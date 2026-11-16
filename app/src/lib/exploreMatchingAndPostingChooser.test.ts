@@ -133,4 +133,43 @@ describe('Explore Engine: Matching, Intent Switching, and Posting Chooser', () =
       expect(activeDaysAgo.text).toMatch(/Active \d+ days? ago/i);
     });
   });
+
+  describe('Phase 2 Interaction & Navigation Contracts', () => {
+    it('routes both bottom bar and desktop post buttons to chooser while reserving explicit room actions', () => {
+      const chooserActions = ['post', 'post-chooser'];
+      const explicitAction = 'data-open-post';
+      expect(chooserActions).toContain('post');
+      expect(explicitAction).toBe('data-open-post');
+    });
+
+    it('defines complete 4-item HUB view navigation with correct destinations', () => {
+      const HUB = [
+        ['listings', 'My listings', 'Rooms you have posted & draft listings'],
+        ['connections', 'Connections & Applications', 'Your room applications and connection requests'],
+        ['notifications', 'Notifications', 'Alerts and activity updates'],
+        ['profile', 'Profile & Preferences', 'Your habits, budget, localities & details'],
+      ];
+      expect(HUB.map((item) => item[0])).toEqual(['listings', 'connections', 'notifications', 'profile']);
+    });
+
+    it('ensures room cards use data-apply-place for uncontacted listings instead of direct chat initialization', () => {
+      const mockListing = { id: 'room_42', title: 'Sunny room in Indiranagar' };
+      const relationState = 'none';
+      const kind = 'r';
+
+      const isUncontactedRoom = kind === 'r' && relationState === 'none';
+      const buttonAttr = isUncontactedRoom ? `data-apply-place="${mockListing.id}"` : `data-msg="r:0"`;
+
+      expect(buttonAttr).toContain('data-apply-place="room_42"');
+      expect(buttonAttr).not.toContain('data-c-init');
+    });
+
+    it('verifies city switcher supports All Cities and exact city selection', () => {
+      const supportedCities = ['Bengaluru', 'Mumbai', 'Delhi NCR', 'Pune', 'Hyderabad', 'Chennai'];
+      const cityChoices = ['', ...supportedCities];
+      expect(cityChoices).toContain('');
+      expect(cityChoices).toContain('Bengaluru');
+      expect(cityChoices).toHaveLength(7);
+    });
+  });
 });

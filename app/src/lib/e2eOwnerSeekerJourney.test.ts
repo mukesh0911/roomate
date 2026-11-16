@@ -39,16 +39,16 @@ describe('E2E Owner & Seeker Unified User Journey Verification', () => {
   });
 
   describe('Scenario 3: Seeker Access to "Post a Room" Without Logging Out', () => {
-    it('navigates seamlessly to /edit-listing/new without requiring role switch in Settings', () => {
+    it('navigates seamlessly to /explore?post=1 without requiring role switch in Settings', () => {
       const action = resolvePostRoomAction(true, seekerUser.role);
       expect(action.type).toBe('navigate_new_listing');
-      expect(action.path).toBe('/edit-listing/new');
+      expect(action.path).toBe('/explore?post=1');
     });
 
-    it('prompts unauthenticated users to log in with direct /edit-listing/new redirect', () => {
+    it('prompts unauthenticated users to log in with direct /explore?post=1 redirect', () => {
       const action = resolvePostRoomAction(false, null);
       expect(action.type).toBe('auth_prompt');
-      expect(action.path).toBe('/edit-listing/new');
+      expect(action.path).toBe('/explore?post=1');
     });
   });
 
@@ -75,12 +75,12 @@ describe('E2E Owner & Seeker Unified User Journey Verification', () => {
       expect(listingPayload.monthlyRent).toBeGreaterThan(0);
     });
 
-    it('both Owner and Seeker enter the identical creation route /edit-listing/new', () => {
+    it('both Owner and Seeker enter the identical creation route /explore?post=1', () => {
       const seekerAction = resolvePostRoomAction(true, seekerUser.role);
       const ownerAction = resolvePostRoomAction(true, ownerUser.role);
 
-      expect(seekerAction.path).toBe('/edit-listing/new');
-      expect(ownerAction.path).toBe('/edit-listing/new');
+      expect(seekerAction.path).toBe('/explore?post=1');
+      expect(ownerAction.path).toBe('/explore?post=1');
     });
   });
 
@@ -89,12 +89,12 @@ describe('E2E Owner & Seeker Unified User Journey Verification', () => {
 
     it('provides direct link to view the public listing detail', () => {
       const detailRoute = getListingDetailRoute(createdListingId);
-      expect(detailRoute).toBe(`/room/${createdListingId}`);
+      expect(detailRoute).toBe(`/explore?room=${createdListingId}`);
     });
 
     it('provides direct link to manage the published listing', () => {
       const manageRoute = getManageListingsRoute();
-      expect(manageRoute).toBe('/my-listings');
+      expect(manageRoute).toBe('/listings');
     });
 
     it('confirms that the listing belongs strictly to the authenticated creator', () => {
@@ -114,9 +114,9 @@ describe('E2E Owner & Seeker Unified User Journey Verification', () => {
   });
 
   describe('Scenario 7 & 9: Returning Later & Security Isolation', () => {
-    it('allows a user who created a listing to return and manage it via /my-listings', () => {
+    it('allows a user who created a listing to return and manage it via /listings', () => {
       const managementPath = getManageListingsRoute();
-      expect(managementPath).toBe('/my-listings');
+      expect(managementPath).toBe('/listings');
     });
 
     it('ensures users cannot modify listings owned by others', () => {

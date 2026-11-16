@@ -304,7 +304,7 @@ export default function HeroSearchModule() {
         <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mr-1">
           Top Cities:
         </span>
-        {['Delhi', 'Mumbai', 'Bangalore', 'Pune', 'Noida', 'Gurgaon', 'Hyderabad'].map((c) => (
+        {['Delhi', 'Mumbai', 'Bengaluru', 'Pune', 'Noida', 'Gurgaon', 'Hyderabad'].map((c) => (
           <button
             key={c}
             type="button"

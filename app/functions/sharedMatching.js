@@ -1,4 +1,4 @@
-// Generated from src/lib/matching.ts (deb28e89b1f2fdf0a916ebc9a8ce9c23dbca3b5cd968a4b881c2e1ed62d72f09).
+// Generated from src/lib/matching.ts (d3ce7b7658fbbaf8a12e7a75ecfcb3aecb14b55b9d0a8411f4f3ff6ff7ad0914).
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -28,6 +28,7 @@ __export(stdin_exports, {
   getMatchReasons: () => getMatchReasons,
   getRoomMatchReasons: () => getRoomMatchReasons,
   hasActiveSeekerIntent: () => hasActiveSeekerIntent,
+  isHostOnlyWithoutSeekerPrefs: () => isHostOnlyWithoutSeekerPrefs,
   isUserMatchingCalibrated: () => isUserMatchingCalibrated,
   resolveCanonicalRoomCompatibility: () => resolveCanonicalRoomCompatibility,
   resolveSeekerBudget: () => resolveSeekerBudget,
@@ -146,6 +147,13 @@ function hasActiveSeekerIntent(user = {}, myRooms = []) {
     return false;
   }
   return true;
+}
+function isHostOnlyWithoutSeekerPrefs(user = {}, myRooms = []) {
+  const u = user || {};
+  const isHostLike = u.isLandlord === true || Array.isArray(myRooms) && myRooms.length > 0 || u.housingIntent === "have_room" || Array.isArray(u.housingPreferences?.activeIntents) && u.housingPreferences.activeIntents.includes("have_room");
+  if (!isHostLike) return false;
+  const isSeekerCalibrated = resolveSeekerBudget(u) > 0 && resolveSeekerLocalities(u).length > 0;
+  return !isSeekerCalibrated;
 }
 function isUserMatchingCalibrated(user = {}, myRooms = []) {
   if (!user) return false;

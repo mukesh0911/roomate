@@ -280,6 +280,22 @@ export function hasActiveSeekerIntent(user: any = {}, myRooms: any[] = []): bool
 }
 
 /**
+ * Returns true if a user acts as a host/landlord and has not configured seeker intent.
+ */
+export function isHostOnlyWithoutSeekerPrefs(user: any = {}, myRooms: any[] = []): boolean {
+  const u = user || {};
+  const isHostLike = (
+    u.isLandlord === true ||
+    (Array.isArray(myRooms) && myRooms.length > 0) ||
+    u.housingIntent === 'have_room' ||
+    (Array.isArray(u.housingPreferences?.activeIntents) && u.housingPreferences.activeIntents.includes('have_room'))
+  );
+  if (!isHostLike) return false;
+  const isSeekerCalibrated = resolveSeekerBudget(u) > 0 && resolveSeekerLocalities(u).length > 0;
+  return !isSeekerCalibrated;
+}
+
+/**
  * Canonical check for whether a user's matching preferences are calibrated.
  * Requires:
  * 1. Active seeker intent (hasActiveSeekerIntent)

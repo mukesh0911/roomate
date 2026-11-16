@@ -55,7 +55,7 @@ export default function ExplorePage({ initialNav = 'explore' }: ExplorePageProps
           <div className="mtt" id="mtt"></div>
           <div className="search" role="search">
             <button className="city" data-pop="c" aria-label="Change city" aria-haspopup="true">
-              Bengaluru <svg className="i" style={{ width: '16px', height: '16px' }} viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+              {(profile?.city) || 'All Cities'} <svg className="i" style={{ width: '16px', height: '16px' }} viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
             </button>
             <input id="q" placeholder="Search locality or landmark" aria-label="Search" />
             <button className="ib" id="sqc" data-sqc="1" style={{ display: 'none', width: '32px', height: '32px' }} aria-label="Clear search">×</button>
@@ -105,7 +105,7 @@ export default function ExplorePage({ initialNav = 'explore' }: ExplorePageProps
               <path d="M350 70c0-6 9-8 12-2 3-6 12-4 12 2 0 7-12 14-12 14s-12-7-12-14z" fill="#fff" opacity=".85"/>
             </svg>
             <h2 style={{ color: '#ffffff' }}>Find a room that fits your life</h2>
-            <p>Verified places in Bengaluru, matched to you.</p>
+            <p>Verified places in {(profile?.city) || 'India'}, matched to you.</p>
             <div className="cats" id="cats">
               <button className="chip" data-c="0" aria-pressed="true">All listings</button>
               <button className="chip" data-c="1" aria-pressed="false">Rooms &amp; flats</button>
@@ -224,6 +224,24 @@ export default function ExplorePage({ initialNav = 'explore' }: ExplorePageProps
             <button type="button" className="nm-chooser-close" data-close-fast-drawer="1" aria-label="Close drawer">&times;</button>
           </div>
           <div className="nm-drawer-body">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+              <div>
+                <label className="nm-field-label">Your Name</label>
+                <div className="pin">
+                  <input type="text" id="nm-fast-name" placeholder="Full name" maxLength={60} />
+                </div>
+              </div>
+              <div>
+                <label className="nm-field-label">Your Gender</label>
+                <select id="nm-fast-ug" className="pill" style={{ width: '100%', height: '44px' }}>
+                  <option value="">Select gender</option>
+                  <option value="Female">Female</option>
+                  <option value="Male">Male</option>
+                  <option value="Non-binary">Non-binary</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
+            </div>
             <div style={{ marginBottom: '16px' }}>
               <label className="nm-field-label">Target City</label>
               <select id="nm-fast-city" className="pill" style={{ width: '100%', height: '44px' }}></select>
@@ -246,6 +264,47 @@ export default function ExplorePage({ initialNav = 'explore' }: ExplorePageProps
               <div className="nm-locality-chips" id="nm-fast-loc-chips"></div>
               <div className="pin" style={{ marginTop: '8px' }}>
                 <input type="text" id="nm-fast-custom-loc" placeholder="Add custom area &amp; press enter" />
+              </div>
+            </div>
+            <div style={{ marginTop: '16px' }}>
+              <label className="nm-field-label">Lifestyle &amp; Living Habits (Optional)</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div>
+                  <span style={{ fontSize: '12px', color: 'var(--ink2)', fontWeight: 600 }}>Diet</span>
+                  <div className="nm-lifestyle-group" data-ls-group="diet" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                    <button type="button" className="nm-budget-pill active" data-fast-ls="diet" data-val="">Not specified</button>
+                    <button type="button" className="nm-budget-pill" data-fast-ls="diet" data-val="Vegetarian">Vegetarian</button>
+                    <button type="button" className="nm-budget-pill" data-fast-ls="diet" data-val="Non-vegetarian">Non-vegetarian</button>
+                    <button type="button" className="nm-budget-pill" data-fast-ls="diet" data-val="Eggetarian">Eggetarian</button>
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '12px', color: 'var(--ink2)', fontWeight: 600 }}>Smoking</span>
+                  <div className="nm-lifestyle-group" data-ls-group="smoke" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                    <button type="button" className="nm-budget-pill active" data-fast-ls="smoke" data-val="">Not specified</button>
+                    <button type="button" className="nm-budget-pill" data-fast-ls="smoke" data-val="Non-smoker">Non-smoker</button>
+                    <button type="button" className="nm-budget-pill" data-fast-ls="smoke" data-val="Outside only">Outside only</button>
+                    <button type="button" className="nm-budget-pill" data-fast-ls="smoke" data-val="Smoker">Smoker</button>
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '12px', color: 'var(--ink2)', fontWeight: 600 }}>Pets</span>
+                  <div className="nm-lifestyle-group" data-ls-group="pets" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                    <button type="button" className="nm-budget-pill active" data-fast-ls="pets" data-val="">Not specified</button>
+                    <button type="button" className="nm-budget-pill" data-fast-ls="pets" data-val="Pet-friendly">Pet-friendly</button>
+                    <button type="button" className="nm-budget-pill" data-fast-ls="pets" data-val="No pets / allergic">No pets</button>
+                    <button type="button" className="nm-budget-pill" data-fast-ls="pets" data-val="Has pets">Has pets</button>
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '12px', color: 'var(--ink2)', fontWeight: 600 }}>Sleep Schedule</span>
+                  <div className="nm-lifestyle-group" data-ls-group="sleep" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                    <button type="button" className="nm-budget-pill active" data-fast-ls="sleep" data-val="">Not specified</button>
+                    <button type="button" className="nm-budget-pill" data-fast-ls="sleep" data-val="Early riser">Early riser</button>
+                    <button type="button" className="nm-budget-pill" data-fast-ls="sleep" data-val="Night owl">Night owl</button>
+                    <button type="button" className="nm-budget-pill" data-fast-ls="sleep" data-val="Flexible">Flexible</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -274,8 +274,8 @@ describe('production readiness backend behavior', () => {
       isLiveInRoom: true, screeningQuestions: ['Preferred move date?'],
     }));
     expect(batch.set).toHaveBeenCalledWith('users/me', expect.objectContaining({
-      isLandlord: true,
-      housingPreferences: expect.objectContaining({ activeIntents: ['have_room'] }),
+      isLandlord: false,
+      housingPreferences: expect.objectContaining({ activeIntents: ['have_room'], associatedListingId: expect.any(String) }),
     }), { merge: true });
     const userCall = batch.set.mock.calls.find(c => c[0] === 'users/me');
     expect(userCall[1]).not.toHaveProperty('city');
@@ -286,6 +286,10 @@ describe('production readiness backend behavior', () => {
     batch.set.mockClear();
     await createNewListingBackend({ title: 'Room', rent: 10000, loc: 'Central', city: 'Pune' }, fake.auth.currentUser);
     expect(batch.set).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ isLiveInRoom: false }));
+    expect(batch.set).toHaveBeenCalledWith('users/me', expect.objectContaining({
+      isLandlord: true,
+      housingPreferences: expect.objectContaining({ activeIntents: ['have_room'] }),
+    }), { merge: true });
   });
 
   it('reviews exactly the inspected identity and commits trust, evidence and notification together', async () => {

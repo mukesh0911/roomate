@@ -44,6 +44,7 @@ export default function AuthModal({
   const navigate = useNavigate();
   const { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword } = useAuth();
   const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
@@ -52,14 +53,20 @@ export default function AuthModal({
     if (authBusy) return;
     setAuthBusy(true); setAuthError('');
     try {
-      if (google) await signInWithGoogle();
+      let authRes: any = null;
+      if (google) authRes = await signInWithGoogle();
       else if (mode === 'reset') {
         await resetPassword(email.trim());
         toast.success('Password reset requested. Check your email.');
         setMode('signin'); return;
-      } else if (mode === 'signup') await signUpWithEmail(email.trim(), password);
-      else await signInWithEmail(email.trim(), password);
-      onClose(); navigate(redirectAfterLogin || '/explore');
+      } else if (mode === 'signup') authRes = await signUpWithEmail(email.trim(), password, fullName.trim());
+      else authRes = await signInWithEmail(email.trim(), password);
+      onClose();
+      if ((authRes?.isNew || authRes?.onboardingComplete === false) && !redirectAfterLogin) {
+        navigate('/explore?onboarding=1');
+      } else {
+        navigate(redirectAfterLogin || '/explore');
+      }
     } catch (error: any) { setAuthError(error?.message || 'Unable to sign in. Please try again.'); }
     finally { setAuthBusy(false); }
   };
@@ -205,6 +212,21 @@ export default function AuthModal({
         </div>}
 
         <form className="space-y-3 mb-4" onSubmit={(event) => { event.preventDefault(); void submitAuth(); }}>
+          {mode === 'signup' && (
+            <label className="block text-xs font-semibold text-ink">Full Name
+              <input
+                className="mt-1 w-full rounded-xl border border-border p-3 text-sm"
+                type="text"
+                autoComplete="name"
+                minLength={2}
+                maxLength={80}
+                placeholder="Your full name"
+                required
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+              />
+            </label>
+          )}
           <label className="block text-xs font-semibold text-ink">Email
             <input className="mt-1 w-full rounded-xl border border-border p-3 text-sm" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
           </label>

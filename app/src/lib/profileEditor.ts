@@ -3,7 +3,7 @@ import { validateHousingPreferences, type HousingIntent, type UserHousingPrefere
 export interface ProfileEditorDraft {
   n: string; job: string; city: string; area: string; bio: string; ph: string;
   activeIntents: HousingIntent[]; discover: boolean;
-  diet: string; smoke: string; sleep: string; guests: string; clean: string;
+  diet: string; smoke: string; sleep: string; guests: string; clean: string; pets?: string;
 }
 interface ExistingProfile {
   localities?: string[];
@@ -22,12 +22,11 @@ export function buildProfileEditorUpdate(draft: ProfileEditorDraft, existing: Ex
   const activeIntents = [...new Set(draft.activeIntents)];
   // The basic editor displays one locality, so editing unrelated fields must
   // not silently replace the complete matching-preference locality list.
-  const unchangedArea = existing.localities?.[0] === area && existing.city === city;
-  const localities = unchangedArea ? [...existing.localities!] : [area];
+  const localities = Array.from(new Set([area, ...(existing.city === city ? (existing.localities || []) : [])])).slice(0, 3);
   const housingPreferences: UserHousingPreferences = {
     ...existing.housingPreferences, activeIntents,
-    preferredCities: unchangedArea ? existing.housingPreferences?.preferredCities || [city] : [city],
-    preferredLocalities: unchangedArea ? existing.housingPreferences?.preferredLocalities || localities : localities,
+    preferredCities: existing.city === city ? existing.housingPreferences?.preferredCities || [city] : [city],
+    preferredLocalities: localities,
   };
   const validation = validateHousingPreferences(housingPreferences);
   if (!validation.isValid) throw new Error(validation.errors.join(' '));
@@ -38,7 +37,15 @@ export function buildProfileEditorUpdate(draft: ProfileEditorDraft, existing: Ex
     housingIntent: activeIntents.length === 1 ? activeIntents[0] : '',
     roommateDiscoveryEnabled: draft.discover === true,
     onboardingComplete: true,
-    quizAnswers: { ...existing.quizAnswers, diet: draft.diet, smoke: draft.smoke, sleep: draft.sleep, guests: draft.guests, clean: draft.clean },
+    quizAnswers: {
+      ...existing.quizAnswers,
+      diet: draft.diet,
+      smoke: draft.smoke,
+      sleep: draft.sleep,
+      guests: draft.guests,
+      clean: draft.clean,
+      ...(draft.pets !== undefined ? { pets: draft.pets } : {}),
+    },
   };
 }
 
@@ -141,6 +148,8 @@ export function buildMatchingPreferencesUpdate(
     smoke?: string;
     pets?: string;
     sleep?: string;
+    guests?: string;
+    clean?: string;
     teamUpDiscoverable?: boolean;
   },
   existing: ExistingProfile & { name?: string; onboardingComplete?: boolean; housingIntent?: string } = {},
@@ -174,9 +183,22 @@ export function buildMatchingPreferencesUpdate(
   const effectiveName = validatedName || existing.name?.trim() || '';
   const canFlipComplete = Boolean(effectiveCity && effectiveName);
 
+  const baseQuizWithExtras: Record<string, string> = {
+    ...existing.quizAnswers,
+    roommate_gender: draft.gd.toLowerCase(),
+  };
+  if (draft.guests !== undefined) {
+    if (draft.guests) baseQuizWithExtras.guests = draft.guests;
+    else delete baseQuizWithExtras.guests;
+  }
+  if (draft.clean !== undefined) {
+    if (draft.clean) baseQuizWithExtras.clean = draft.clean;
+    else delete baseQuizWithExtras.clean;
+  }
+
   const quizAnswers = buildSeekerLifestyleQuizPatch(
     { diet: draft.diet, smoke: draft.smoke, pets: draft.pets, sleep: draft.sleep },
-    { ...existing.quizAnswers, roommate_gender: draft.gd.toLowerCase() },
+    baseQuizWithExtras,
   );
 
   return {
