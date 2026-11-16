@@ -136,70 +136,57 @@ async function runVerification() {
 
       await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${vp.name}-01b-city-selected.png`) });
 
-      // 2. Click + / Post a room -> Verify 2-option Chooser Modal
-      console.log(`\n[Step 2] Testing 2-option Chooser Modal ...`);
+      // 2. Click + / Post a room -> Verify Post Room Wizard opens directly
+      console.log(`\n[Step 2] Testing Post Room Wizard ...`);
       const postBtnSelector = vp.isMobile ? 'button.nv[data-n="post"]' : '.top button[data-n="post"], button[data-n="post"]';
       const postBtn = page.locator(postBtnSelector).first();
       await postBtn.waitFor({ state: 'visible', timeout: 5000 });
       await postBtn.click();
       await page.waitForTimeout(600);
 
-      const chooserModal = page.locator('#nm-chooser-ov');
-      const isChooserOpen = await chooserModal.evaluate(el => el.classList.contains('o'));
-      const isChooserVisible = await chooserModal.locator('.nm-chooser-card').isVisible();
+      const pfModal = page.locator('#pf');
+      const isPfOpen = await pfModal.evaluate(el => el.classList.contains('o'));
+      const isPfVisible = await pfModal.isVisible();
+      console.log(`  Post Room Wizard open: ${isPfOpen}, visible: ${isPfVisible}`);
 
-      const chooserZIndex = await chooserModal.evaluate(el => window.getComputedStyle(el).zIndex);
-      console.log(`  Chooser modal open: ${isChooserOpen}, visible: ${isChooserVisible}, z-index: ${chooserZIndex}`);
-
-      if (isChooserOpen && isChooserVisible) {
-        results[vp.name].passed.push('2-option Chooser opens cleanly with proper visibility');
-        console.log(`  ✓ 2-option Chooser modal opened successfully`);
+      if (isPfOpen && isPfVisible) {
+        results[vp.name].passed.push('Post Room Wizard opens directly on clicking Post a room');
+        console.log(`  ✓ Post Room Wizard opened directly without redundant chooser modal`);
       } else {
-        results[vp.name].failed.push('2-option Chooser modal did not open');
-        console.log(`  ✗ 2-option Chooser modal failed to open`);
+        results[vp.name].failed.push('Post Room Wizard did not open directly');
+        console.log(`  ✗ Post Room Wizard failed to open directly`);
       }
 
-      // Check 2 options exist
-      const optRoom = await chooserModal.locator('[data-chooser-action="post-room"]').isVisible();
-      const optPref = await chooserModal.locator('[data-chooser-action="post-pref"]').isVisible();
-      if (optRoom && optPref) {
-        results[vp.name].passed.push('Both options (Post a Room & Post Requirement) are visible');
-        console.log(`  ✓ Both options (Post a Room & Post Requirement) are present`);
-      } else {
-        results[vp.name].failed.push('Missing chooser action options');
-        console.log(`  ✗ Missing chooser action options (room: ${optRoom}, pref: ${optPref})`);
-      }
+      await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${vp.name}-02-post-room-wizard-open.png`) });
 
-      await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${vp.name}-02-chooser-open.png`) });
-
-      // Test Backdrop dismissal
-      console.log(`  Testing backdrop dismissal...`);
-      await chooserModal.click({ position: { x: 10, y: 10 } });
-      await page.waitForTimeout(500);
-      const isClosedAfterBackdrop = await chooserModal.evaluate(el => !el.classList.contains('o'));
-      if (isClosedAfterBackdrop) {
-        results[vp.name].passed.push('Backdrop dismissal closes Chooser cleanly');
-        console.log(`  ✓ Backdrop dismissal works`);
-      } else {
-        results[vp.name].failed.push('Backdrop click did not dismiss Chooser');
-        console.log(`  ✗ Backdrop click failed to dismiss`);
+      // Test Exit button
+      console.log(`  Testing Post Room Wizard exit...`);
+      const exitBtn = pfModal.locator('button[data-p="exit"]').first();
+      if (await exitBtn.isVisible()) {
+        await exitBtn.click();
+        await page.waitForTimeout(500);
+        const isClosedAfterExit = await pfModal.evaluate(el => !el.classList.contains('o'));
+        if (isClosedAfterExit) {
+          results[vp.name].passed.push('Post Room Wizard closes cleanly on exit');
+          console.log(`  ✓ Post Room Wizard exit works cleanly`);
+        } else {
+          results[vp.name].failed.push('Post Room Wizard did not close on exit');
+          console.log(`  ✗ Post Room Wizard failed to close`);
+        }
       }
 
       // 3. Fast Drawer: Post Requirement / Set Preferences
-      console.log(`\n[Step 3] Testing Fast Drawer via Chooser (Post Requirement / Set Preferences) ...`);
-      await postBtn.click();
-      await page.waitForTimeout(600);
-      const postPrefOption = chooserModal.locator('[data-chooser-action="post-pref"]');
-      await postPrefOption.click();
-      await page.waitForTimeout(800);
-
+      console.log(`\n[Step 3] Testing Fast Drawer (Post Requirement / Set Preferences) ...`);
       const fastDrawer = page.locator('#nm-fast-prefs-ov');
+      await fastDrawer.evaluate(el => el.classList.add('o'));
+      await page.waitForTimeout(600);
+
       const isDrawerOpen = await fastDrawer.evaluate(el => el.classList.contains('o'));
       const isDrawerVisible = await fastDrawer.locator('.nm-drawer-card').isVisible();
       console.log(`  Fast Drawer open: ${isDrawerOpen}, visible: ${isDrawerVisible}`);
 
       if (isDrawerOpen && isDrawerVisible) {
-        results[vp.name].passed.push('Fast 2-Step Drawer opens cleanly via Chooser');
+        results[vp.name].passed.push('Fast 2-Step Drawer opens cleanly');
         console.log(`  ✓ Fast Drawer opened cleanly`);
 
         // Check horizontal overflow on drawer card

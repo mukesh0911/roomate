@@ -3150,10 +3150,10 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                         render();
                 }).catch(function (error) { toast(error.message || "Could not save bookmark."); }).finally(function () { b.disabled = false; });
             }
-            else if (b.dataset.n == "post-chooser" || b.dataset.n == "post") {
+            else if (b.dataset.n == "post-chooser") {
                 openPostChooser();
             }
-            else if (b.dataset.openPost) {
+            else if (b.dataset.n == "post" || b.dataset.openPost) {
                 openPost();
             }
             else if (d.ada == "refresh") {

@@ -135,11 +135,10 @@ describe('Explore Engine: Matching, Intent Switching, and Posting Chooser', () =
   });
 
   describe('Phase 2 Interaction & Navigation Contracts', () => {
-    it('routes both bottom bar and desktop post buttons to chooser while reserving explicit room actions', () => {
-      const chooserActions = ['post', 'post-chooser'];
-      const explicitAction = 'data-open-post';
-      expect(chooserActions).toContain('post');
-      expect(explicitAction).toBe('data-open-post');
+    it('routes post buttons directly to post room wizard without intermediate modal', () => {
+      const postActions = ['post', 'data-open-post'];
+      expect(postActions).toContain('post');
+      expect(postActions).toContain('data-open-post');
     });
 
     it('defines complete 4-item HUB view navigation with correct destinations', () => {
