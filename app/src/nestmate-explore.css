@@ -1601,3 +1601,118 @@ html.lock{overflow:hidden}
   white-space: nowrap;
 }
 
+/* Trust Pill & Curated Badges */
+.nm-explore-root .nm-trust-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #e6fcf5;
+  color: #0ca678;
+  border: 1px solid #b2f2bb;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2.5px 8.5px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+:root[data-theme="dark"] .nm-explore-root .nm-trust-pill {
+  background: rgba(12, 166, 120, 0.16);
+  color: #38d9a9;
+  border-color: rgba(12, 166, 120, 0.32);
+}
+
+.nm-explore-root .nm-curated-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fff4e6;
+  color: #d9480f;
+  border: 1px solid #ffd8a8;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+:root[data-theme="dark"] .nm-explore-root .nm-curated-badge {
+  background: rgba(217, 72, 15, 0.18);
+  color: #ff922b;
+  border-color: rgba(217, 72, 15, 0.35);
+}
+
+/* Mutual Match Highlights */
+.nm-explore-root .nm-highlights-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 6px 0 2px;
+}
+.nm-explore-root .nm-hl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3.5px;
+  background: #f8f9fa;
+  color: #495057;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2.5px 8.5px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  line-height: 1.35;
+}
+:root[data-theme="dark"] .nm-explore-root .nm-hl-chip {
+  background: #242321;
+  color: #ced4da;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* One-Tap Chat Icebreakers */
+.nm-explore-root .nm-icebreakers {
+  padding: 10px 18px 8px;
+  border-top: 1px solid var(--line);
+  background: var(--sf);
+}
+.nm-explore-root .nm-icebreaker-title {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+.nm-explore-root .nm-icebreaker-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.nm-explore-root .nm-icebreaker-chips::-webkit-scrollbar {
+  display: none;
+}
+.nm-explore-root .nm-icebreaker-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--sf);
+  border: 1.5px solid var(--brand);
+  color: var(--brand);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.nm-explore-root .nm-icebreaker-chip:hover {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(240, 84, 30, 0.22);
+}
+
+
