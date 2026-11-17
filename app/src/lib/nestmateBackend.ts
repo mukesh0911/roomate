@@ -1313,6 +1313,32 @@ export async function createNewListingBackend(listingData: any, currentUser: any
     userPayload.housingPreferences.associatedListingId = listingRef.id;
   }
 
+  // Auto-sync host house rules, gender preference & city into quizAnswers & user profile baseline
+  const existingQuiz = existingUserData?.quizAnswers || {};
+  const syncedQuiz: Record<string, string> = { ...existingQuiz };
+  const rules = Array.isArray(listingData.lf) ? listingData.lf : [];
+  if (rules.includes('Vegetarian') && !syncedQuiz.diet) {
+    syncedQuiz.diet = 'veg';
+    syncedQuiz.food_pref = 'veg';
+  }
+  if (rules.includes('Non-smoker') && !syncedQuiz.smoke) {
+    syncedQuiz.smoke = 'never';
+    syncedQuiz.smoking = 'never';
+  }
+  if (rules.includes('Early riser') && !syncedQuiz.sleep) {
+    syncedQuiz.sleep = 'before_10';
+    syncedQuiz.sleep_time = 'before_10';
+  } else if (rules.includes('Night owl') && !syncedQuiz.sleep) {
+    syncedQuiz.sleep = 'after_12';
+    syncedQuiz.sleep_time = 'after_12';
+  }
+  if (listingData.gd && listingData.gd !== 'Any' && !syncedQuiz.roommate_gender) {
+    syncedQuiz.roommate_gender = listingData.gd;
+  }
+  if (Object.keys(syncedQuiz).length > Object.keys(existingQuiz).length) {
+    userPayload.quizAnswers = syncedQuiz;
+  }
+
   const batch = writeBatch(db);
   batch.set(listingRef, { ...newDoc });
   batch.set(userRef, userPayload, { merge: true });
@@ -1424,6 +1450,48 @@ export async function updateListingBackend(listingId: string, updatedData: any):
   }
 
   await updateDoc(ref, updatePayload);
+
+  // Auto-sync host house rules & gender preference into user profile baseline if updated
+  if (auth.currentUser && (Array.isArray(updatedData.lf) || updatedData.gd)) {
+    try {
+      const userRef = doc(db, 'users', auth.currentUser.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap && typeof userSnap.data === 'function') {
+        const uData = userSnap.data() || {};
+        const qAnswers: Record<string, string> = { ...(uData.quizAnswers || {}) };
+        let dirty = false;
+        const uRules = Array.isArray(updatedData.lf) ? updatedData.lf : [];
+        if (uRules.includes('Vegetarian') && !qAnswers.diet) {
+          qAnswers.diet = 'veg';
+          qAnswers.food_pref = 'veg';
+          dirty = true;
+        }
+        if (uRules.includes('Non-smoker') && !qAnswers.smoke) {
+          qAnswers.smoke = 'never';
+          qAnswers.smoking = 'never';
+          dirty = true;
+        }
+        if (uRules.includes('Early riser') && !qAnswers.sleep) {
+          qAnswers.sleep = 'before_10';
+          qAnswers.sleep_time = 'before_10';
+          dirty = true;
+        } else if (uRules.includes('Night owl') && !qAnswers.sleep) {
+          qAnswers.sleep = 'after_12';
+          qAnswers.sleep_time = 'after_12';
+          dirty = true;
+        }
+        if (updatedData.gd && updatedData.gd !== 'Any' && !qAnswers.roommate_gender) {
+          qAnswers.roommate_gender = updatedData.gd;
+          dirty = true;
+        }
+        if (dirty) {
+          await updateDoc(userRef, { quizAnswers: qAnswers, updatedAt: serverTimestamp() });
+        }
+      }
+    } catch (uErr) {
+      console.warn('Could not auto-sync host rules on listing update:', uErr);
+    }
+  }
 }
 
 export async function deleteListingBackend(listingId: string): Promise<void> {

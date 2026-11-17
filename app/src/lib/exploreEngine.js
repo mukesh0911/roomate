@@ -3252,37 +3252,68 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             if (p.pub) {
                 const isUserVerified = (ME && (ME.ver || (USER_KYC && USER_KYC.status === 'approved')));
                 const isKycPending = (USER_KYC && USER_KYC.status === 'pending');
+                const placeLabel = esc(p.title || (p.bhk ? p.bhk + ' in ' + (p.loc || p.city || 'Bengaluru') : (p.loc || p.city || 'Your Listing')));
+                const cityTarget = esc(p.city || (currentProfile && currentProfile.city) || S.city || "Bengaluru");
+
                 if (p.edit != null) {
-                    h = '<div class="dn"><svg viewBox="0 0 110 110"><circle cx="55" cy="55" r="48" fill="var(--bs)"/><path d="M30 76V52l25-20 25 20v24z" fill="#f0541e"/><rect x="48" y="58" width="14" height="18" rx="4" fill="#fff"/><path d="M84 22l2.500 7 7 2.500-7 2.500-2.500 7-2.500-7-7-2.500 7-2.500z" fill="#f0541e"/></svg><h2>Changes saved</h2><p class="sub" style="margin:0 auto">Your listing is updated.</p><div class="row2"><button class="pfbar go2" style="position:static;padding:0 26px;border:0" data-p="view">View my listings</button><button class="pvb" style="display:block" data-p="again">Post another</button></div></div>';
+                    h = '<div class="dn" style="text-align:center;padding:24px 16px">' +
+                        '<div style="width:72px;height:72px;margin:0 auto 16px;border-radius:50%;background:rgba(76,199,155,.14);display:grid;place-items:center;color:var(--ok)">' +
+                        '<svg style="width:36px;height:36px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+                        '</div>' +
+                        '<h2 style="font-size:24px;margin-bottom:6px">Changes Saved Successfully</h2>' +
+                        '<p class="sub" style="margin:0 auto 20px;max-width:440px">Your updates for <b>' + placeLabel + '</b> are now active.</p>' +
+                        '<div class="row2" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">' +
+                        '<button class="pfbar go2" style="position:static;padding:0 26px;border:0;height:46px;border-radius:12px;font-weight:600" data-p="view">View My Listings</button>' +
+                        '<button class="pvb" style="display:inline-flex;height:46px;padding:0 20px;border-radius:12px;font-weight:600" data-p="matches">Find Roommates in ' + cityTarget + '</button>' +
+                        '</div></div>';
                 } else if (!isUserVerified && !isKycPending) {
-                    h = '<div class="dn"><svg viewBox="0 0 110 110"><circle cx="55" cy="55" r="48" fill="var(--bs)"/><path d="M30 76V52l25-20 25 20v24z" fill="#f0541e"/><rect x="48" y="58" width="14" height="18" rx="4" fill="#fff"/><path d="M84 22l2.500 7 7 2.500-7 2.500-2.500 7-2.500-7-7-2.500 7-2.500z" fill="#f0541e"/></svg>' +
-                        '<h2>Listing submitted</h2>' +
-                        '<div class="v-alert" style="background:#fff4e5;border:1px solid #ffd8a8;border-radius:14px;padding:16px 20px;margin:16px auto;max-width:460px;text-align:left;box-shadow:0 2px 8px rgba(0,0,0,0.03)">' +
+                    h = '<div class="dn" style="text-align:center;padding:24px 16px">' +
+                        '<div style="width:72px;height:72px;margin:0 auto 16px;border-radius:50%;background:rgba(240,84,30,.12);display:grid;place-items:center;color:var(--brand)">' +
+                        '<svg style="width:36px;height:36px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' +
+                        '</div>' +
+                        '<div style="display:inline-block;padding:3px 12px;border-radius:999px;background:rgba(240,84,30,.12);color:var(--brand);font-size:12px;font-weight:700;margin-bottom:8px">Listing Saved · Quick Verification Needed</div>' +
+                        '<h2 style="font-size:24px;margin-bottom:8px">Almost Live! Verify to Publish</h2>' +
+                        '<div class="v-alert" style="background:var(--sunk);border:1px solid var(--line);border-radius:16px;padding:16px 20px;margin:16px auto;max-width:480px;text-align:left">' +
                         '<div style="display:flex;gap:12px;align-items:flex-start">' +
-                        '<svg style="width:24px;height:24px;flex-shrink:0;fill:#f0541e;margin-top:1px" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>' +
-                        '<div><b style="color:#d9480f;display:block;margin-bottom:4px;font-size:14.5px">Complete verification to publish your listing</b>' +
-                        '<p style="margin:0;font-size:13px;color:#495057;line-height:1.45">Your room listing has been created as <b>Pending verification</b>. To protect our community, listings cannot be published or displayed in discovery until your identity is verified.</p>' +
+                        '<svg style="width:22px;height:22px;flex-shrink:0;stroke:var(--brand);margin-top:2px" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+                        '<div><b style="color:var(--ink);display:block;margin-bottom:4px;font-size:14px">Zero-Brokerage Safe Marketplace</b>' +
+                        '<p style="margin:0;font-size:13px;color:var(--ink2);line-height:1.45">To protect seekers and hosts from scams, listings go live once owner identity is verified. Verification takes under 60 seconds.</p>' +
                         '</div></div></div>' +
                         '<div class="row2" style="margin-top:20px;gap:10px;justify-content:center;display:flex;flex-wrap:wrap">' +
-                        '<button class="go2" style="position:static;padding:0 28px;border:0;background:var(--brand);color:#fff;font-weight:600" data-p="verify">Verify now</button>' +
-                        '<button class="pvb" style="display:block" data-p="view">View my listings</button>' +
-                        '<button class="pvb" style="display:block" data-p="again">Post another</button>' +
+                        '<button class="go2" style="position:static;padding:0 28px;border:0;background:var(--brand);color:#fff;font-weight:700;height:46px;border-radius:12px" data-p="verify">Verify Identity Now</button>' +
+                        '<button class="pvb" style="display:inline-flex;height:46px;border-radius:12px" data-p="view">View in My Listings</button>' +
                         '</div></div>';
                 } else if (isKycPending) {
-                    h = '<div class="dn"><svg viewBox="0 0 110 110"><circle cx="55" cy="55" r="48" fill="var(--bs)"/><path d="M30 76V52l25-20 25 20v24z" fill="#f0541e"/><rect x="48" y="58" width="14" height="18" rx="4" fill="#fff"/><path d="M84 22l2.500 7 7 2.500-7 2.500-2.500 7-2.500-7-7-2.500 7-2.500z" fill="#f0541e"/></svg>' +
-                        '<h2>Listing submitted · Verification in review</h2>' +
-                        '<p class="sub" style="margin:0 auto;max-width:440px">Your identity document is currently under review by our moderation team. Your listing will automatically activate once approved.</p>' +
-                        '<div class="row2" style="margin-top:20px;gap:10px;justify-content:center;display:flex">' +
-                        '<button class="pfbar go2" style="position:static;padding:0 26px;border:0" data-p="view">View my listings</button>' +
-                        '<button class="pvb" style="display:block" data-p="again">Post another</button>' +
+                    h = '<div class="dn" style="text-align:center;padding:24px 16px">' +
+                        '<div style="width:72px;height:72px;margin:0 auto 16px;border-radius:50%;background:rgba(240,178,74,.14);display:grid;place-items:center;color:var(--warn)">' +
+                        '<svg style="width:36px;height:36px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+                        '</div>' +
+                        '<div style="display:inline-block;padding:3px 12px;border-radius:999px;background:rgba(240,178,74,.14);color:var(--warn);font-size:12px;font-weight:700;margin-bottom:8px">Verification in Review</div>' +
+                        '<h2 style="font-size:24px;margin-bottom:8px">Listing Submitted for Review</h2>' +
+                        '<p class="sub" style="margin:0 auto 20px;max-width:460px">Your document is being reviewed by our moderation team. Your listing will automatically appear in discovery upon approval.</p>' +
+                        '<div class="row2" style="margin-top:20px;gap:10px;justify-content:center;display:flex;flex-wrap:wrap">' +
+                        '<button class="pfbar go2" style="position:static;padding:0 26px;border:0;height:46px;border-radius:12px;font-weight:600" data-p="view">Track in My Listings</button>' +
+                        '<button class="pvb" style="display:inline-flex;height:46px;border-radius:12px" data-p="matches">Browse Roommates in ' + cityTarget + '</button>' +
                         '</div></div>';
                 } else {
-                    h = '<div class="dn"><svg viewBox="0 0 110 110"><circle cx="55" cy="55" r="48" fill="var(--bs)"/><path d="M30 76V52l25-20 25 20v24z" fill="#f0541e"/><rect x="48" y="58" width="14" height="18" rx="4" fill="#fff"/><path d="M84 22l2.500 7 7 2.500-7 2.500-2.500 7-2.500-7-7-2.500 7-2.500z" fill="#f0541e"/></svg>' +
-                        '<h2>Listing submitted for review</h2>' +
-                        '<p class="sub" style="margin:0 auto;max-width:440px">Your listing is queued for moderator review. You can track its status in My listings.</p>' +
-                        '<div class="row2" style="margin-top:20px;gap:10px;justify-content:center;display:flex">' +
-                        '<button class="pfbar go2" style="position:static;padding:0 26px;border:0" data-p="view">View my listings</button>' +
-                        '<button class="pvb" style="display:block" data-p="again">Post another</button>' +
+                    h = '<div class="dn" style="text-align:center;padding:24px 16px">' +
+                        '<div style="width:76px;height:76px;margin:0 auto 16px;border-radius:50%;background:rgba(76,199,155,.14);display:grid;place-items:center;color:var(--ok)">' +
+                        '<svg style="width:40px;height:40px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>' +
+                        '</div>' +
+                        '<div style="display:inline-block;padding:4px 14px;border-radius:999px;background:rgba(76,199,155,.14);color:var(--ok);font-size:12.5px;font-weight:700;margin-bottom:8px">✨ Listing Published Live</div>' +
+                        '<h2 style="font-size:26px;margin-bottom:6px">Your Space is Now Live!</h2>' +
+                        '<p class="sub" style="margin:0 auto 18px;max-width:480px;font-size:14.5px;color:var(--ink2)"><b>' + placeLabel + '</b> is now visible to active seekers in <b>' + cityTarget + '</b>. Inquiries will arrive directly in your Inbox.</p>' +
+                        '<div style="max-width:460px;margin:0 auto 24px;padding:14px 16px;border-radius:16px;background:var(--bs);border:1px solid rgba(240,84,30,.2);text-align:left;display:flex;align-items:center;gap:12px">' +
+                        '<svg style="width:24px;height:24px;color:var(--brand);flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' +
+                        '<div style="flex:1;min-width:0"><b style="font-size:13.5px;color:var(--ink);display:block">Never miss a serious inquiry</b><small style="color:var(--ink2);font-size:12px">Turn on browser alerts for instant tenant notifications.</small></div>' +
+                        '<button type="button" class="pill" data-p="push-alerts" style="background:var(--brand);color:#fff;border-color:var(--brand);font-size:12px;font-weight:700;height:32px;padding:0 12px;flex-shrink:0">Enable Alerts</button>' +
+                        '</div>' +
+                        '<div class="row2" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">' +
+                        '<button class="go2" style="position:static;padding:0 26px;border:0;height:46px;border-radius:12px;background:var(--brand);color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:8px" data-p="matches">' +
+                        '<svg style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><circle cx="17" cy="8" r="2.5"/><path d="M17 14c2.5 0 4.5 1.5 5 4.5"/></svg>' +
+                        'Browse Matched Flatmates</button>' +
+                        '<button class="pvb" style="display:inline-flex;height:46px;padding:0 20px;border-radius:12px;font-weight:600" data-p="view">View in My Listings</button>' +
+                        '<button class="pvb" style="display:inline-flex;height:46px;padding:0 18px;border-radius:12px;font-weight:600" data-p="again">+ Post Another</button>' +
                         '</div></div>';
                 }
             }
@@ -3625,6 +3656,29 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 $("pf").classList.remove("o");
                 S.nav = "listings";
                 render();
+            }
+            else if (a == "matches") {
+                clearPostUrlParams();
+                $("pf").classList.remove("o");
+                S.nav = "explore";
+                S.cat = 2; // Switch to Roommates tab
+                if (PF.city) S.city = PF.city;
+                render();
+            }
+            else if (a == "push-alerts") {
+                if (typeof window !== "undefined" && "Notification" in window) {
+                    Notification.requestPermission().then(function (perm) {
+                        if (perm === "granted") {
+                            toast("Instant inquiry alerts enabled!");
+                        } else {
+                            toast("Notification permission: " + perm);
+                        }
+                    }).catch(function () {
+                        toast("Notifications not supported in this browser.");
+                    });
+                } else {
+                    toast("Notifications not supported in this browser.");
+                }
             }
             else if (a == "again") {
                 PF = pf0();
