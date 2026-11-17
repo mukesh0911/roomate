@@ -45,21 +45,21 @@ const page = (docs: unknown[]) => ({ docs, empty: docs.length === 0 });
 
 beforeEach(() => {
   vi.clearAllMocks();
-  fake.context.mockResolvedValue({active:true,blocked:false,accepted:true,identity:{uid:'peer',name:'Peer'}});
-  fake.gatewayPage.mockImplementation(async (_action, _cursor, size) => { const result = await fake.getDocs({constraints:[{limit:size}]}); return {...result,scanned:result.docs.length,cursor:result.docs.at(-1)?.id,hasMore:result.docs.length >= size}; });
+  fake.context.mockResolvedValue({ active: true, blocked: false, accepted: true, identity: { uid: 'peer', name: 'Peer' } });
+  fake.gatewayPage.mockImplementation(async (_action, _cursor, size) => { const result = await fake.getDocs({ constraints: [{ limit: size }] }); return { ...result, scanned: result.docs.length, cursor: result.docs.at(-1)?.id, hasMore: result.docs.length >= size }; });
   fake.batch.mockReturnValue({ set: vi.fn(), commit: vi.fn().mockResolvedValue(undefined) });
 });
 
 describe('production readiness backend behavior', () => {
   it('keeps a newly arrived unseen message unread when an older thread was rendered', async () => {
     const update = vi.fn();
-    const tx = {get:async()=>({exists:()=>true,data:()=>({participants:['me','peer'],lastMessageId:'newer',unreadBy:{me:2}})}),update};
+    const tx = { get: async () => ({ exists: () => true, data: () => ({ participants: ['me', 'peer'], lastMessageId: 'newer', unreadBy: { me: 2 } }) }), update };
     fake.transaction.mockImplementationOnce(callback => callback(tx));
-    expect(await markConversationReadBackend('room','older')).toBe(false);
+    expect(await markConversationReadBackend('room', 'older')).toBe(false);
     expect(update).not.toHaveBeenCalled();
     fake.transaction.mockImplementationOnce(callback => callback(tx));
-    expect(await markConversationReadBackend('room','newer')).toBe(true);
-    expect(update).toHaveBeenCalledWith('chatRooms/room',{unreadBy:{me:0}});
+    expect(await markConversationReadBackend('room', 'newer')).toBe(true);
+    expect(update).toHaveBeenCalledWith('chatRooms/room', { unreadBy: { me: 0 } });
   });
 
   it('reports a live chat subscription failure without replacing known conversations with an empty list', () => {
@@ -76,26 +76,26 @@ describe('production readiness backend behavior', () => {
     fake.onSnapshot.mockImplementation((_query, callback) => { emit = callback; return vi.fn(); });
     fake.getDocs.mockRejectedValueOnce(new Error('offline'));
     const update = vi.fn(), stop = subscribeLiveUserChats('me', update);
-    await emit(page([{id:'room',data:()=>({participants:['me','peer'],unreadBy:{me:3}})}]));
-    const room=update.mock.calls[0][0][0];
-    expect(room.historyError).toBe(true);expect(room.un).toBe(3);stop();
+    await emit(page([{ id: 'room', data: () => ({ participants: ['me', 'peer'], unreadBy: { me: 3 } }) }]));
+    const room = update.mock.calls[0][0][0];
+    expect(room.historyError).toBe(true); expect(room.un).toBe(3); stop();
   });
 
   it('hydrates several conversations concurrently with bounded requests and stable order', async () => {
     let emit!: (snapshot: ReturnType<typeof page>) => Promise<void>;
     fake.onSnapshot.mockImplementation((_query, callback) => { emit = callback; return vi.fn(); });
-    const waiting = new Map<string,(value: unknown)=>void>();
-    fake.context.mockImplementation(peer => new Promise(resolve => waiting.set(peer,resolve)));
+    const waiting = new Map<string, (value: unknown) => void>();
+    fake.context.mockImplementation(peer => new Promise(resolve => waiting.set(peer, resolve)));
     fake.getDocs.mockResolvedValue(page([]));
-    const update = vi.fn(), stop = subscribeLiveUserChats('me',update);
-    const loading = emit(page(Array.from({length:5},(_,i)=>({id:'room'+i,data:()=>({participants:['me','peer'+i]})}))));
+    const update = vi.fn(), stop = subscribeLiveUserChats('me', update);
+    const loading = emit(page(Array.from({ length: 5 }, (_, i) => ({ id: 'room' + i, data: () => ({ participants: ['me', 'peer' + i] }) }))));
     expect(waiting.size).toBe(4);
-    for (const [id,resolve] of waiting) resolve({active:true,accepted:true,blocked:false,identity:{uid:id}});
-    await vi.waitFor(()=>expect(waiting.size).toBe(5));
-    waiting.get('peer4')!({active:true,accepted:true,blocked:false,identity:{uid:'peer4'}});
+    for (const [id, resolve] of waiting) resolve({ active: true, accepted: true, blocked: false, identity: { uid: id } });
+    await vi.waitFor(() => expect(waiting.size).toBe(5));
+    waiting.get('peer4')!({ active: true, accepted: true, blocked: false, identity: { uid: 'peer4' } });
     await loading;
-    expect(update.mock.calls[0][0].map((room: {id:string})=>room.id)).toEqual(['room0','room1','room2','room3','room4']);
-    stop(); fake.context.mockResolvedValue({active:true,blocked:false,accepted:true,identity:{uid:'peer',name:'Peer'}});
+    expect(update.mock.calls[0][0].map((room: { id: string }) => room.id)).toEqual(['room0', 'room1', 'room2', 'room3', 'room4']);
+    stop(); fake.context.mockResolvedValue({ active: true, blocked: false, accepted: true, identity: { uid: 'peer', name: 'Peer' } });
   });
 
   it('uses one current peer context for identity and communication permission', async () => {
@@ -103,10 +103,10 @@ describe('production readiness backend behavior', () => {
     fake.onSnapshot.mockImplementation((_query, callback) => { emit = callback; return vi.fn(); });
     fake.getDocs.mockResolvedValue(page([]));
     const update = vi.fn(), stop = subscribeLiveUserChats('me', update);
-    await emit(page([{id:'room',data:()=>({participants:['me','peer']})}]));
+    await emit(page([{ id: 'room', data: () => ({ participants: ['me', 'peer'] }) }]));
     expect(fake.context).toHaveBeenCalledTimes(1);
     expect(fake.context).toHaveBeenCalledWith('peer', undefined, 'room');
-    expect(update.mock.calls[0][0][0].authorized).toBe(true);stop();
+    expect(update.mock.calls[0][0][0].authorized).toBe(true); stop();
   });
 
   it('ignores an older chat hydration that finishes after a newer snapshot', async () => {
@@ -114,7 +114,7 @@ describe('production readiness backend behavior', () => {
     fake.onSnapshot.mockImplementation((_query, callback) => { emit = callback; return vi.fn(); });
     let resume!: (value: unknown) => void;
     fake.context.mockImplementationOnce(() => new Promise(resolve => { resume = resolve; }))
-      .mockResolvedValue({identity:{uid:'peer',name:'Peer'}});
+      .mockResolvedValue({ identity: { uid: 'peer', name: 'Peer' } });
     fake.getDocs.mockResolvedValue(page([]));
     const update = vi.fn();
     const stop = subscribeLiveUserChats('me', update);
@@ -122,7 +122,7 @@ describe('production readiness backend behavior', () => {
     const older = emit(page([room('old')]));
     await emit(page([room('new')]));
     expect(update.mock.calls[0][0][0].id).toBe('new');
-    resume({identity:{uid:'peer',name:'Peer'}});
+    resume({ identity: { uid: 'peer', name: 'Peer' } });
     await older;
     expect(update).toHaveBeenCalledTimes(1);
     stop();
@@ -139,7 +139,7 @@ describe('production readiness backend behavior', () => {
     const stop = subscribeLiveUserChats('me', update);
     const pending = emit(page([{ id: 'room', data: () => ({ participants: ['me', 'peer'] }) }]));
     stop();
-    resume({identity:{uid:'peer',name:'Peer'}});
+    resume({ identity: { uid: 'peer', name: 'Peer' } });
     await pending;
     expect(unsubscribe).toHaveBeenCalledOnce();
     expect(update).not.toHaveBeenCalled();
@@ -168,7 +168,7 @@ describe('production readiness backend behavior', () => {
   });
 
   it('hydrates a canonical have-room candidate even when role is seeker and legacy intent is absent', async () => {
-    const host = { id: 'host', data: () => ({ name: 'Host', role: 'seeker', status: 'active', serverResolvedIntent:{isDiscoveryEligible:true,isLiveInHost:true}, housingPreferences: { activeIntents: ['have_room'], associatedListingId: 'room' } }) };
+    const host = { id: 'host', data: () => ({ name: 'Host', role: 'seeker', status: 'active', serverResolvedIntent: { isDiscoveryEligible: true, isLiveInHost: true }, housingPreferences: { activeIntents: ['have_room'], associatedListingId: 'room' } }) };
     fake.getDocs.mockResolvedValueOnce(page([host]));
     const result = await fetchBoundedExploreRoommates({ currentUid: 'me', pageSize: 2 });
     expect(result.roommates.map((p) => p.uid)).toEqual(['host']);
@@ -177,12 +177,12 @@ describe('production readiness backend behavior', () => {
 
   it('continues past a server page containing only hidden records', async () => {
     const visible = person('visible');
-    fake.gatewayPage.mockResolvedValueOnce({docs:[],empty:false,scanned:2,cursor:'hidden',hasMore:true})
-      .mockResolvedValueOnce({docs:[visible],empty:false,scanned:1,cursor:'visible',hasMore:false});
-    const result = await fetchBoundedExploreRoommates({currentUid:'me',pageSize:2});
+    fake.gatewayPage.mockResolvedValueOnce({ docs: [], empty: false, scanned: 2, cursor: 'hidden', hasMore: true })
+      .mockResolvedValueOnce({ docs: [visible], empty: false, scanned: 1, cursor: 'visible', hasMore: false });
+    const result = await fetchBoundedExploreRoommates({ currentUid: 'me', pageSize: 2 });
     expect(result.roommates.map(person => person.uid)).toEqual(['visible']);
-    expect(result.totalDocsRead).toBe(3);expect(result.hasMore).toBe(false);
-    expect(fake.gatewayPage).toHaveBeenNthCalledWith(2,'people',{id:'hidden'},2);
+    expect(result.totalDocsRead).toBe(3); expect(result.hasMore).toBe(false);
+    expect(fake.gatewayPage).toHaveBeenNthCalledWith(2, 'people', { id: 'hidden' }, 2);
   });
 
   it('applies category and city text predicates before collecting the page', async () => {
@@ -204,7 +204,7 @@ describe('production readiness backend behavior', () => {
   it('a failed discovery query rejects instead of reporting an empty final page', async () => {
     fake.getDocs.mockRejectedValue(new Error('permission-denied'));
     await expect(fetchBoundedExploreListings({})).rejects.toThrow('permission-denied');
-    await expect(fetchBoundedExploreRoommates({ currentUid: 'me',})).rejects.toThrow('permission-denied');
+    await expect(fetchBoundedExploreRoommates({ currentUid: 'me', })).rejects.toThrow('permission-denied');
   });
 
   it('does not fabricate visitor compatibility, budget uplift, location or availability', () => {
@@ -227,11 +227,11 @@ describe('production readiness backend behavior', () => {
 
   it('commits quota, new history and recipient event in one transaction', async () => {
     fake.getDocs.mockResolvedValue(page([]));
-    const transaction = { get: vi.fn(async (ref: string) => ref.startsWith('users/') ? {exists:()=>true, data:()=>({connectsUsed:0,status:'active'})} : {exists:()=>false}), set:vi.fn(), update:vi.fn() };
-    fake.transaction.mockImplementation(callback=>callback(transaction));
+    const transaction = { get: vi.fn(async (ref: string) => ref.startsWith('users/') ? { exists: () => true, data: () => ({ connectsUsed: 0, status: 'active' }) } : { exists: () => false }), set: vi.fn(), update: vi.fn() };
+    fake.transaction.mockImplementation(callback => callback(transaction));
     await expect(sendConnectionRequestBackend('other')).resolves.toBe('new');
-    expect(transaction.update).toHaveBeenCalledWith('users/me',expect.objectContaining({connectsUsed:1,lastConnectionId:'new'}));
-    expect(transaction.set).toHaveBeenCalledWith('notifications/new_pending',expect.objectContaining({userId:'other',connectionId:'new'}));
+    expect(transaction.update).toHaveBeenCalledWith('users/me', expect.objectContaining({ connectsUsed: 1, lastConnectionId: 'new' }));
+    expect(transaction.set).toHaveBeenCalledWith('notifications/new_pending', expect.objectContaining({ userId: 'other', connectionId: 'new' }));
     expect(fake.addDoc).not.toHaveBeenCalled();
     expect(fake.deleteDoc).not.toHaveBeenCalled();
   });
@@ -239,9 +239,11 @@ describe('production readiness backend behavior', () => {
   it('reconciles a losing request transaction without charging another allowance', async () => {
     fake.getDocs.mockResolvedValue(page([]));
     const existing = { id: 'reverse-winner', exists: () => true, data: () => ({ fromUserId: 'other', toUserId: 'me', status: 'pending' }) };
-    const tx = { get: vi.fn(async (ref: string) => ref.startsWith('users/')
-      ? { exists: () => true, data: () => ({ status: 'active', connectsUsed: 0 }) }
-      : ref.startsWith('connectionPairs/') ? { exists: () => true, data: () => ({ connectionId: 'reverse-winner' }) } : existing), set: vi.fn(), update: vi.fn() };
+    const tx = {
+      get: vi.fn(async (ref: string) => ref.startsWith('users/')
+        ? { exists: () => true, data: () => ({ status: 'active', connectsUsed: 0 }) }
+        : ref.startsWith('connectionPairs/') ? { exists: () => true, data: () => ({ connectionId: 'reverse-winner' }) } : existing), set: vi.fn(), update: vi.fn()
+    };
     fake.transaction.mockRejectedValueOnce(Object.assign(new Error('Competing request committed'), { code: 'permission-denied' }))
       .mockImplementationOnce(callback => callback(tx));
     await expect(sendConnectionRequestBackend('other')).resolves.toBe('reverse-winner');
@@ -250,14 +252,14 @@ describe('production readiness backend behavior', () => {
   });
 
   it('commits a message, unread summary and deterministic recipient event together', async () => {
-    const transaction = {get:vi.fn(async (ref:string)=>ref==='chatRooms/chat'?{exists:()=>true,data:()=>({participants:['me','other'],unreadBy:{other:2}})}:{exists:()=>false}),set:vi.fn(),update:vi.fn()};
-    fake.transaction.mockImplementation(callback=>callback(transaction));
-    await sendMessageBackend('chat','Hello','','message-1');
-    expect(transaction.set).toHaveBeenCalledWith('chatRooms/chat/messages/message-1',expect.objectContaining({senderId:'me',content:'Hello'}));
-    expect(transaction.update).toHaveBeenCalledWith('chatRooms/chat',expect.objectContaining({unreadBy:{other:3}}));
-    expect(transaction.set).toHaveBeenCalledWith('notifications/chat_message-1',expect.objectContaining({userId:'other'}));
-    await expect(sendMessageBackend('chat','  ')).rejects.toThrow('Enter a message');
-    await expect(sendMessageBackend('chat','','data:image/png;base64,bypass')).rejects.toThrow('Upload an authorized attachment');
+    const transaction = { get: vi.fn(async (ref: string) => ref === 'chatRooms/chat' ? { exists: () => true, data: () => ({ participants: ['me', 'other'], unreadBy: { other: 2 } }) } : { exists: () => false }), set: vi.fn(), update: vi.fn() };
+    fake.transaction.mockImplementation(callback => callback(transaction));
+    await sendMessageBackend('chat', 'Hello', '', 'message-1');
+    expect(transaction.set).toHaveBeenCalledWith('chatRooms/chat/messages/message-1', expect.objectContaining({ senderId: 'me', content: 'Hello' }));
+    expect(transaction.update).toHaveBeenCalledWith('chatRooms/chat', expect.objectContaining({ unreadBy: { other: 3 } }));
+    expect(transaction.set).toHaveBeenCalledWith('notifications/chat_message-1', expect.objectContaining({ userId: 'other' }));
+    await expect(sendMessageBackend('chat', '  ')).rejects.toThrow('Enter a message');
+    await expect(sendMessageBackend('chat', '', 'data:image/png;base64,bypass')).rejects.toThrow('Upload an authorized attachment');
   });
 
   it('cannot self grant identity verification through deprecated helper', async () => {
@@ -308,25 +310,25 @@ describe('production readiness backend behavior', () => {
   });
 
   it('reviews exactly the inspected identity and commits trust, evidence and notification together', async () => {
-    fake.getDocs.mockResolvedValue(page([{ref:'listings/r'}]));
-    const tx={get:vi.fn().mockResolvedValue({exists:()=>true,data:()=>({status:'PENDING',documentPath:'verificationDocs/p/version.jpg'})}),set:vi.fn(),update:vi.fn()};
-    fake.transaction.mockImplementation(callback=>callback(tx));
-    await adminApproveVerificationBackend('p','admin@example.invalid','Reviewed','verificationDocs/p/version.jpg');
-    expect(tx.update).toHaveBeenCalledWith('users/p',expect.objectContaining({isVerified:true,isAadhaarVerified:false}));
-    expect(tx.update).toHaveBeenCalledWith('listings/r',expect.objectContaining({ownerVerified:true}));
-    expect(tx.set).toHaveBeenCalledWith('notifications/p_identity_version.jpg_APPROVED',expect.objectContaining({userId:'p',type:'verification'}));
-    expect(tx.update).not.toHaveBeenCalledWith('listings/r',expect.objectContaining({status:'active'}));
-    tx.set.mockClear();tx.update.mockClear();
-    await expect(adminApproveVerificationBackend('p','admin@example.invalid','Reviewed','verificationDocs/p/old.jpg')).rejects.toThrow('changed');
-    expect(tx.set).not.toHaveBeenCalled();expect(tx.update).not.toHaveBeenCalled();
-    await adminRejectVerificationBackend('p','admin@example.invalid','Unreadable','verificationDocs/p/version.jpg');
-    expect(tx.update).toHaveBeenCalledWith('users/p',expect.objectContaining({isVerified:false,verificationLevel:0}));
+    fake.getDocs.mockResolvedValue(page([{ ref: 'listings/r' }]));
+    const tx = { get: vi.fn().mockResolvedValue({ exists: () => true, data: () => ({ status: 'PENDING', documentPath: 'verificationDocs/p/version.jpg' }) }), set: vi.fn(), update: vi.fn() };
+    fake.transaction.mockImplementation(callback => callback(tx));
+    await adminApproveVerificationBackend('p', 'admin@example.invalid', 'Reviewed', 'verificationDocs/p/version.jpg');
+    expect(tx.update).toHaveBeenCalledWith('users/p', expect.objectContaining({ isVerified: true, isAadhaarVerified: false }));
+    expect(tx.update).toHaveBeenCalledWith('listings/r', expect.objectContaining({ ownerVerified: true }));
+    expect(tx.set).toHaveBeenCalledWith('notifications/p_identity_version.jpg_APPROVED', expect.objectContaining({ userId: 'p', type: 'verification' }));
+    expect(tx.update).not.toHaveBeenCalledWith('listings/r', expect.objectContaining({ status: 'active' }));
+    tx.set.mockClear(); tx.update.mockClear();
+    await expect(adminApproveVerificationBackend('p', 'admin@example.invalid', 'Reviewed', 'verificationDocs/p/old.jpg')).rejects.toThrow('changed');
+    expect(tx.set).not.toHaveBeenCalled(); expect(tx.update).not.toHaveBeenCalled();
+    await adminRejectVerificationBackend('p', 'admin@example.invalid', 'Unreadable', 'verificationDocs/p/version.jpg');
+    expect(tx.update).toHaveBeenCalledWith('users/p', expect.objectContaining({ isVerified: false, verificationLevel: 0 }));
   });
   it('large portfolios and uninspected submissions fail before any review writes', async () => {
-    fake.getDocs.mockResolvedValue(page(Array.from({length:498},()=>({ref:'r'}))));
-    await expect(adminApproveVerificationBackend('p','admin@example.invalid','Review','verificationDocs/p/version.jpg')).rejects.toThrow('server-side');
+    fake.getDocs.mockResolvedValue(page(Array.from({ length: 498 }, () => ({ ref: 'r' }))));
+    await expect(adminApproveVerificationBackend('p', 'admin@example.invalid', 'Review', 'verificationDocs/p/version.jpg')).rejects.toThrow('server-side');
     expect(fake.transaction).not.toHaveBeenCalled();
-    await expect(adminApproveVerificationBackend('p','admin@example.invalid')).rejects.toThrow('Open the current');
+    await expect(adminApproveVerificationBackend('p', 'admin@example.invalid')).rejects.toThrow('Open the current');
   });
 
   it('resubmits rejected identity privately and commits both submission mirrors together', async () => {
@@ -356,23 +358,23 @@ describe('production readiness backend behavior', () => {
     expect(fake.getDownloadURL).not.toHaveBeenCalled();
   });
 
-  const permittedUser = async (ref:string) => ref.startsWith('users/') ? {exists:()=>true,data:()=>({status:'active'})} : ref.startsWith('acceptedPairs/') ? {exists:()=>true,data:()=>({connectionId:'consent'})} : ref.startsWith('connections/') ? {exists:()=>true,data:()=>({status:'accepted',fromUserId:'me',toUserId:'other'})} : {exists:()=>false};
+  const permittedUser = async (ref: string) => ref.startsWith('users/') ? { exists: () => true, data: () => ({ status: 'active' }) } : ref.startsWith('acceptedPairs/') ? { exists: () => true, data: () => ({ connectionId: 'consent' }) } : ref.startsWith('connections/') ? { exists: () => true, data: () => ({ status: 'accepted', fromUserId: 'me', toUserId: 'other' }) } : { exists: () => false };
   it('serializes new room identity and keeps concurrent metadata intact', async () => {
-    fake.getDoc.mockImplementation(permittedUser);fake.getDocs.mockResolvedValue(page([]));
-    const tx={get:vi.fn().mockResolvedValue({exists:()=>false}),set:vi.fn(),update:vi.fn()};
-    fake.transaction.mockImplementation(callback=>callback(tx));
+    fake.getDoc.mockImplementation(permittedUser); fake.getDocs.mockResolvedValue(page([]));
+    const tx = { get: vi.fn().mockResolvedValue({ exists: () => false }), set: vi.fn(), update: vi.fn() };
+    fake.transaction.mockImplementation(callback => callback(tx));
     await expect(getOrCreateChatRoomBackend('other')).resolves.toBe('me___other');
-    expect(tx.set).toHaveBeenCalledWith('chatRooms/me___other',expect.objectContaining({participants:['me','other']}));
-    expect(tx.set).toHaveBeenCalledWith('conversationPairs/me___other',expect.objectContaining({roomId:'me___other'}));
-    tx.set.mockClear();tx.get.mockImplementation(async(ref:string)=>ref.startsWith('conversationPairs/')?{exists:()=>true,data:()=>({roomId:'me___other'})}:{exists:()=>true,data:()=>({participants:['me','other'],lastMessage:'existing'})});
-    await expect(getOrCreateChatRoomBackend('other')).resolves.toBe('me___other');expect(tx.set).not.toHaveBeenCalled();
+    expect(tx.set).toHaveBeenCalledWith('chatRooms/me___other', expect.objectContaining({ participants: ['me', 'other'] }));
+    expect(tx.set).toHaveBeenCalledWith('conversationPairs/me___other', expect.objectContaining({ roomId: 'me___other' }));
+    tx.set.mockClear(); tx.get.mockImplementation(async (ref: string) => ref.startsWith('conversationPairs/') ? { exists: () => true, data: () => ({ roomId: 'me___other' }) } : { exists: () => true, data: () => ({ participants: ['me', 'other'], lastMessage: 'existing' }) });
+    await expect(getOrCreateChatRoomBackend('other')).resolves.toBe('me___other'); expect(tx.set).not.toHaveBeenCalled();
   });
   it('indexes an authorized legacy room without rewriting its history or identity', async () => {
-    fake.getDoc.mockImplementation(permittedUser);fake.getDocs.mockResolvedValue(page([{id:'legacy-random',data:()=>({participants:['me','other']})}]));
-    const tx={get:vi.fn(async(ref:string)=>ref.startsWith('conversationPairs/')?{exists:()=>false}:{exists:()=>true,data:()=>({participants:['me','other']})}),set:vi.fn(),update:vi.fn()};
-    fake.transaction.mockImplementation(callback=>callback(tx));
+    fake.getDoc.mockImplementation(permittedUser); fake.getDocs.mockResolvedValue(page([{ id: 'legacy-random', data: () => ({ participants: ['me', 'other'] }) }]));
+    const tx = { get: vi.fn(async (ref: string) => ref.startsWith('conversationPairs/') ? { exists: () => false } : { exists: () => true, data: () => ({ participants: ['me', 'other'] }) }), set: vi.fn(), update: vi.fn() };
+    fake.transaction.mockImplementation(callback => callback(tx));
     await expect(getOrCreateChatRoomBackend('other')).resolves.toBe('legacy-random');
-    expect(tx.set).toHaveBeenCalledTimes(2);expect(tx.set).toHaveBeenCalledWith('conversationPairs/me___other',expect.objectContaining({roomId:'legacy-random'}));
+    expect(tx.set).toHaveBeenCalledTimes(2); expect(tx.set).toHaveBeenCalledWith('conversationPairs/me___other', expect.objectContaining({ roomId: 'legacy-random' }));
     expect(tx.update).not.toHaveBeenCalled();
   });
 

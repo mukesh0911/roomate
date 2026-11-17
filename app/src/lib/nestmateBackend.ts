@@ -1803,10 +1803,17 @@ export async function uploadChatImageBackend(roomId: string, file: File): Promis
   return object.fullPath;
 }
 
-export async function sendMessageBackend(chatRoomId: string, content: string, imagePath = '', clientMessageId = crypto.randomUUID()): Promise<void> {
+export async function sendMessageBackend(
+  chatRoomId: string,
+  content: string,
+  imagePath = '',
+  clientMessageId = crypto.randomUUID(),
+  kind = 'text',
+  payload: any = null
+): Promise<void> {
   const user = auth.currentUser;
   if (!user) throw new Error('Sign in required.');
-  if (!content.trim() && !imagePath) throw new Error('Enter a message or attach an image.');
+  if (!content.trim() && !imagePath && !payload) throw new Error('Enter a message or attach an image.');
   if (content.length > 10000 || !/^[a-zA-Z0-9_-]{1,128}$/.test(clientMessageId)) throw new Error('Invalid message.');
   if (imagePath && !imagePath.startsWith('chats/' + chatRoomId + '/' + user.uid + '/')) throw new Error('Upload an authorized attachment first.');
   await runTransaction(db, async tx => {
@@ -1818,9 +1825,48 @@ export async function sendMessageBackend(chatRoomId: string, content: string, im
       return;
     }
     const recipient = room.data().participants.find((uid: string) => uid !== user.uid);
-    tx.set(messageRef, { senderId: user.uid, content, imagePath, read: false, createdAt: serverTimestamp() });
-    tx.update(roomRef, { lastMessage: content || 'Photo', lastMessageId: clientMessageId, lastMessageAt: serverTimestamp(), unreadBy: { ...room.data().unreadBy, [recipient]: (room.data().unreadBy?.[recipient] || 0) + 1 } });
-    tx.set(doc(db, 'notifications', chatRoomId + '_' + clientMessageId), { userId: recipient, actorId: user.uid, type: 'message', title: 'New message', description: 'You received a message.', roomId: chatRoomId, messageId: clientMessageId, read: false, createdAt: serverTimestamp() });
+    const msgData: any = { senderId: user.uid, content, imagePath, read: false, createdAt: serverTimestamp(), kind };
+    if (payload) msgData.payload = payload;
+    tx.set(messageRef, msgData);
+    tx.update(roomRef, {
+      lastMessage: content || (kind === 'tour_proposal' ? 'Visit proposed' : 'Photo'),
+      lastMessageId: clientMessageId,
+      lastMessageAt: serverTimestamp(),
+      unreadBy: { ...room.data().unreadBy, [recipient]: (room.data().unreadBy?.[recipient] || 0) + 1 }
+    });
+    tx.set(doc(db, 'notifications', chatRoomId + '_' + clientMessageId), {
+      userId: recipient,
+      actorId: user.uid,
+      type: 'message',
+      title: kind === 'tour_proposal' ? 'Room Visit Proposed' : 'New message',
+      description: content || 'You received a message.',
+      roomId: chatRoomId,
+      messageId: clientMessageId,
+      read: false,
+      createdAt: serverTimestamp()
+    });
+  });
+}
+
+export async function updateTourProposalStatusBackend(
+  chatRoomId: string,
+  messageId: string,
+  status: 'confirmed' | 'rescheduled' | 'declined'
+): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Sign in required.');
+  const msgRef = doc(db, 'chatRooms', chatRoomId, 'messages', messageId);
+  const snap = await getDoc(msgRef);
+  if (!snap.exists()) throw new Error('Proposal not found.');
+  const data = snap.data();
+  const currentPayload = data.payload || {};
+  await updateDoc(msgRef, {
+    payload: {
+      ...currentPayload,
+      status,
+      updatedBy: user.uid,
+      updatedAt: Date.now(),
+    },
   });
 }
 

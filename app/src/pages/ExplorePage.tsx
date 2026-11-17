@@ -247,6 +247,43 @@ export default function ExplorePage({ initialNav = 'explore' }: ExplorePageProps
           </div>
         </div>
       </div>
+      {/* Interactive Tour & Visit Scheduler Modal */}
+      <div className="ov" id="nm-tour-scheduler-ov" role="dialog" aria-modal="true" aria-label="Schedule a Room Visit">
+        <div className="nm-breakdown-card nm-tour-modal-card">
+          <div className="nm-breakdown-header">
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h3 style={{ margin: '0 0 4px', fontSize: '19px', fontWeight: 700 }}>Schedule a Visit</h3>
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--ink2)' }}>Propose an in-person or live video tour directly in chat</p>
+            </div>
+            <button type="button" className="nm-chooser-close" data-close-tour-scheduler="1" aria-label="Close dialog">&times;</button>
+          </div>
+          <div className="nm-tour-modal-body">
+            <label className="nm-tour-label">Tour Type</label>
+            <div className="nm-tour-type-chips">
+              <button type="button" className="chip active" data-tour-type="in_person">🏡 In-Person Visit</button>
+              <button type="button" className="chip" data-tour-type="video_tour">📱 Live Video Tour</button>
+            </div>
+
+            <label className="nm-tour-label" htmlFor="nm-tour-date-input">Preferred Date</label>
+            <input type="date" id="nm-tour-date-input" className="nm-tour-input" />
+
+            <label className="nm-tour-label" htmlFor="nm-tour-slot-select">Preferred Time Window</label>
+            <select id="nm-tour-slot-select" className="nm-tour-input" defaultValue="Afternoon (2:00 PM - 4:00 PM)">
+              <option value="Morning (10:00 AM - 12:00 PM)">Morning (10:00 AM - 12:00 PM)</option>
+              <option value="Afternoon (2:00 PM - 4:00 PM)">Afternoon (2:00 PM - 4:00 PM)</option>
+              <option value="Evening (5:00 PM - 7:00 PM)">Evening (5:00 PM - 7:00 PM)</option>
+              <option value="Night (7:00 PM - 8:30 PM)">Night (7:00 PM - 8:30 PM)</option>
+            </select>
+
+            <label className="nm-tour-label" htmlFor="nm-tour-note-input">Note for Host (Optional)</label>
+            <input type="text" id="nm-tour-note-input" className="nm-tour-input" placeholder="e.g. Checking proximity to metro / move-in timeline" maxLength={150} />
+          </div>
+          <div className="nm-breakdown-footer">
+            <button type="button" className="ghb" data-close-tour-scheduler="1">Cancel</button>
+            <button type="button" className="msgb" data-submit-tour="1" style={{ width: 'auto', padding: '0 24px' }}><em>Propose Visit</em></button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

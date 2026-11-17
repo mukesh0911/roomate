@@ -14,7 +14,7 @@ import { compressImage } from '@/lib/imageCompressor';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, verifyBeforeUpdateEmail } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { readDiscovery } from '@/lib/discoveryGateway';
-import { loadOlderMessagesBackend, fetchOwnApplicationBackend, fetchPersonByIdBackend, fetchPlaceByIdBackend, submitApplicationBackend, updateApplicationStatusBackend, disconnectConnectionBackend, blockUserBackend, unblockUserBackend, uploadChatImageBackend, markConversationReadBackend, uploadProfileAvatarBackend, getOrCreateChatRoomBackend, getVerificationDocumentBlobBackend, submitReportBackend, markNotificationReadBackend, markAllNotificationsReadBackend, fetchBoundedExploreListings, fetchBoundedExploreRoommates, subscribeBoundedListingsHead, subscribeLiveUserChats, subscribeLiveNotifications, subscribeOwnerListings, subscribeUserApplications, subscribeLiveConnections, createNewListingBackend, updateListingStatusBackend, updateListingBackend, deleteListingBackend, updateConnectionStatusBackend, withdrawConnectionRequestBackend, sendConnectionRequestBackend, sendMessageBackend, saveUserBookmarkBackend, updateUserProfileBackend, submitManualKycBackend, subscribeUserKycStatus, adminApproveVerificationBackend, adminRejectVerificationBackend, fetchAdminDataBackend, adminVerifyListingBackend, adminUpdateUserStatusBackend, adminResolveReportBackend, getSubmittedApplicationRoom, subscribeActiveChatMessages, deterministicChatRoomId, } from '@/lib/nestmateBackend';
+import { loadOlderMessagesBackend, fetchOwnApplicationBackend, fetchPersonByIdBackend, fetchPlaceByIdBackend, submitApplicationBackend, updateApplicationStatusBackend, disconnectConnectionBackend, blockUserBackend, unblockUserBackend, uploadChatImageBackend, markConversationReadBackend, uploadProfileAvatarBackend, getOrCreateChatRoomBackend, getVerificationDocumentBlobBackend, submitReportBackend, markNotificationReadBackend, markAllNotificationsReadBackend, fetchBoundedExploreListings, fetchBoundedExploreRoommates, subscribeBoundedListingsHead, subscribeLiveUserChats, subscribeLiveNotifications, subscribeOwnerListings, subscribeUserApplications, subscribeLiveConnections, createNewListingBackend, updateListingStatusBackend, updateListingBackend, deleteListingBackend, updateConnectionStatusBackend, withdrawConnectionRequestBackend, sendConnectionRequestBackend, sendMessageBackend, updateTourProposalStatusBackend, saveUserBookmarkBackend, updateUserProfileBackend, submitManualKycBackend, subscribeUserKycStatus, adminApproveVerificationBackend, adminRejectVerificationBackend, fetchAdminDataBackend, adminVerifyListingBackend, adminUpdateUserStatusBackend, adminResolveReportBackend, getSubmittedApplicationRoom, subscribeActiveChatMessages, deterministicChatRoomId, } from '@/lib/nestmateBackend';
 export function mountExploreEngine({ initialNav, location, searchParams, user, profile, openAuthModal, refreshProfile, logout, navigate }) {
     // Determine initial navigation state from route or search params
     let initialCat = 0;
@@ -2819,7 +2819,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 render();
             };
         }
-        ["nm-breakdown-ov"].forEach(function(ovId) {
+        ["nm-breakdown-ov", "nm-tour-scheduler-ov"].forEach(function(ovId) {
             const ovEl = $(ovId);
             if (ovEl) {
                 ovEl.onclick = function(e) {
@@ -2832,6 +2832,105 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             const bBreakdownClose = e.target.closest("[data-close-breakdown]");
             if (bBreakdownClose) {
                 closeMatchBreakdown();
+                return;
+            }
+            const bOpenTour = e.target.closest("[data-open-tour-scheduler]");
+            if (bOpenTour) {
+                const tourOv = $("nm-tour-scheduler-ov");
+                if (tourOv) {
+                    const dateInput = $("nm-tour-date-input");
+                    if (dateInput) {
+                        const tomorrow = new Date(Date.now() + 86400000);
+                        const minDateStr = tomorrow.toISOString().split("T")[0];
+                        dateInput.min = minDateStr;
+                        if (!dateInput.value) dateInput.value = minDateStr;
+                    }
+                    tourOv.classList.add("o");
+                }
+                return;
+            }
+            const bCloseTour = e.target.closest("[data-close-tour-scheduler]");
+            if (bCloseTour) {
+                const tourOv = $("nm-tour-scheduler-ov");
+                if (tourOv) tourOv.classList.remove("o");
+                return;
+            }
+            const bTourType = e.target.closest("[data-tour-type]");
+            if (bTourType) {
+                const chips = bTourType.parentElement ? bTourType.parentElement.querySelectorAll("[data-tour-type]") : [];
+                chips.forEach(function (c) { c.classList.remove("active"); });
+                bTourType.classList.add("active");
+                return;
+            }
+            const bSubmitTour = e.target.closest("[data-submit-tour]");
+            if (bSubmitTour) {
+                const currentRoom = CH[S.cid];
+                if (!currentRoom || !authUser) {
+                    toast("Sign in to propose a visit.");
+                    return;
+                }
+                const activeTypeChip = document.querySelector(".nm-tour-type-chips .active");
+                const tourType = activeTypeChip ? activeTypeChip.getAttribute("data-tour-type") : "in_person";
+                const dateInput = $("nm-tour-date-input");
+                const dateVal = dateInput ? dateInput.value : "";
+                if (!dateVal) {
+                    toast("Please pick a preferred date.");
+                    return;
+                }
+                const slotSelect = $("nm-tour-slot-select");
+                const slotVal = slotSelect ? slotSelect.value : "Afternoon (2:00 PM - 4:00 PM)";
+                const noteInput = $("nm-tour-note-input");
+                const noteVal = noteInput ? noteInput.value.trim() : "";
+
+                const dObj = new Date(dateVal + "T00:00:00");
+                const dateFormatted = isNaN(dObj.getTime()) ? dateVal : dObj.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+                const typeText = tourType === "video_tour" ? "Live Video Tour" : "Room Visit";
+                const contentText = "Proposed a " + typeText + " on " + dateFormatted + " (" + slotVal + ")" + (noteVal ? ': "' + noteVal + '"' : "");
+
+                bSubmitTour.disabled = true;
+                sendMessageBackend(
+                    currentRoom.id,
+                    contentText,
+                    "",
+                    crypto.randomUUID(),
+                    "tour_proposal",
+                    {
+                        type: tourType,
+                        date: dateVal,
+                        dateFormatted: dateFormatted,
+                        timeSlot: slotVal,
+                        note: noteVal,
+                        status: "proposed"
+                    }
+                ).then(function () {
+                    const tourOv = $("nm-tour-scheduler-ov");
+                    if (tourOv) tourOv.classList.remove("o");
+                    toast("Visit request sent!");
+                }).catch(function (err) {
+                    toast(err.message || "Could not send visit request.");
+                }).finally(function () {
+                    bSubmitTour.disabled = false;
+                });
+                return;
+            }
+            const bTourAction = e.target.closest("[data-tour-action]");
+            if (bTourAction) {
+                const currentRoom = CH[S.cid];
+                const act = bTourAction.getAttribute("data-tour-action");
+                const msgId = bTourAction.getAttribute("data-tour-msg-id");
+                if (currentRoom && msgId) {
+                    bTourAction.disabled = true;
+                    updateTourProposalStatusBackend(currentRoom.id, msgId, act === "confirm" ? "confirmed" : "declined")
+                        .then(function () {
+                            toast(act === "confirm" ? "Visit confirmed!" : "Visit proposal declined");
+                        })
+                        .catch(function (err) {
+                            toast(err.message || "Could not update visit proposal.");
+                        })
+                        .finally(function () {
+                            bTourAction.disabled = false;
+                        });
+                }
                 return;
             }
             const bWhyMatch = e.target.closest("[data-why-match]");
@@ -4143,6 +4242,49 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     qaHtml +
                 '</div></article>';
         }
+        function renderTourProposalMessage(m, c) {
+            const isMe = m[0] === 'me';
+            const payload = (m && m[8]) || {};
+            const status = payload.status || 'proposed';
+            const typeLabel = payload.type === 'video_tour' ? 'Live Video Tour' : 'In-Person Visit';
+            const typeIcon = payload.type === 'video_tour'
+                ? '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="15" height="14" rx="2"/><polygon points="23 7 17 12 23 17 23 7"/></svg>'
+                : '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>';
+            const statusLabel = status === 'confirmed' ? 'Confirmed ✓' : (status === 'declined' ? 'Declined' : 'Proposed');
+            const statusClass = status === 'confirmed' ? 'ok' : (status === 'declined' ? 'declined' : 'pending');
+
+            let actionsHtml = '';
+            if (status === 'proposed') {
+                if (!isMe) {
+                    actionsHtml = '<div class="nm-tour-acts">' +
+                        '<button class="msgb" data-tour-action="confirm" data-tour-msg-id="' + esc(m[5]) + '"><em>Accept Visit</em></button>' +
+                        '<button class="ghb" data-tour-action="decline" data-tour-msg-id="' + esc(m[5]) + '">Decline</button>' +
+                        '</div>';
+                } else {
+                    actionsHtml = '<div class="nm-tour-status-note">Waiting for host/candidate confirmation</div>';
+                }
+            } else if (status === 'confirmed') {
+                actionsHtml = '<div class="nm-tour-confirmed-box"><span style="color:var(--ok);font-weight:700">✓ Visit Confirmed</span><small style="color:var(--ink2)">Coordinates and contact details are available above.</small></div>';
+            } else if (status === 'declined') {
+                actionsHtml = '<div class="nm-tour-status-note" style="color:var(--ink2)">Visit proposal was declined.</div>';
+            }
+
+            return '<article class="nm-tour-msg-card ' + (isMe ? 'me' : '') + '">' +
+                '<div class="nm-tour-msg-hd">' +
+                '<div class="nm-tour-type-badge">' + typeIcon + '<span>' + esc(typeLabel) + '</span></div>' +
+                '<span class="nm-tour-status-pill ' + statusClass + '">' + esc(statusLabel) + '</span>' +
+                '</div>' +
+                '<div class="nm-tour-msg-body">' +
+                '<div class="nm-tour-datetime">' +
+                '<strong>' + esc(payload.dateFormatted || payload.date || 'Upcoming') + '</strong>' +
+                '<span>' + esc(payload.timeSlot || 'Flexible Time') + '</span>' +
+                '</div>' +
+                (payload.note ? '<div class="nm-tour-note">&ldquo;' + esc(payload.note) + '&rdquo;</div>' : '') +
+                '</div>' +
+                actionsHtml +
+                '<small class="nm-tour-time">' + esc(m[4]) + '</small>' +
+                '</article>';
+        }
         function av(i, c) {
             const x = RM[i] || (typeof i === 'string' ? RM.find(function (m) { return m && m[9] === i; }) : null);
             const avContent = (x && x[10]) ? '<img src="' + esc(x[10]) + '" alt="' + esc(x[1]) + '" style="width:100%;height:100%;object-fit:cover;object-position:center;border-radius:inherit">' : (x ? x[0] : (c && c.otherName ? c.otherName.slice(0, 2) : 'RM'));
@@ -4225,7 +4367,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             let last = "";
             let h = '<div class="hd2"><button class="bk3 ib" data-bk2="1" aria-label="Back">' + IS.bk + '</button>' +
                 '<button class="hn" data-vp="' + esc(c.p) + '" aria-label="Open profile">' + av(c.p, c) + '<div><b>' + esc(x[1]) + '</b><small>' + (verifiedPeer ? "ID verified" : "Not verified") + ' · ' + matchNote + '</small></div></button>' +
-                '<span class="sp3"></span><div class="th-actions"><button class="ghb pf2" data-vp="' + esc(c.p) + '">Profile</button><button class="ghb" data-cm="' + k + '" aria-label="More options">' + P('<circle cx="5" cy="12" r="1.600"/><circle cx="12" cy="12" r="1.600"/><circle cx="19" cy="12" r="1.600"/>') + '<span>More</span></button></div></div>';
+                '<span class="sp3"></span><div class="th-actions"><button class="ghb schedule-visit-btn" data-open-tour-scheduler="1" title="Schedule Room Visit">📅 Visit</button><button class="ghb pf2" data-vp="' + esc(c.p) + '">Profile</button><button class="ghb" data-cm="' + k + '" aria-label="More options">' + P('<circle cx="5" cy="12" r="1.600"/><circle cx="12" cy="12" r="1.600"/><circle cx="19" cy="12" r="1.600"/>') + '<span>More</span></button></div></div>';
             if (c.historyError) h += '<div role="alert" class="hint">Messages could not be loaded. Refresh this page to try again. Your unread status is preserved.</div>';
             if ((c.threadType === "application" || appId) && !isClosed) {
                 if (role === "host" && !verifiedPeer) {
@@ -4271,6 +4413,8 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 }
                 if (m[7] === "application_card") {
                     h += renderApplicationCardMessage(m, c);
+                } else if (m[7] === "tour_proposal") {
+                    h += renderTourProposalMessage(m, c);
                 } else if (m[7] === "system_event" || m[0] === "sys") {
                     const evStatus = m[8] && m[8].status;
                     const evCls = evStatus === "selected" ? " ok" : (["rejected", "withdrawn", "declined_by_applicant"].includes(evStatus) ? " warn" : "");
