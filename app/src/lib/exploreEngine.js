@@ -2819,7 +2819,49 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 render();
             };
         }
-        ["nm-breakdown-ov", "nm-tour-scheduler-ov"].forEach(function(ovId) {
+        function renderAgreementDocument() {
+            const hostName = ($("nm-ag-host-name") && $("nm-ag-host-name").value.trim()) || "Host / Primary Resident";
+            const tenantName = ($("nm-ag-tenant-name") && $("nm-ag-tenant-name").value.trim()) || "Flatmate / Incoming Resident";
+            const address = ($("nm-ag-address") && $("nm-ag-address").value.trim()) || "Property Premises, Bengaluru";
+            const rentVal = ($("nm-ag-rent") && $("nm-ag-rent").value.trim()) || "12,000";
+            const depositVal = ($("nm-ag-deposit") && $("nm-ag-deposit").value.trim()) || "24,000";
+            const moveInVal = ($("nm-ag-movein") && $("nm-ag-movein").value) || new Date().toISOString().split("T")[0];
+            const noticeVal = ($("nm-ag-notice") && $("nm-ag-notice").value) || "30 days";
+            const utilVal = ($("nm-ag-utilities") && $("nm-ag-utilities").value.trim()) || "Shared equally among all residents (Electricity, Water, Wi-Fi, Cleaning)";
+            const todayStr = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+            const moveInDateObj = new Date(moveInVal + "T00:00:00");
+            const moveInStr = isNaN(moveInDateObj.getTime()) ? moveInVal : moveInDateObj.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+
+            const docContent = $("nm-ag-doc-content");
+            if (!docContent) return;
+            docContent.innerHTML = '<div class="nm-ag-paper">' +
+                '<div class="nm-ag-paper-header">' +
+                '<h2>RESIDENTIAL CO-LIVING &amp; SHARED ACCOMMODATION AGREEMENT</h2>' +
+                '<p class="nm-ag-subtitle">Standard Fair Model Agreement · Indian Contract Act, 1872 · Zero-Brokerage Verified</p>' +
+                '</div>' +
+                '<hr class="nm-ag-divider">' +
+                '<div class="nm-ag-paper-body">' +
+                '<p>This Agreement is entered into on <strong>' + esc(todayStr) + '</strong>, by and between:</p>' +
+                '<p><strong>1. HOST / RESIDENT IN CHARGE:</strong> ' + esc(hostName) + ' (hereinafter designated as the <em>"Host"</em>).</p>' +
+                '<p><strong>2. CO-LIVING RESIDENT:</strong> ' + esc(tenantName) + ' (hereinafter designated as the <em>"Flatmate"</em>).</p>' +
+                '<p>The Host and Flatmate agree to share the premises situated at: <strong>' + esc(address) + '</strong> (the <em>"Premises"</em>) under the following terms:</p>' +
+                '<h4>TERMS &amp; COVENANTS</h4>' +
+                '<ol>' +
+                '<li><strong>Monthly Contribution:</strong> The Flatmate agrees to pay a monthly license fee / rent of <strong>₹' + esc(rentVal) + '</strong> per calendar month, payable on or before the 5th of each calendar month.</li>' +
+                '<li><strong>Refundable Security Deposit:</strong> A security deposit of <strong>₹' + esc(depositVal) + '</strong> has been deposited by the Flatmate. This sum is strictly refundable in full within 15 days of vacation of the Premises, subject to deduction of outstanding bills or verifiable damage beyond fair wear and tear.</li>' +
+                '<li><strong>Occupancy Commencement:</strong> The agreed occupancy commencement date is <strong>' + esc(moveInStr) + '</strong>.</li>' +
+                '<li><strong>Notice Period:</strong> Either party may terminate this agreement with a minimum written notice of <strong>' + esc(noticeVal) + '</strong> without forfeiture penalties.</li>' +
+                '<li><strong>Utility &amp; Maintenance Sharing:</strong> ' + esc(utilVal) + '. Invoices and receipts shall be transparently shared.</li>' +
+                '<li><strong>Mutual Code of Conduct:</strong> Both occupants commit to keeping shared spaces clean, observing quiet hours between 10:00 PM and 7:00 AM, and obtaining mutual consent prior to hosting overnight visitors.</li>' +
+                '<li><strong>Zero-Brokerage Affirmation:</strong> Both parties affirm that this connection was established directly through NestMate with zero broker intervention and zero broker commission fees.</li>' +
+                '</ol>' +
+                '<div class="nm-ag-signatures">' +
+                '<div class="nm-ag-sig-block"><div class="nm-ag-sig-line"></div><p><strong>Host / Primary Resident</strong></p><p>' + esc(hostName) + '</p></div>' +
+                '<div class="nm-ag-sig-block"><div class="nm-ag-sig-line"></div><p><strong>Incoming Flatmate</strong></p><p>' + esc(tenantName) + '</p></div>' +
+                '</div>' +
+                '</div></div>';
+        }
+        ["nm-breakdown-ov", "nm-tour-scheduler-ov", "nm-agreement-modal-ov"].forEach(function(ovId) {
             const ovEl = $(ovId);
             if (ovEl) {
                 ovEl.onclick = function(e) {
@@ -2836,6 +2878,8 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
             const bOpenTour = e.target.closest("[data-open-tour-scheduler]");
             if (bOpenTour) {
+                const cfo = $("cfo");
+                if (cfo) cfo.classList.remove("o");
                 const tourOv = $("nm-tour-scheduler-ov");
                 if (tourOv) {
                     const dateInput = $("nm-tour-date-input");
@@ -2931,6 +2975,114 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                             bTourAction.disabled = false;
                         });
                 }
+                return;
+            }
+            const bOpenAg = e.target.closest("[data-open-agreement]");
+            if (bOpenAg) {
+                const cfo = $("cfo");
+                if (cfo) cfo.classList.remove("o");
+                const agOv = $("nm-agreement-modal-ov");
+                if (agOv) {
+                    const currentRoom = CH[S.cid];
+                    const info = currentRoom ? resolveThreadListing(currentRoom) : null;
+                    const role = currentRoom ? resolveThreadRole(currentRoom) : null;
+                    const peer = currentRoom ? (RM.find(function(m) { return m && m[9] === currentRoom.p; }) || { 1: currentRoom.otherName }) : null;
+                    const peerName = (peer && peer[1]) || (currentRoom && currentRoom.otherName) || "Flatmate";
+                    const myName = (currentProfile && currentProfile.name) || (ME && ME.n) || "Host";
+
+                    if ($("nm-ag-host-name")) $("nm-ag-host-name").value = role === "host" ? myName : peerName;
+                    if ($("nm-ag-tenant-name")) $("nm-ag-tenant-name").value = role === "host" ? peerName : myName;
+                    if ($("nm-ag-rent")) $("nm-ag-rent").value = (info && info.rent) ? info.rent : "12000";
+                    if ($("nm-ag-deposit")) $("nm-ag-deposit").value = (info && info.deposit) ? info.deposit : ((info && info.rent) ? info.rent * 2 : "24000");
+                    if ($("nm-ag-address")) $("nm-ag-address").value = info ? (info.title + ", " + (info.locality || "") + ", " + (S.city || "Bengaluru")) : (S.city || "Bengaluru");
+                    if ($("nm-ag-movein")) {
+                        const nextWeek = new Date(Date.now() + 86400000 * 7).toISOString().split("T")[0];
+                        $("nm-ag-movein").value = nextWeek;
+                    }
+
+                    const configPanel = $("nm-ag-config-panel");
+                    const previewPanel = $("nm-ag-preview-panel");
+                    if (configPanel) configPanel.style.display = "block";
+                    if (previewPanel) previewPanel.style.display = "none";
+                    const tabBtns = document.querySelectorAll("[data-ag-tab]");
+                    tabBtns.forEach(function (tb) {
+                        tb.classList.toggle("active", tb.getAttribute("data-ag-tab") === "config");
+                    });
+
+                    agOv.classList.add("o");
+                }
+                return;
+            }
+            const bCloseAg = e.target.closest("[data-close-agreement]");
+            if (bCloseAg) {
+                const agOv = $("nm-agreement-modal-ov");
+                if (agOv) agOv.classList.remove("o");
+                return;
+            }
+            const bAgTab = e.target.closest("[data-ag-tab]");
+            if (bAgTab) {
+                const targetTab = bAgTab.getAttribute("data-ag-tab");
+                const configPanel = $("nm-ag-config-panel");
+                const previewPanel = $("nm-ag-preview-panel");
+                const tabBtns = document.querySelectorAll("[data-ag-tab]");
+                tabBtns.forEach(function (tb) { tb.classList.remove("active"); });
+                bAgTab.classList.add("active");
+
+                if (targetTab === "preview") {
+                    renderAgreementDocument();
+                    if (configPanel) configPanel.style.display = "none";
+                    if (previewPanel) previewPanel.style.display = "block";
+                } else {
+                    if (configPanel) configPanel.style.display = "block";
+                    if (previewPanel) previewPanel.style.display = "none";
+                }
+                return;
+            }
+            const bAgToPreview = e.target.closest("[data-ag-to-preview]");
+            if (bAgToPreview) {
+                renderAgreementDocument();
+                const configPanel = $("nm-ag-config-panel");
+                const previewPanel = $("nm-ag-preview-panel");
+                if (configPanel) configPanel.style.display = "none";
+                if (previewPanel) previewPanel.style.display = "block";
+                const tabBtns = document.querySelectorAll("[data-ag-tab]");
+                tabBtns.forEach(function (tb) {
+                    tb.classList.toggle("active", tb.getAttribute("data-ag-tab") === "preview");
+                });
+                return;
+            }
+            const bAgBackConfig = e.target.closest("[data-ag-back-config]");
+            if (bAgBackConfig) {
+                const configPanel = $("nm-ag-config-panel");
+                const previewPanel = $("nm-ag-preview-panel");
+                if (configPanel) configPanel.style.display = "block";
+                if (previewPanel) previewPanel.style.display = "none";
+                const tabBtns = document.querySelectorAll("[data-ag-tab]");
+                tabBtns.forEach(function (tb) {
+                    tb.classList.toggle("active", tb.getAttribute("data-ag-tab") === "config");
+                });
+                return;
+            }
+            const bAgCopy = e.target.closest("[data-ag-copy]");
+            if (bAgCopy) {
+                const docContent = $("nm-ag-doc-content");
+                if (docContent) {
+                    const text = docContent.innerText || docContent.textContent || "";
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(text).then(function () {
+                            toast("Agreement text copied to clipboard!");
+                        }).catch(function () {
+                            toast("Could not copy text.");
+                        });
+                    } else {
+                        toast("Agreement text ready to copy.");
+                    }
+                }
+                return;
+            }
+            const bAgPrint = e.target.closest("[data-ag-print]");
+            if (bAgPrint) {
+                window.print();
                 return;
             }
             const bWhyMatch = e.target.closest("[data-why-match]");
@@ -4367,7 +4519,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             let last = "";
             let h = '<div class="hd2"><button class="bk3 ib" data-bk2="1" aria-label="Back">' + IS.bk + '</button>' +
                 '<button class="hn" data-vp="' + esc(c.p) + '" aria-label="Open profile">' + av(c.p, c) + '<div><b>' + esc(x[1]) + '</b><small>' + (verifiedPeer ? "ID verified" : "Not verified") + ' · ' + matchNote + '</small></div></button>' +
-                '<span class="sp3"></span><div class="th-actions"><button class="ghb schedule-visit-btn" data-open-tour-scheduler="1" title="Schedule Room Visit">📅 Visit</button><button class="ghb pf2" data-vp="' + esc(c.p) + '">Profile</button><button class="ghb" data-cm="' + k + '" aria-label="More options">' + P('<circle cx="5" cy="12" r="1.600"/><circle cx="12" cy="12" r="1.600"/><circle cx="19" cy="12" r="1.600"/>') + '<span>More</span></button></div></div>';
+                '<span class="sp3"></span><div class="th-actions"><button class="ghb schedule-visit-btn" data-open-tour-scheduler="1" title="Schedule Room Visit">📅 Visit</button><button class="ghb agreement-btn" data-open-agreement="1" title="Generate Flatmate Agreement">📄 Agreement</button><button class="ghb pf2" data-vp="' + esc(c.p) + '">Profile</button><button class="ghb" data-cm="' + k + '" aria-label="More options">' + P('<circle cx="5" cy="12" r="1.600"/><circle cx="12" cy="12" r="1.600"/><circle cx="19" cy="12" r="1.600"/>') + '<span>More</span></button></div></div>';
             if (c.historyError) h += '<div role="alert" class="hint">Messages could not be loaded. Refresh this page to try again. Your unread status is preserved.</div>';
             if ((c.threadType === "application" || appId) && !isClosed) {
                 if (role === "host" && !verifiedPeer) {
@@ -5803,6 +5955,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     const hasActiveListing = MY && MY.some(function (l) { return l && (l.st === "Active" || l.st === "Pending verification"); });
                     const activeListing = MY && MY.find(function (l) { return l && (l.st === "Active" || l.st === "Pending verification"); });
                     const cityName = (ME && (ME.city || ME.area)) || (activeListing && activeListing.loc) || S.city || "Bengaluru";
+                    const sampleBtn = '<button class="nm-btn-curated" data-load-samples="1"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/></svg><span>Explore Sample Verified Profiles</span></button>';
                     if (isSelfDiscoverable || hasActiveListing) {
                         const statusTitle = hasActiveListing
                             ? 'Listing Active in ' + esc(cityName)
@@ -5863,8 +6016,9 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                             ) +
                             (hasActiveListing
                                 ? '<button class="nm-btn-outline" data-n="listings"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Manage Listings</span></button>'
-                                : '<button class="nm-btn-outline" data-n="profile" data-as="prefs"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Edit Preferences</span></button>'
+                                : '<button class="nm-btn-outline" data-n="profile" data-as="prefs"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Edit Preferences</span></button>'
                             ) +
+                            sampleBtn +
                             '</div></div></div>';
                     }
                     return '<div class="empty"><div class="nm-empty-card">' +
@@ -5881,8 +6035,10 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                         '<div class="nm-empty-actions">' +
                         (authUser
                             ? '<button class="nm-btn-primary" data-n="profile" data-as="prefs"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Create Roommate Profile</span></button>' +
-                              '<button class="nm-btn-outline" data-n="post"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span>Post a Room</span></button>'
-                            : '<button class="nm-btn-primary" data-n="signin"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg><span>Sign in to Connect</span></button>'
+                              '<button class="nm-btn-outline" data-n="post"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span>Post a Room</span></button>' +
+                              sampleBtn
+                            : '<button class="nm-btn-primary" data-n="signin"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg><span>Sign in to Connect</span></button>' +
+                              sampleBtn
                         ) +
                         '</div></div></div>';
                 }
@@ -7220,6 +7376,8 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     return;
                 const hasPersonConnection = LIVE_CONNS.accepted.some(function (c) { return !c.listingId && (c.fromUserId === chat.p || c.toUserId === chat.p); });
                 const menuRows = [];
+                menuRows.push('<button class="opt2" data-open-tour-scheduler="1">📅 Schedule Room Visit</button>');
+                menuRows.push('<button class="opt2" data-open-agreement="1">📄 Generate Flatmate Agreement</button>');
                 if (hasPersonConnection) {
                     menuRows.push('<button class="opt2" data-disconnect="' + esc(chat.p) + '">Disconnect person connection</button>');
                 }

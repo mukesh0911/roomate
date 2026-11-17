@@ -1876,5 +1876,142 @@ html.lock{overflow:hidden}
   border-color: var(--brand);
 }
 
+/* Zero-Brokerage Agreement Generator */
+.nm-explore-root .agreement-btn {
+  height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+  gap: 5px;
+  border-radius: 999px;
+  background: var(--sf);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+.nm-explore-root .agreement-btn:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.nm-explore-root .nm-agreement-modal-card {
+  max-width: 680px;
+  max-height: 92vh;
+}
+.nm-explore-root .nm-agreement-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(12, 166, 120, 0.1);
+  color: #0ca678;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+.nm-explore-root .nm-agreement-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 16px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+.nm-explore-root .nm-ag-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 4px 0 8px;
+}
+@media (max-width: 600px) {
+  .nm-explore-root .nm-ag-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nm-explore-root .nm-ag-doc {
+  background: #fff;
+  color: #111;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 28px;
+  max-height: 52vh;
+  overflow-y: auto;
+  font-family: 'Times New Roman', Times, serif, system-ui;
+  font-size: 13.5px;
+  line-height: 1.6;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.04);
+}
+.nm-explore-root .nm-ag-paper-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+.nm-explore-root .nm-ag-paper-header h2 {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  margin: 0 0 4px;
+  color: #000;
+}
+.nm-explore-root .nm-ag-subtitle {
+  font-size: 11px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+.nm-explore-root .nm-ag-divider {
+  border: 0;
+  border-top: 1.5px solid #222;
+  margin: 12px 0 16px;
+}
+.nm-explore-root .nm-ag-paper-body ol {
+  padding-left: 20px;
+  margin: 12px 0;
+}
+.nm-explore-root .nm-ag-paper-body li {
+  margin-bottom: 8px;
+}
+.nm-explore-root .nm-ag-signatures {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 36px;
+  padding-top: 12px;
+}
+.nm-explore-root .nm-ag-sig-block {
+  flex: 1;
+  text-align: center;
+}
+.nm-explore-root .nm-ag-sig-line {
+  border-top: 1px solid #333;
+  margin-bottom: 6px;
+}
+.nm-explore-root .nm-ag-sig-block p {
+  margin: 2px 0;
+  font-size: 12px;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #nm-ag-doc-content, #nm-ag-doc-content * {
+    visibility: visible;
+  }
+  #nm-ag-doc-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}
+
+
 
 

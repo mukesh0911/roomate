@@ -29,7 +29,7 @@ self.addEventListener('push', (event) => {
     badge: '/favicon.svg',
     vibrate: [100, 50, 100],
     data: {
-      url: data.url || '/chat',
+      url: data.url || '/messages',
     },
     actions: [
       { action: 'open', title: 'Open NestMate' },

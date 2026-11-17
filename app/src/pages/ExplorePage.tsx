@@ -284,6 +284,82 @@ export default function ExplorePage({ initialNav = 'explore' }: ExplorePageProps
           </div>
         </div>
       </div>
+      {/* Zero-Brokerage Digital Co-Living Agreement Generator */}
+      <div className="ov" id="nm-agreement-modal-ov" role="dialog" aria-modal="true" aria-label="Digital Co-Living Agreement Generator">
+        <div className="nm-breakdown-card nm-agreement-modal-card">
+          <div className="nm-breakdown-header">
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="nm-agreement-badge">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>Zero-Brokerage Protection</span>
+              </div>
+              <h3 style={{ margin: '4px 0 2px', fontSize: '19px', fontWeight: 700 }}>Co-Living &amp; Flatmate Agreement</h3>
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--ink2)' }}>Standard fair agreement based on Model Tenancy principles</p>
+            </div>
+            <button type="button" className="nm-chooser-close" data-close-agreement="1" aria-label="Close dialog">&times;</button>
+          </div>
+
+          <div className="nm-agreement-tabs">
+            <button type="button" className="chip active" data-ag-tab="config">1. Agreement Terms</button>
+            <button type="button" className="chip" data-ag-tab="preview">2. Document Preview</button>
+          </div>
+
+          <div id="nm-ag-config-panel" className="nm-ag-panel">
+            <div className="nm-ag-form-grid">
+              <div>
+                <label className="nm-tour-label" htmlFor="nm-ag-host-name">Host / Primary Resident</label>
+                <input type="text" id="nm-ag-host-name" className="nm-tour-input" placeholder="Host full name" />
+              </div>
+              <div>
+                <label className="nm-tour-label" htmlFor="nm-ag-tenant-name">Incoming Flatmate / Tenant</label>
+                <input type="text" id="nm-ag-tenant-name" className="nm-tour-input" placeholder="Flatmate full name" />
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label className="nm-tour-label" htmlFor="nm-ag-address">Property Address / Premises</label>
+                <input type="text" id="nm-ag-address" className="nm-tour-input" placeholder="Flat No., Building, Locality, City" />
+              </div>
+              <div>
+                <label className="nm-tour-label" htmlFor="nm-ag-rent">Monthly Rent (₹/mo)</label>
+                <input type="number" id="nm-ag-rent" className="nm-tour-input" placeholder="e.g. 14000" />
+              </div>
+              <div>
+                <label className="nm-tour-label" htmlFor="nm-ag-deposit">Security Deposit (₹)</label>
+                <input type="number" id="nm-ag-deposit" className="nm-tour-input" placeholder="e.g. 28000" />
+              </div>
+              <div>
+                <label className="nm-tour-label" htmlFor="nm-ag-movein">Occupancy / Move-in Date</label>
+                <input type="date" id="nm-ag-movein" className="nm-tour-input" />
+              </div>
+              <div>
+                <label className="nm-tour-label" htmlFor="nm-ag-notice">Notice Period</label>
+                <select id="nm-ag-notice" className="nm-tour-input" defaultValue="30 days">
+                  <option value="15 days">15 days</option>
+                  <option value="30 days">30 days (Standard)</option>
+                  <option value="45 days">45 days</option>
+                  <option value="60 days">60 days</option>
+                </select>
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label className="nm-tour-label" htmlFor="nm-ag-utilities">Utility &amp; Maintenance Sharing</label>
+                <input type="text" id="nm-ag-utilities" className="nm-tour-input" defaultValue="Shared equally (Electricity, High-speed Wi-Fi, Water &amp; Maid)" />
+              </div>
+            </div>
+            <div className="nm-breakdown-footer" style={{ marginTop: '16px' }}>
+              <button type="button" className="ghb" data-close-agreement="1">Cancel</button>
+              <button type="button" className="msgb" data-ag-to-preview="1" style={{ width: 'auto', padding: '0 24px' }}><em>Generate Preview &rarr;</em></button>
+            </div>
+          </div>
+
+          <div id="nm-ag-preview-panel" className="nm-ag-panel" style={{ display: 'none' }}>
+            <div className="nm-ag-doc" id="nm-ag-doc-content"></div>
+            <div className="nm-breakdown-footer" style={{ marginTop: '16px' }}>
+              <button type="button" className="ghb" data-ag-back-config="1">&larr; Edit Terms</button>
+              <button type="button" className="ghb" data-ag-copy="1">📋 Copy Text</button>
+              <button type="button" className="msgb" data-ag-print="1" style={{ width: 'auto', padding: '0 24px' }}><em>🖨️ Print / Save PDF</em></button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
