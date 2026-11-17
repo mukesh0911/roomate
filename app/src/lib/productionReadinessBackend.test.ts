@@ -284,11 +284,26 @@ describe('production readiness backend behavior', () => {
     expect(batch.commit).toHaveBeenCalled();
 
     batch.set.mockClear();
-    await createNewListingBackend({ title: 'Room', rent: 10000, loc: 'Central', city: 'Pune' }, fake.auth.currentUser);
-    expect(batch.set).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ isLiveInRoom: false }));
+    await createNewListingBackend({
+      title: 'Room',
+      rent: 10000,
+      loc: 'Central',
+      city: 'Pune',
+      lf: ['Vegetarian', 'Non-smoker', 'Early riser'],
+      gd: 'Female',
+    }, fake.auth.currentUser);
     expect(batch.set).toHaveBeenCalledWith('users/me', expect.objectContaining({
       isLandlord: true,
       housingPreferences: expect.objectContaining({ activeIntents: ['have_room'] }),
+      quizAnswers: expect.objectContaining({
+        diet: 'veg',
+        food_pref: 'veg',
+        smoke: 'never',
+        smoking: 'never',
+        sleep: 'before_10',
+        sleep_time: 'before_10',
+        roommate_gender: 'Female',
+      }),
     }), { merge: true });
   });
 
@@ -387,6 +402,29 @@ describe('production readiness backend behavior', () => {
     fake.getDownloadURL.mockResolvedValue('https://storage.example/replacement.png');
     await updateListingBackend('owned-listing', { ph: ['https://storage.example/kept.png', 'data:image/png;base64,iVBORw0KGgo='] });
     expect(fake.updateDoc).toHaveBeenCalledWith('listings/owned-listing', expect.objectContaining({ images: ['https://storage.example/kept.png', 'https://storage.example/replacement.png'] }));
+  });
+
+  it('updating listing house rules auto-syncs host quizAnswers to user profile', async () => {
+    fake.getDoc.mockResolvedValueOnce({
+      exists: () => true,
+      data: () => ({ quizAnswers: { diet: 'veg' } }),
+    });
+    await updateListingBackend('owned-listing', {
+      lf: ['Non-smoker', 'Night owl'],
+      gd: 'Female',
+    });
+    expect(fake.updateDoc).toHaveBeenCalledWith('listings/owned-listing', expect.objectContaining({
+      houseRules: ['Non-smoker', 'Night owl'],
+      preferredGender: 'Female',
+    }));
+    expect(fake.updateDoc).toHaveBeenCalledWith('users/me', expect.objectContaining({
+      quizAnswers: expect.objectContaining({
+        diet: 'veg',
+        smoke: 'never',
+        sleep: 'after_12',
+        roommate_gender: 'Female',
+      }),
+    }));
   });
 
   it('surfaces chat-first application thread metadata and special message kinds in subscribeLiveUserChats', async () => {
