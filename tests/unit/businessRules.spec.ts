@@ -266,6 +266,8 @@ test.describe('Phase 3: Master Business Rules & Pure Logic Certification (RULE-0
     expect(BusinessRuleUtils.isAdminEmail('admin@nestmate.in')).toBe(true);
     expect(BusinessRuleUtils.isAdminEmail('mukvr46@gmail.com')).toBe(true);
     expect(BusinessRuleUtils.isAdminEmail('MUKVR46@GMAIL.COM')).toBe(true); // case-insensitive
+    expect(BusinessRuleUtils.isAdminEmail('mrmukeshram111@gmail.com')).toBe(true);
+    expect(BusinessRuleUtils.isAdminEmail('MRMUKESHRAM111@GMAIL.COM')).toBe(true); // case-insensitive
 
     expect(BusinessRuleUtils.isAdminEmail('hacker@example.com')).toBe(false);
     expect(BusinessRuleUtils.isAdminEmail('seeker.ref@nestmate-test.com')).toBe(false);
@@ -302,6 +304,7 @@ test.describe('Phase 3: Master Business Rules & Pure Logic Certification (RULE-0
     };
 
     expect(isSeedOrTestDoc({ email: 'mukvr46@gmail.com' })).toBe(false);
+    expect(isSeedOrTestDoc({ email: 'mrmukeshram111@gmail.com' })).toBe(false);
     expect(isSeedOrTestDoc({ email: 'admin@nestmate.in' })).toBe(false);
     expect(isSeedOrTestDoc({ uid: 'test_user_ref', email: 'seeker.ref@nestmate-test.com' })).toBe(true);
     expect(isSeedOrTestDoc({ isTest: true })).toBe(true);

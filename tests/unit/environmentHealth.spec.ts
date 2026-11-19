@@ -14,6 +14,7 @@ test.describe('Phase 11: Test Environment & Data Health Check (Fail-Fast Gateway
     expect(envCheck.isolated).toBe(true);
     expect(FORBIDDEN_PROJECTS).not.toContain(envCheck.project);
     expect(PROTECTED_ACCOUNTS).toContain('mukvr46@gmail.com');
+    expect(PROTECTED_ACCOUNTS).toContain('mrmukeshram111@gmail.com');
   });
 
   test('GATEWAY-02: Firebase Configuration & Endpoints Validity', async () => {
