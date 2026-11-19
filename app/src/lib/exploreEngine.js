@@ -260,7 +260,10 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         function calcRoommateMatch(x, y) {
             if (!currentProfile || !x[17])
                 return null;
-            const targetListing = (Array.isArray(MY) && MY.length > 0)
+            const isHostWithListing = Array.isArray(MY) && MY.length > 0;
+            if (!isProfileCalibrated() && !isHostWithListing)
+                return null;
+            const targetListing = isHostWithListing
                 ? (x[13] ? (MY.find(function (l) { return l && l.id === x[13]; }) || MY[0]) : MY[0])
                 : null;
             const activeListing = targetListing
@@ -485,9 +488,9 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 return '';
             const rScore = calcRoommateMatch(x, RX[i]);
             x[7] = rScore;
-            const mt = (typeof rScore === 'number')
-                ? '<span class="mc"><i style="--m:' + rScore + '"></i>' + rScore + '% match</span>'
-                : '<span class="mc" style="color:var(--ink2);font-weight:500;font-size:12px">More profile info needed for match</span>';
+            const mt = (typeof rScore === 'number' && Number.isFinite(rScore) && rScore > 0)
+                ? '<span class="mc" title="Profile compatibility score"><i style="--m:' + rScore + '"></i>' + rScore + '% match</span>'
+                : '<button type="button" class="mc" data-go-prefs="1" style="background:none;border:none;padding:0;cursor:pointer;color:var(--ink2);font-weight:500;font-size:12px" title="Set matching preferences">Set preferences to see match</button>';
             const cardRelationship = relationshipState(authUser && authUser.uid, targetUid, LIVE_CONNS, currentProfile && currentProfile.blockedUserIds || [], CH.map(function (c) { return { id: c.id, participants: c.raw && c.raw.participants || [authUser && authUser.uid, c.p], authorized: c.authorized === true }; }));
             const ft = (cardRelationship.state === 'received' ? '' : mt) + connectionActionButtons(i);
             const init = (x && x[0] && x[0].length <= 3) ? x[0] : (x && x[1] ? x[1].split(' ').map(function (w) { return w[0]; }).slice(0, 2).join('').toUpperCase() : 'RM');
