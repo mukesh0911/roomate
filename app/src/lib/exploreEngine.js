@@ -163,14 +163,14 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         function getActiveUserSignal() {
             const b = (currentProfile && typeof currentProfile.budget === 'number' && currentProfile.budget > 0)
                 ? currentProfile.budget
-                : (S.bud && S.bud < 100000 ? S.bud : (S.max && S.max < 100000 ? S.max : undefined));
+                : ((Array.isArray(MY) && MY[0] && MY[0].rent) ? MY[0].rent : (S.bud && S.bud < 100000 ? S.bud : (S.max && S.max < 100000 ? S.max : undefined)));
             const bMin = b ? Math.max(5, Math.round((b * 0.7) / 1000)) : undefined;
             const bMax = b ? Math.round((b * 1.25) / 1000) : undefined;
             const areas = (currentProfile && currentProfile.localities && currentProfile.localities.length)
                 ? currentProfile.localities
                 : (currentProfile && currentProfile.locality)
                     ? [currentProfile.locality]
-                    : (S.q ? [S.q] : []);
+                    : ((Array.isArray(MY) && MY[0] && MY[0].loc) ? [MY[0].loc] : (S.q ? [S.q] : []));
             let smoke = undefined;
             if (currentProfile) {
                 const he = currentProfile.householdExpectations || {};
@@ -260,7 +260,18 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         function calcRoommateMatch(x, y) {
             if (!currentProfile || !x[17])
                 return null;
-            return resolvePersonContextMatchScore(x[9], Number.isFinite(x[17].compatibilityScore) ? x[17].compatibilityScore : calculateProfileCompatibility(currentProfile, x[17]).score, x[13]);
+            const targetListing = (Array.isArray(MY) && MY.length > 0)
+                ? (x[13] ? (MY.find(function (l) { return l && l.id === x[13]; }) || MY[0]) : MY[0])
+                : null;
+            const activeListing = targetListing
+                ? (targetListing.f
+                    ? Object.assign({}, targetListing.f, { id: targetListing.id, monthlyRent: targetListing.rent, partnerShare: targetListing.rent, locality: targetListing.loc, city: (currentProfile && currentProfile.city) || 'Bengaluru', roomType: targetListing.type })
+                    : Object.assign({}, targetListing, { monthlyRent: targetListing.rent, partnerShare: targetListing.rent, locality: targetListing.loc, city: (currentProfile && currentProfile.city) || 'Bengaluru', roomType: targetListing.type }))
+                : undefined;
+            const fallbackScore = Number.isFinite(x[17].compatibilityScore) && x[17].compatibilityScore !== 34
+                ? x[17].compatibilityScore
+                : calculateProfileCompatibility(currentProfile, x[17], activeListing).score;
+            return resolvePersonContextMatchScore(x[9], fallbackScore, x[13] || (activeListing && activeListing.id));
         }
         function calcPGMatch(g) {
             if (!currentProfile || !g[18])
