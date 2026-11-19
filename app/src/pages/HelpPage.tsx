@@ -7,8 +7,12 @@ import { submitSupportTicket, supportTopics } from '@/lib/support';
 export default function HelpPage() {
   const { user, isLoading } = useAuth();
   const { openAuthModal } = useStore();
-  const [topic, setTopic] = useState('account');
-  const [message, setMessage] = useState('');
+  const [topic, setTopic] = useState(() => {
+    try { return window.sessionStorage.getItem('nm_support_topic') || 'account'; } catch { return 'account'; }
+  });
+  const [message, setMessage] = useState(() => {
+    try { return window.sessionStorage.getItem('nm_support_message') || ''; } catch { return ''; }
+  });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [receipt, setReceipt] = useState('');
@@ -16,9 +20,26 @@ export default function HelpPage() {
   async function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
-    if (!user) { openAuthModal({ redirect: '/help' }); return; }
+    if (!user) {
+      try {
+        window.sessionStorage.setItem('nm_support_topic', topic);
+        window.sessionStorage.setItem('nm_support_message', message);
+      } catch {}
+      openAuthModal({
+        title: 'Sign in to contact support',
+        subtitle: 'Your support request will be saved while you sign in.',
+        redirect: '/help',
+      });
+      return;
+    }
     setPending(true); setError('');
-    try { setReceipt(await submitSupportTicket(topic, message)); }
+    try {
+      setReceipt(await submitSupportTicket(topic, message));
+      try {
+        window.sessionStorage.removeItem('nm_support_topic');
+        window.sessionStorage.removeItem('nm_support_message');
+      } catch {}
+    }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not send your request. Try again.'); }
     finally { setPending(false); }
   }

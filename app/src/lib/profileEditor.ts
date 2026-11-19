@@ -152,7 +152,7 @@ export function buildMatchingPreferencesUpdate(
     clean?: string;
     teamUpDiscoverable?: boolean;
   },
-  existing: ExistingProfile & { name?: string; onboardingComplete?: boolean; housingIntent?: string } = {},
+  existing: ExistingProfile & { name?: string; onboardingComplete?: boolean; housingIntent?: string; role?: string; isLandlord?: boolean } = {},
 ) {
   const [minimum, maximum] = draft.b;
   if (!Number.isFinite(minimum) || !Number.isFinite(maximum) || minimum < 0 || maximum <= 0 || minimum > maximum) throw new Error('Enter a valid minimum and maximum budget.');
@@ -217,9 +217,9 @@ export function buildMatchingPreferencesUpdate(
       ...existing.housingPreferences,
       activeIntents: typeof draft.teamUpDiscoverable === 'boolean'
         ? (draft.teamUpDiscoverable
-            ? Array.from(new Set([...(existing.housingPreferences?.activeIntents || []), ...(existing.housingIntent === 'find_room' || existing.housingIntent === 'have_room' ? [existing.housingIntent] : []), 'team_up']))
-            : (existing.housingPreferences?.activeIntents || []).filter((intent) => intent !== 'team_up'))
-        : (existing.housingPreferences?.activeIntents || (existing.housingIntent ? [existing.housingIntent] : ['find_room'])),
+            ? Array.from(new Set([...(existing.housingPreferences?.activeIntents || []), ...(existing.housingIntent === 'find_room' || existing.housingIntent === 'have_room' ? [existing.housingIntent] : []), ...(!existing.housingPreferences?.activeIntents?.length && !existing.housingIntent && existing.role !== 'owner' && !existing.isLandlord ? ['find_room'] : []), 'team_up']))
+            : (existing.housingPreferences?.activeIntents || (existing.housingIntent ? [existing.housingIntent] : (existing.role === 'owner' || existing.isLandlord ? [] : ['find_room']))).filter((intent) => intent !== 'team_up'))
+        : (existing.housingPreferences?.activeIntents || (existing.housingIntent ? [existing.housingIntent] : (existing.role === 'owner' || existing.isLandlord ? [] : ['find_room']))),
       ...(effectiveCity ? { preferredCities: [effectiveCity] } : {}),
       budgetMin: minimum,
       budgetMax: maximum,

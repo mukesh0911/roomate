@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import { X, Sparkles, User, Building2, ShieldCheck, Loader2 } from 'lucide-react';
 import { DEMO_MODE_ENABLED } from '@/lib/runtimeConfig';
 import { savePrivateUserData } from '@/lib/privateUserData';
+import { updateUserProfileBackend } from '@/lib/nestmateBackend';
+import { getSafeReturnDestination } from '@/lib/roleNavigation';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -42,13 +44,34 @@ export default function AuthModal({
     return ()=>{document.removeEventListener('keydown',handleKey);previous?.focus();};
   },[isOpen,onClose]);
   const navigate = useNavigate();
-  const { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword } = useAuth();
-  const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin');
+  const { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword, refreshProfile } = useAuth();
+  const [mode, setMode] = useState<'signin' | 'signup' | 'reset' | 'intent'>('signin');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [intentBusy, setIntentBusy] = useState(false);
+  const [pendingRedirect, setPendingRedirect] = useState('');
+  useEffect(() => {
+    if (!isOpen) {
+      setMode('signin');
+      setAuthError('');
+      setIntentBusy(false);
+      setPendingRedirect('');
+    }
+  }, [isOpen]);
+  const continueAfterAuth = (authRes: any) => {
+    const safeRedirect = getSafeReturnDestination(redirectAfterLogin) || '';
+    if (authRes?.isNew || authRes?.onboardingComplete === false) {
+      setPendingRedirect(safeRedirect);
+      setMode('intent');
+      setAuthError('');
+      return;
+    }
+    onClose();
+    navigate(safeRedirect || '/explore');
+  };
   const submitAuth = async (google = false) => {
     if (authBusy) return;
     setAuthBusy(true); setAuthError('');
@@ -61,12 +84,7 @@ export default function AuthModal({
         setMode('signin'); return;
       } else if (mode === 'signup') authRes = await signUpWithEmail(email.trim(), password, fullName.trim());
       else authRes = await signInWithEmail(email.trim(), password);
-      onClose();
-      if ((authRes?.isNew || authRes?.onboardingComplete === false) && !redirectAfterLogin) {
-        navigate('/explore?onboarding=1');
-      } else {
-        navigate(redirectAfterLogin || '/explore');
-      }
+      continueAfterAuth(authRes);
     } catch (error: any) { setAuthError(error?.message || 'Unable to sign in. Please try again.'); }
     finally { setAuthBusy(false); }
   };
@@ -76,6 +94,44 @@ export default function AuthModal({
     : 'Sign in or create your account to connect, chat, and save rooms.');
 
   if (!isOpen) return null;
+
+  const chooseIntent = async (intent: 'find_room' | 'team_up' | 'have_room' | 'both' | 'explore') => {
+    if (intentBusy) return;
+    setIntentBusy(true);
+    setAuthError('');
+    try {
+      if (intent !== 'explore') {
+        const activeIntents = intent === 'team_up'
+          ? ['find_room', 'team_up']
+          : intent === 'both'
+            ? ['find_room', 'have_room']
+            : [intent];
+        await updateUserProfileBackend({
+          role: intent === 'have_room' ? 'owner' : 'seeker',
+          housingIntent: activeIntents.length === 1 ? activeIntents[0] : '',
+          housingPreferences: { activeIntents },
+          roommateDiscoveryEnabled: intent === 'team_up',
+        });
+        await refreshProfile();
+      }
+      onClose();
+      if (pendingRedirect) {
+        navigate(pendingRedirect);
+      } else if (intent === 'have_room') {
+        navigate('/explore?post=1');
+      } else if (intent === 'team_up') {
+        navigate('/profile?section=prefs&returnTo=' + encodeURIComponent('/explore?tab=roommates'));
+      } else if (intent === 'find_room' || intent === 'both') {
+        navigate('/profile?section=prefs&returnTo=' + encodeURIComponent('/explore?tab=rooms'));
+      } else {
+        navigate('/explore');
+      }
+    } catch (error: any) {
+      setAuthError(error?.message || 'Could not save your starting goal. Please try again.');
+    } finally {
+      setIntentBusy(false);
+    }
+  };
 
   const handleDemoLogin = async (role: 'seeker' | 'owner') => {
     if (!DEMO_MODE_ENABLED) return;
@@ -127,8 +183,9 @@ export default function AuthModal({
 
       toast.success(`Demo ${role} account ready`);
       onClose();
-      if (redirectAfterLogin) {
-        navigate(redirectAfterLogin);
+      const safeRedirect = getSafeReturnDestination(redirectAfterLogin);
+      if (safeRedirect) {
+        navigate(safeRedirect);
       } else {
         navigate(role === 'owner' ? '/listings' : '/explore?tab=rooms');
       }
@@ -160,9 +217,34 @@ export default function AuthModal({
           <div className="w-12 h-12 rounded-2xl gradient-fire flex items-center justify-center mx-auto mb-3 shadow-md">
             <Sparkles className="w-6 h-6 text-white" />
           </div>
-          <h2 id="auth-modal-title" className="text-xl font-bold text-ink tracking-tight">{title}</h2>
-          <p className="text-xs text-ink/60 mt-1.5 leading-relaxed">{resolvedSubtitle}</p>
+          <h2 id="auth-modal-title" className="text-xl font-bold text-ink tracking-tight">{mode === 'intent' ? 'What brings you to NestMate?' : title}</h2>
+          <p className="text-xs text-ink/60 mt-1.5 leading-relaxed">{mode === 'intent' ? 'Choose a starting goal. You can change it or do both later.' : resolvedSubtitle}</p>
         </div>
+
+        {mode === 'intent' ? (
+          <div className="space-y-2.5" aria-label="Choose your starting goal">
+            {[
+              ['find_room', 'Find a room', 'Set your city, budget, and matching preferences.'],
+              ['team_up', 'Team up with roommates', 'Build your preferences and appear in roommate discovery.'],
+              ['have_room', 'List a room or flat', 'Create a listing and manage interested applicants.'],
+              ['both', 'Find a room and host too', 'Start with room preferences; list a place whenever you are ready.'],
+              ['explore', 'Explore first', 'Browse rooms now and choose a goal later.'],
+            ].map(([value, label, description]) => (
+              <button
+                key={value}
+                type="button"
+                disabled={intentBusy}
+                onClick={() => void chooseIntent(value as 'find_room' | 'team_up' | 'have_room' | 'both' | 'explore')}
+                className="w-full rounded-2xl border border-border p-3.5 text-left hover:border-fire hover:bg-fire/5 disabled:opacity-60"
+              >
+                <span className="block text-sm font-bold text-ink">{label}</span>
+                <span className="mt-0.5 block text-xs text-ink/60">{description}</span>
+              </button>
+            ))}
+            {intentBusy && <p role="status" className="text-center text-xs text-ink/60">Saving your choice…</p>}
+            {authError && <p role="alert" className="text-xs text-red-600">{authError}</p>}
+          </div>
+        ) : <>
 
         {DEMO_MODE_ENABLED && <div className="space-y-3 my-4">
           <div className="text-[11px] font-bold text-ink/40 uppercase tracking-wider text-center">
@@ -253,6 +335,7 @@ export default function AuthModal({
           </svg>
           Continue with Google
         </button>
+        </>}
       </div>
     </div>
   );

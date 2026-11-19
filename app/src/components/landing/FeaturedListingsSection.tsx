@@ -1,12 +1,25 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, ChevronLeft, ChevronRight, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Heart, ChevronLeft, ChevronRight, ShieldCheck, ArrowRight, Home } from 'lucide-react';
 import { getListingPhotos } from '@/lib/displayTruth';
 import { listingRent } from '@/lib/listingTruth';
 import { useAuth } from '@/hooks/useAuth';
 import { useStore } from '@/store/useStore';
 import { saveUserBookmarkBackend, fetchBoundedExploreListings } from '@/lib/nestmateBackend';
 import { toast } from 'sonner';
+
+function ListingPhoto({ image, title, imageClassName = '' }: { image?: string; title: string; imageClassName?: string }) {
+  if (image) {
+    return <img src={image} alt={title} loading="lazy" decoding="async" className={`w-full h-full object-cover ${imageClassName}`} />;
+  }
+
+  return (
+    <div role="img" aria-label={`No photo provided for ${title}`} className="w-full h-full flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-orange-50 to-stone-100 text-slate-500">
+      <Home aria-hidden="true" className="w-8 h-8 text-orange-400" />
+      <span className="text-xs font-medium">Photos not provided</span>
+    </div>
+  );
+}
 
 export default function FeaturedListingsSection() {
   const navigate = useNavigate();
@@ -19,6 +32,26 @@ export default function FeaturedListingsSection() {
   const [realListings, setRealListings] = useState<any[]>([]);
   const [fetchState, setFetchState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [retry, setRetry] = useState(0);
+
+  useEffect(() => {
+    if (!user?.uid || typeof window === 'undefined') return;
+    let listingId = '';
+    try {
+      listingId = window.sessionStorage.getItem('nm_pending_featured_save') || '';
+      if (listingId) window.sessionStorage.removeItem('nm_pending_featured_save');
+    } catch { return; }
+    if (!listingId || savesInFlight.current.has(listingId)) return;
+
+    savesInFlight.current.add(listingId);
+    setSaving(previous => ({ ...previous, [listingId]: true }));
+    saveUserBookmarkBackend(listingId, true, true)
+      .then(() => refreshProfile())
+      .catch(error => toast.error(error instanceof Error ? error.message : 'Could not save this place. Try again.'))
+      .finally(() => {
+        savesInFlight.current.delete(listingId);
+        setSaving(previous => ({ ...previous, [listingId]: false }));
+      });
+  }, [user?.uid, refreshProfile]);
 
   useEffect(() => {
     let mounted = true;
@@ -75,7 +108,15 @@ export default function FeaturedListingsSection() {
 
   const toggleFavorite = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!user) { openAuthModal({ title: 'Sign in to save this listing' }); return; }
+    if (!user) {
+      try { window.sessionStorage.setItem('nm_pending_featured_save', id); } catch {}
+      openAuthModal({
+        title: 'Sign in to save this listing',
+        subtitle: 'We’ll save this place and return you to the page after sign-in.',
+        redirect: window.location.pathname + window.location.search + window.location.hash,
+      });
+      return;
+    }
     if (savesInFlight.current.has(id)) return;
     savesInFlight.current.add(id); setSaving(previous => ({ ...previous, [id]: true }));
     try {
@@ -129,15 +170,7 @@ export default function FeaturedListingsSection() {
               >
                 {/* Photo container */}
                 <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    loading="lazy"
-                    decoding="async"
-                    width={360}
-                    height={225}
-                    className="w-full h-full object-cover"
-                  />
+                  <ListingPhoto image={item.image} title={item.title} />
 
                   {/* Favorite Heart Button */}
                   <button
@@ -169,7 +202,7 @@ export default function FeaturedListingsSection() {
                   {/* Title & Arrow button row */}
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <h3 className="text-sm font-bold text-[#1E2229] leading-snug line-clamp-2 min-h-[1.25rem]">
-                      {item.title}
+                      <Link to={'/explore?room=' + encodeURIComponent(item.id)} onClick={(event) => event.stopPropagation()}>{item.title}</Link>
                     </h3>
                     <div className="w-6 h-6 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-600 shrink-0">
                       <ArrowRight className="w-3 h-3" />
@@ -201,13 +234,6 @@ export default function FeaturedListingsSection() {
               </div>
             );
           })}
-        </div>
-
-        {/* Dots Pagination */}
-        <div className="flex items-center justify-center gap-1.5 mt-4 mb-4">
-          <div className="w-1.5 h-1.5 rounded-full bg-gray-700" />
-          <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-          <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
         </div>
 
         {/* View all listings centered pill button */}
@@ -289,15 +315,7 @@ export default function FeaturedListingsSection() {
                 >
                   {/* Image Container (4:3 aspect ratio) */}
                   <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      loading="lazy"
-                      decoding="async"
-                      width={400}
-                      height={300}
-                      className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500"
-                    />
+                    <ListingPhoto image={item.image} title={item.title} imageClassName="group-hover/card:scale-105 transition-transform duration-500" />
 
                     {/* Favorite Heart Button */}
                     <button
@@ -328,7 +346,7 @@ export default function FeaturedListingsSection() {
                   <div className="p-4 sm:p-5 flex flex-col flex-1 text-left justify-between">
                     <div>
                       <h3 className="text-base font-bold text-[#1E2229] mb-1 group-hover/card:text-[#FF5A36] transition-colors truncate">
-                        {item.title}
+                        <Link to={'/explore?room=' + encodeURIComponent(item.id)} onClick={(event) => event.stopPropagation()}>{item.title}</Link>
                       </h3>
 
                       <div className="flex items-baseline gap-1 mb-3">

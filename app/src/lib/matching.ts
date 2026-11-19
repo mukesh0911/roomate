@@ -271,14 +271,16 @@ export function hasActiveSeekerIntent(user: any = {}, myRooms: any[] = []): bool
   if (u.housingIntent === 'find_room' || u.housingIntent === 'team_up' || u.housingIntent === 'room_and_roommate' || u.housingIntent === 'offering & seeking') {
     return true;
   }
+  // Owner location data describes the place they host; do not reinterpret it
+  // as seeker intent. Owners must explicitly opt into a seeker intent.
+  if (u.role === 'owner' || u.isLandlord === true || (Array.isArray(myRooms) && myRooms.length > 0)) {
+    return false;
+  }
   // If user has set a seeker budget and preferred localities, they have active seeker intent even if they also host a room
   if (resolveSeekerBudget(u) > 0 && resolveSeekerLocalities(u).length > 0) {
     return true;
   }
   if (u.housingIntent === 'have_room') {
-    return false;
-  }
-  if (u.isLandlord === true || (Array.isArray(myRooms) && myRooms.length > 0)) {
     return false;
   }
   return true;
@@ -289,11 +291,15 @@ export function hasActiveSeekerIntent(user: any = {}, myRooms: any[] = []): bool
  */
 export function isHostOnlyWithoutSeekerPrefs(user: any = {}, myRooms: any[] = []): boolean {
   const u = user || {};
+  const declaredIntents = Array.isArray(u.housingPreferences?.activeIntents)
+    ? u.housingPreferences.activeIntents
+    : [];
   const isHostLike = (
+    u.role === 'owner' ||
     u.isLandlord === true ||
     (Array.isArray(myRooms) && myRooms.length > 0) ||
     u.housingIntent === 'have_room' ||
-    (Array.isArray(u.housingPreferences?.activeIntents) && u.housingPreferences.activeIntents.includes('have_room'))
+    declaredIntents.includes('have_room')
   );
   if (!isHostLike) return false;
   const isSeekerCalibrated = resolveSeekerBudget(u) > 0 && resolveSeekerLocalities(u).length > 0;

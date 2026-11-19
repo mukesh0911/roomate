@@ -1,6 +1,6 @@
 export interface DiscoveryFilters {
   q: string; city: string; min: number; max: number; move: number;
-  types: string[]; propertyType: string; furn: number; ver: number;
+  types: string[]; propertyType: string; furn: number; ver: number; hiMatch: number;
   gender: string; sort: string; view: string;
 }
 export type InboxBoxFilter = 'chats' | 'requests' | 'closed' | '';
@@ -27,8 +27,9 @@ export function readExploreLocation(pathname: string, params: URLSearchParams) {
       propertyType: params.get('propertyType') === 'coliving' ? 'coliving' : '',
       furn: params.get('furn') === '1' ? 1 : 0, ver: params.get('ver') === '1' ? 1 : 0,
       gender: ['Female','Male'].includes(params.get('gender') || '') ? params.get('gender')! : 'Any',
-      sort: ['a','d'].includes(params.get('sort') || '') ? params.get('sort')! : 'm',
+      sort: ['a','d','recent'].includes(params.get('sort') || '') ? params.get('sort')! : 'm',
       view: params.get('view') === 'list' ? 'list' : 'grid',
+      hiMatch: params.get('hiMatch') === '1' ? 1 : 0,
     } satisfies DiscoveryFilters,
     personId: params.get('person'), chatId: params.get('chat'),
     section: params.get('section'), settingsTab: number(params.get('settingsTab'), 0),
@@ -47,6 +48,7 @@ export function buildExploreLocation(state: ExploreRouteState): string {
   set('move', state.move, 999); set('propertyType', state.propertyType);
   state.types.forEach(type => params.append('type', type));
   set('furn', state.furn, 0); set('ver', state.ver, 0); set('gender', state.gender, 'Any');
+  set('hiMatch', state.hiMatch, 0);
   set('sort', state.sort, 'm'); set('view', state.view, 'grid');
   let nav = routes.has(state.nav) ? state.nav : 'explore';
   if (state.nav === 'room' || state.nav === 'pg') set('room', state.roomId);

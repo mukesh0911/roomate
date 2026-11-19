@@ -61,6 +61,19 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
     }
     const authUser = user || null;
     let currentProfile = profile || null;
+    const onboardingRequested = searchParams.get('openPrefs') === '1' || searchParams.get('onboarding') === '1';
+    if (!authUser && (['saved', 'messages', 'connections', 'listings', 'profile'].includes(targetNav) || onboardingRequested)) {
+        const destination = getSafeReturnDestination(window.location.pathname + window.location.search + window.location.hash) || '/explore';
+        openAuthModal({
+            title: onboardingRequested ? 'Sign in to personalize your matches' : 'Sign in to continue',
+            subtitle: onboardingRequested
+                ? 'Sign in or create an account, then continue to Matching Preferences.'
+                : 'Sign in or create an account to access your NestMate account.',
+            redirect: destination,
+        });
+        targetNav = 'explore';
+        navigate('/explore', { replace: true });
+    }
     const passwordSignIn = !!authUser?.providerData?.some(provider => provider.providerId === 'password');
     // --- Embedded Realtime Engine ---
     (function initEngine() {
@@ -308,6 +321,10 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 return;
             }
             navigate(targetUrl);
+        }
+        function currentReturnDestination() {
+            const path = window.location.pathname + window.location.search + window.location.hash;
+            return getSafeReturnDestination(path) || '/explore';
         }
         function matchPillHtml(score, roomIndex) {
             if (!isProfileCalibrated()) {
@@ -2456,7 +2473,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
             let RMODE = (N == "explore" && S.cat == 2) || (N == "saved" && S.sub == 1) || N == "connections", sub = "";
             if (N === "explore" && authUser && !isPrefsSnoozed()) {
-                const isPureHost = Array.isArray(MY) && MY.length > 0 && !isProfileCalibrated();
+                const isPureHost = isHostOnlyWithoutSeekerPrefs(currentProfile, MY) && !isProfileCalibrated();
                 if (!isPureHost) {
                     if (!isProfileCalibrated() && hasActiveSeekerIntent(currentProfile, MY)) {
                         sub = '<div class="ob-banner" role="region" aria-label="Personalized matching">' +
@@ -2493,7 +2510,18 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             if (N === "explore" && S.cat === 2) {
                 const isDiscoverable = Boolean(authUser && currentProfile && currentProfile.roommateDiscoveryEnabled);
                 const hasMyListings = Array.isArray(MY) && MY.length > 0;
-                if (!isDiscoverable && !isProfileCalibrated() && !hasMyListings) {
+                const isHostOnly = isHostOnlyWithoutSeekerPrefs(currentProfile, MY);
+                if (isHostOnly && !hasMyListings) {
+                    sub = '<div class="nm-roommate-promo-bar" role="region" aria-label="List a room for roommates">' +
+                        '<div class="nm-roommate-promo-text">' +
+                            '<b>Looking for someone to join your place?</b>' +
+                            '<span>Post your room to reach seekers. You can also browse roommate profiles from here.</span>' +
+                        '</div>' +
+                        '<button type="button" class="nm-roommate-promo-btn" data-open-post="1">' +
+                            '<span>List a room</span>' +
+                        '</button>' +
+                    '</div>';
+                } else if (!isDiscoverable && !isProfileCalibrated() && !hasMyListings && !isHostOnly) {
                     sub = '<div class="nm-roommate-promo-bar" role="region" aria-label="Roommate Discovery">' +
                         '<div class="nm-roommate-promo-text">' +
                             '<b>Looking to team up or find flatmates?</b>' +
@@ -2665,7 +2693,11 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             if (N == "explore" && !r.length) {
                 const isRm = S.cat == 2;
                 if (isRm && !authUser)
-                    h = em("Sign in to discover roommates", "Member discovery is available to signed-in members with a complete profile.", '<br><button class="post" data-n="profile">Sign in</button>');
+                    h = em("Sign in to discover roommates", "Member discovery is available to signed-in members with a complete profile.", '<br><button class="post" data-n="signin">Sign in</button>');
+                else if (isRm && isHostOnlyWithoutSeekerPrefs(currentProfile, MY))
+                    h = Array.isArray(MY) && MY.length
+                        ? em("No roommate profiles to show yet", "Your room listing is how you can reach people looking for a place. Manage its status and applicants in My listings.", '<br><button class="post" data-n="listings">View My listings</button>')
+                        : em("Find a roommate for your place", "Post your available room so people looking for a place can find you.", '<br><button class="post" data-open-post="1">Post a room</button>');
                 else if (isRm && (!currentProfile || currentProfile.onboardingComplete !== true))
                     h = em("Complete your profile", "Complete your profile before discovering other members.", '<br><button class="pill" data-go-prefs="1" style="background:var(--brand);color:#fff;border-color:var(--brand);font-weight:600">Create Roommate Profile</button>');
                 else if (isRm ? PAGINATION_STATE.roommatesError : PAGINATION_STATE.placesError)
@@ -3217,7 +3249,11 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
             else if (b.classList.contains("sv")) {
                 if (!authUser) {
-                    openAuthModal();
+                    openAuthModal({
+                        title: 'Sign in to save this place',
+                        subtitle: 'Sign in or create an account to keep this place in Saved.',
+                        redirect: currentReturnDestination(),
+                    });
                     return;
                 }
                 id = b.dataset.id;
@@ -3335,6 +3371,14 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
             else if (b.dataset.n) {
                 pop("");
+                if (!authUser && ['saved', 'messages', 'connections', 'listings', 'profile'].includes(b.dataset.n)) {
+                    openAuthModal({
+                        title: 'Sign in to continue',
+                        subtitle: 'Sign in or create an account to access this section.',
+                        redirect: currentReturnDestination(),
+                    });
+                    return;
+                }
                 if (b.dataset.cat !== undefined) {
                     S.cat = +b.dataset.cat;
                     document.querySelectorAll(".chip[data-c]").forEach(function (c) {
@@ -3370,7 +3414,11 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
             else if (b.dataset.save) {
                 if (!authUser) {
-                    openAuthModal();
+                    openAuthModal({
+                        title: 'Sign in to save this item',
+                        subtitle: 'Sign in or create an account to keep it in Saved.',
+                        redirect: currentReturnDestination(),
+                    });
                     return;
                 }
                 q2 = b.dataset.save;
@@ -3432,7 +3480,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             }
         });
         const LOC = ["Koramangala", "Indiranagar", "HSR Layout", "BTM Layout", "Whitefield", "Bellandur", "Marathahalli", "JP Nagar", "Jayanagar"], SQ = ["What is your work or study schedule?", "Do you smoke or drink?", "When can you move in?", "How long do you plan to stay?", "Do you have pets or plan to?"], INC = ["Wi-Fi", "Water", "Electricity", "Maintenance", "Housekeeping", "Cook"], LFS = ["Non-smoker", "Vegetarian", "Early riser", "Night owl", "Pet friendly", "No parties"], PS = ["Photos", "Place", "Rent", "People", "Review"];
-        function pf0() { return { s: 0, ph: [], city: (currentProfile && currentProfile.city) || S.city || "Bengaluru", type: "", bhk: "", loc: "", title: "", desc: "", rent: "", dep: "", av: "", furn: "", inc: [], lk: "1 roommate", gd: "Any", lf: [], qs: [], er: {}, pub: 0, edit: null, isLiveInRoom: false }; }
+        function pf0() { return { s: 0, ph: [], city: (currentProfile && currentProfile.city) || S.city || "Bengaluru", type: "", bhk: "", loc: "", title: "", desc: "", rent: "", dep: "", av: "", furn: "", inc: [], lk: "1 roommate", gd: "Any", lf: [], qs: [], er: {}, pub: 0, edit: null, isLiveInRoom: false, savedStatus: "" }; }
         let PF = pf0();
         function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
         function pk(k, v, m) { return 'data-pk="' + k + '" data-pv="' + esc(v) + '"' + (m ? ' data-m="1"' : '') + ' aria-pressed="' + (m ? PF[k].indexOf(v) > -1 : PF[k] === v) + '"'; }
@@ -3544,6 +3592,19 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                         '<p class="sub" style="margin:0 auto 20px;max-width:460px">Your document is being reviewed by our moderation team. Your listing will automatically appear in discovery upon approval.</p>' +
                         '<div class="row2" style="margin-top:20px;gap:10px;justify-content:center;display:flex;flex-wrap:wrap">' +
                         '<button class="pfbar go2" style="position:static;padding:0 26px;border:0;height:46px;border-radius:12px;font-weight:600" data-p="view">Track in My Listings</button>' +
+                        '<button class="pvb" style="display:inline-flex;height:46px;border-radius:12px" data-p="matches">Browse Roommates in ' + cityTarget + '</button>' +
+                        '</div></div>';
+                } else if (p.savedStatus !== "active") {
+                    const isDraft = p.savedStatus === "draft";
+                    h = '<div class="dn" style="text-align:center;padding:24px 16px">' +
+                        '<div style="width:72px;height:72px;margin:0 auto 16px;border-radius:50%;background:rgba(240,178,30,.14);display:grid;place-items:center;color:var(--warn)">' +
+                        '<svg style="width:36px;height:36px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+                        '</div>' +
+                        '<div style="display:inline-block;padding:3px 12px;border-radius:999px;background:rgba(240,178,30,.14);color:var(--warn);font-size:12px;font-weight:700;margin-bottom:8px">' + (isDraft ? 'Draft saved' : 'Submitted for review') + '</div>' +
+                        '<h2 style="font-size:24px;margin-bottom:8px">' + (isDraft ? 'Your listing is saved as a draft' : 'Your listing is under review') + '</h2>' +
+                        '<p class="sub" style="margin:0 auto 20px;max-width:460px">' + (isDraft ? 'You can continue editing it from My listings whenever you are ready.' : 'Your place will appear in discovery after the required review is complete.') + '</p>' +
+                        '<div class="row2" style="margin-top:20px;gap:10px;justify-content:center;display:flex;flex-wrap:wrap">' +
+                        '<button class="pfbar go2" style="position:static;padding:0 26px;border:0;height:46px;border-radius:12px;font-weight:600" data-p="view">View My Listings</button>' +
                         '<button class="pvb" style="display:inline-flex;height:46px;border-radius:12px" data-p="matches">Browse Roommates in ' + cityTarget + '</button>' +
                         '</div></div>';
                 } else {
@@ -3779,6 +3840,17 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         }
 
         function openPost() {
+            if (!authUser || !authUser.uid) {
+                const params = new URLSearchParams(window.location.search);
+                params.set('post', '1');
+                const destination = (window.location.pathname || '/explore') + '?' + params.toString();
+                openAuthModal({
+                    title: 'Sign in to post your room',
+                    subtitle: 'Create an account or sign in, then continue straight to your listing.',
+                    redirect: getSafeReturnDestination(destination) || '/explore?post=1',
+                });
+                return;
+            }
             $("pf").classList.add("o");
             try {
                 if (!window.history.state || window.history.state.modalOverlay !== 'pf') {
@@ -3998,6 +4070,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             if (button)
                 button.disabled = true;
             try {
+                let savedStatus = "pending_verification";
                 if (p.draftListingId) {
                     await updateListingBackend(p.draftListingId, Object.assign({}, p, { submitForReview: true }));
                     toast("Listing submitted for review");
@@ -4007,17 +4080,20 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     if (!existing.id)
                         throw new Error("This listing has no saved record. Refresh and try again.");
                     if (existing.ownerId && authUser && existing.ownerId !== authUser.uid) {
-                        await createNewListingBackend(p, authUser);
+                        const created = await createNewListingBackend(p, authUser);
+                        savedStatus = created && created.status || savedStatus;
                         toast("Listing submitted. Publication depends on review and availability.");
                     } else {
                         const needsReview = existing.st === "Draft" || existing.st === "Rejected";
                         await updateListingBackend(existing.id, Object.assign({}, p, { submitForReview: needsReview }));
+                        savedStatus = needsReview ? "pending_verification" : ((existing.f && existing.f.status) || (existing.st === "Active" ? "active" : "pending_verification"));
                         toast(needsReview ? "Listing submitted for review" : "Listing updated");
                     }
                     void loadPlacesPage(true);
                 }
                 else {
-                    await createNewListingBackend(p, authUser);
+                    const created = await createNewListingBackend(p, authUser);
+                    savedStatus = created && created.status || savedStatus;
                     toast("Listing submitted. Publication depends on review and availability.");
                 }
                 const syncedQuiz = Object.assign({}, (currentProfile && currentProfile.quizAnswers) || {});
@@ -4036,6 +4112,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                     updateUserProfileBackend({ quizAnswers: syncedQuiz }).catch(function () {});
                     if (currentProfile) currentProfile.quizAnswers = syncedQuiz;
                 }
+                p.savedStatus = savedStatus;
                 p.pub = 1;
                 pf();
             }
@@ -6215,7 +6292,11 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 return;
             }
             if (t.closest("[data-n=\"signin\"]")) {
-                openAuthModal();
+                openAuthModal({
+                    title: 'Sign in to discover roommates',
+                    subtitle: 'Sign in or create your profile, then return to roommate discovery.',
+                    redirect: currentReturnDestination(),
+                });
                 return;
             }
             const cityBtn = t.closest("[data-select-city], [data-set-city]");
@@ -7530,7 +7611,8 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 }
             }, 100);
         }
-        if (searchParams.get('openPrefs') === '1' || searchParams.get('onboarding') === '1') {
+        const legacyOnboardingRequested = searchParams.get('openPrefs') === '1' || searchParams.get('onboarding') === '1';
+        if (legacyOnboardingRequested && authUser) {
             if (typeof window !== "undefined" && window.history && window.history.replaceState) {
                 const u = new URL(window.location.href);
                 u.searchParams.delete('openPrefs');
@@ -7554,6 +7636,12 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             S.as = route.section;
             if (S.as === "edit") DR = cl2(ME);
             else if (S.as === "prefs") DR = cl2(PR);
+        }
+        if (legacyOnboardingRequested && authUser && currentProfile && currentProfile.onboardingComplete !== true) {
+            S.nav = 'profile';
+            S.as = 'prefs';
+            DR = cl2(PR);
+            if (!searchParams.has('returnTo')) searchParams.set('returnTo', '/explore?tab=rooms');
         }
         S.st = route.settingsTab;
         $('q').value = S.q;
