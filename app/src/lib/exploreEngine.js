@@ -4707,7 +4707,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             let last = "";
             let h = '<div class="hd2"><button class="bk3 ib" data-bk2="1" aria-label="Back">' + IS.bk + '</button>' +
                 '<button class="hn" data-vp="' + esc(c.p) + '" aria-label="Open profile">' + av(c.p, c) + '<div><b>' + esc(x[1]) + '</b><small>' + (verifiedPeer ? "ID verified" : "Not verified") + ' · ' + matchNote + '</small></div></button>' +
-                '<span class="sp3"></span><div class="th-actions"><button class="ghb schedule-visit-btn" data-open-tour-scheduler="1" title="Schedule Room Visit">📅 Visit</button><button class="ghb agreement-btn" data-open-agreement="1" title="Generate Flatmate Agreement">📄 Agreement</button><button class="ghb pf2" data-vp="' + esc(c.p) + '">Profile</button><button class="ghb" data-cm="' + k + '" aria-label="More options">' + P('<circle cx="5" cy="12" r="1.600"/><circle cx="12" cy="12" r="1.600"/><circle cx="19" cy="12" r="1.600"/>') + '<span>More</span></button></div></div>';
+                '<span class="sp3"></span><div class="th-actions"><button class="ghb schedule-visit-btn" data-open-tour-scheduler="1" title="Schedule Room Visit">📅 Visit</button><button class="ghb agreement-btn" data-open-agreement="1" title="Generate Flatmate Agreement">📄 Agreement</button><button class="ghb pf2" data-vp="' + esc(c.p) + '">Profile</button><button class="ghb chat-close-thread-btn" data-n="explore" title="Back to Explore" aria-label="Back to Explore">✕ Close</button><button class="ghb" data-cm="' + k + '" aria-label="More options">' + P('<circle cx="5" cy="12" r="1.600"/><circle cx="12" cy="12" r="1.600"/><circle cx="19" cy="12" r="1.600"/>') + '<span>More</span></button></div></div>';
             if (c.historyError) h += '<div role="alert" class="hint">Messages could not be loaded. Refresh this page to try again. Your unread status is preserved.</div>';
             if ((c.threadType === "application" || appId) && !isClosed) {
                 if (role === "host" && !verifiedPeer) {
@@ -4837,8 +4837,9 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             const boxTabs = '<button class="chip" data-inbox-box="chats" aria-pressed="' + (activeBox === "chats") + '">Chats<i>' + chatsCount + '</i></button>' +
                 '<button class="chip" data-inbox-box="requests" aria-pressed="' + (activeBox === "requests") + '">Requests<i>' + reqCount + '</i></button>' +
                 '<button class="chip" data-inbox-box="closed" aria-pressed="' + (activeBox === "closed") + '">Closed<i>' + closedCount + '</i></button>';
+            const exitBtn = '<button class="chat-exit-btn" data-n="explore" title="Back to Explore" aria-label="Back to Explore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg><span>Explore</span></button>';
             return (chatError ? '<div role="alert" class="hint">Inbox could not refresh. Your previously loaded history is still shown.</div>' : '') +
-                '<div class="mg' + (S.cid != null ? " t" : "") + '"><aside class="cl"><div class="ch1"><h1>Inbox</h1>' + unreadBtn + '</div><div class="cs"><input id="cq" placeholder="Search Inbox" value="' + esc(S.cs) + '"></div><div class="cf">' + boxTabs + '</div><div class="cli">' + buildInboxThreadListHtml() + '</div></aside><section class="th2">' + buildThreadDetailHtml() + '</section></div>';
+                '<div class="mg' + (S.cid != null ? " t" : "") + '"><aside class="cl"><div class="ch1"><div class="ch1-top-row"><h1>Inbox</h1>' + exitBtn + '</div>' + unreadBtn + '</div><div class="cs"><input id="cq" placeholder="Search Inbox" value="' + esc(S.cs) + '"></div><div class="cf">' + boxTabs + '</div><div class="cli">' + buildInboxThreadListHtml() + '</div></aside><section class="th2">' + buildThreadDetailHtml() + '</section></div>';
         }
         function performRefreshThread(f) {
             const el = document.querySelector('.th2'); if (!el) return;
@@ -6570,7 +6571,7 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 mtt.textContent = MT[S.nav] || ({ listings: "My listings", profile: "Account", me: "Your space", messages: "Inbox", connections: "Connections", saved: "Saved places", room: "Room details", pg: "PG details", roommate: "Roommate profile", applicants: "Applicants", compare: "Compare applicants" })[S.nav] || "NestMate";
                 mtt.classList.toggle("br", !MT[S.nav]);
             }
-            const inChatThread = S.nav == "messages" && S.cid != null && innerWidth <= 900;
+            const inChatThread = S.nav == "messages";
             document.body.classList.toggle("chat", inChatThread);
             if (rootEl) rootEl.classList.toggle("chat", inChatThread);
             document.body.classList.remove("hdn");
