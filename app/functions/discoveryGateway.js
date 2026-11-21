@@ -120,7 +120,7 @@ function createDiscoveryGateway({ getDb, HttpsError }) {
     return false;
   }
   async function resolveInteraction(request, accounts) {
-    const db = getDb(), own = await viewer(db, request.auth, true, accounts);
+    const db = getDb(), own = await viewer(db, request.auth, false, accounts);
     const uid = request.auth.uid, targetUid = id(request.data?.targetUid, 'targetUid');
     if (uid === targetUid) fail('invalid-argument', 'Choose another member.');
     const peer = await account(db, targetUid, accounts);
@@ -146,7 +146,7 @@ function createDiscoveryGateway({ getDb, HttpsError }) {
     if (request.data?.listingId) {
       const snap = await db.doc(`listings/${id(request.data.listingId, 'listingId')}`).get();
       const place = await visiblePlace(db, snap, accounts);
-      listingContext = place?.ownerId === targetUid;
+      listingContext = place?.ownerId === targetUid || place?.ownerId === uid;
     }
     const isBlocked = blocked(own, peer, uid, targetUid);
     const publicPerson = !known && !listingContext && !isBlocked && own.onboardingComplete === true && await eligiblePerson(db, targetUid, peer);

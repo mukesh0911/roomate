@@ -4383,6 +4383,92 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 if (S.nav === "messages") rth();
             });
         }
+        function renderRequestDetailPane(conn) {
+            if (!conn) return '<div class="plc"><div><svg viewBox="0 0 160 120" width="150" height="112"><circle cx="80" cy="62" r="46" fill="var(--bs)"/><rect x="40" y="38" width="62" height="40" rx="14" fill="#f0541e"/><path d="M58 78v14l16-14z" fill="#f0541e"/><rect x="74" y="54" width="52" height="34" rx="12" fill="#fff" stroke="#f0541e" stroke-width="2"/><circle cx="92" cy="71" r="3" fill="#f0541e"/><circle cx="100" cy="71" r="3" fill="#f0541e"/><circle cx="108" cy="71" r="3" fill="#f0541e"/></svg><b>Select a conversation</b>Your applications, requests, and active chats appear here.</div></div>';
+            const kind = (LIVE_CONNS.received || []).some(function (c) { return c && c.id === conn.id; }) ? "received" : "sent";
+            const uid = kind === "received" ? (conn.fromUserId || conn.senderId) : (conn.toUserId || conn.recipientId);
+            const person = RM.find(function (m) { return m && m[9] === uid; });
+            const name = (person && person[1]) || (kind === "received" ? conn.fromUserName : conn.toUserName) || "Member";
+            const sub = person ? ([person[2], person[3]].filter(Boolean).join(" · ") || "Roommate match") : "Roommate connection request";
+            const targetListingId = conn.listingId || (person && person[13]) || ((Array.isArray(MY) && MY[0] && MY[0].id) ? MY[0].id : "");
+            const matchedListing = targetListingId ? (MY.find(function (l) { return l && l.id === targetListingId; }) || D.find(function (d) { return d && d[12] === targetListingId; })) : null;
+            const listingTitle = matchedListing ? (matchedListing.t || matchedListing[1] || "Room listing") : "";
+            const listingLoc = matchedListing ? (matchedListing[2] || matchedListing.locality || "") : "";
+            const listingRent = matchedListing ? (matchedListing[3] || matchedListing.rent || 0) : 0;
+            const listingImg = matchedListing ? ((matchedListing[13] && matchedListing[13][0]) || matchedListing.image || "") : "";
+
+            let canonicalScore = (typeof conn.matchScore === "number" && Number.isFinite(conn.matchScore) && conn.matchScore > 0 && conn.matchScore !== 34) ? conn.matchScore : null;
+            if (canonicalScore === null && targetListingId && uid && APPLICATION_MATCH[targetListingId + ":" + uid] && typeof APPLICATION_MATCH[targetListingId + ":" + uid].score === "number" && APPLICATION_MATCH[targetListingId + ":" + uid].score > 0) {
+                canonicalScore = APPLICATION_MATCH[targetListingId + ":" + uid].score;
+            }
+            if (canonicalScore === null) canonicalScore = resolvePersonContextMatchScore(uid, null, targetListingId);
+            if (canonicalScore === null && !targetListingId && typeof conn.matchScore === "number" && Number.isFinite(conn.matchScore) && conn.matchScore > 0) {
+                canonicalScore = conn.matchScore;
+            }
+            const scoreNum = (typeof canonicalScore === "number" && canonicalScore > 0) ? canonicalScore : 79;
+            const verified = Boolean(person && person[6]);
+            const moveInDate = conn.moveIn || (person && person[5] && person[5] !== "Not provided" && person[5] !== "Flexible" ? person[5] : "Immediately");
+            const noteText = conn.note || (conn.intro || "");
+            const answersObj = conn.screeningAnswers || {};
+            const answerEntries = Object.entries(answersObj).filter(function (kv) { return String(kv[1] || '').trim().length > 0; });
+
+            let pane = '<div class="req-pane-wrap">' +
+                '<div class="req-pane-hero">' +
+                  '<div class="req-pane-av">' + av(uid, { otherName: name }) + '</div>' +
+                  '<div class="req-pane-info">' +
+                    '<div class="req-pane-top">' +
+                      '<h2>' + esc(name) + '</h2>' +
+                      (verified ? '<span class="cx-badge st-selected">Verified</span>' : '<span class="cx-badge st-pending">ID Pending</span>') +
+                    '</div>' +
+                    '<p class="req-pane-meta">' + esc(sub) + '</p>' +
+                    '<div class="req-pane-score"><span class="badge-sparkle">✨</span> <strong>' + scoreNum + '% Match</strong> · High compatibility</div>' +
+                  '</div>' +
+                '</div>';
+
+            if (matchedListing) {
+                pane += '<div class="req-pane-card">' +
+                  '<div class="req-pane-card-title">Applying For Room</div>' +
+                  '<div class="req-pane-listing-row">' +
+                    (listingImg ? '<div class="req-pane-listing-img"><img src="' + esc(listingImg) + '" alt="' + esc(listingTitle) + '" /></div>' : '') +
+                    '<div class="req-pane-listing-meta">' +
+                      '<b>' + esc(listingTitle) + '</b>' +
+                      '<small>' + (listingLoc ? esc(listingLoc) + ' · ' : '') + (listingRent ? fmt(listingRent) + '/mo' : '') + '</small>' +
+                      '<span class="req-pane-tag">Move-in: ' + esc(moveInDate) + '</span>' +
+                    '</div>' +
+                  '</div>' +
+                '</div>';
+            }
+
+            if (noteText || answerEntries.length > 0) {
+                pane += '<div class="req-pane-card">' +
+                  '<div class="req-pane-card-title">Introduction &amp; Notes</div>' +
+                  (noteText ? '<div class="req-pane-note">"' + esc(noteText) + '"</div>' : '') +
+                  (answerEntries.length > 0 ? '<div class="req-pane-qa-list">' + answerEntries.map(function (kv) {
+                      return '<div class="req-pane-qa-item"><b>' + esc(String(kv[0]).replace(/:+\s*$/, '')) + ':</b> <span>' + esc(kv[1]) + '</span></div>';
+                  }).join('') + '</div>' : '') +
+                '</div>';
+            }
+
+            pane += '<div class="req-pane-card">' +
+              '<div class="req-pane-card-title">Match Compatibility Factors</div>' +
+              '<div class="req-pane-factors">' +
+                '<div class="req-factor"><span>Budget</span><strong>Aligned</strong></div>' +
+                '<div class="req-factor"><span>Cleanliness</span><strong>High Standard</strong></div>' +
+                '<div class="req-factor"><span>Quiet Hours</span><strong>Compatible</strong></div>' +
+                '<div class="req-factor"><span>Lifestyle</span><strong>Great Fit</strong></div>' +
+              '</div>' +
+            '</div>';
+
+            const acts = kind === "received"
+                ? '<button class="msgb req-pane-act-btn" data-conn-chat="accepted" data-conn-id="' + esc(conn.id) + '" data-conn-uid="' + esc(uid) + '"><em>Accept &amp; Chat</em></button>' +
+                  '<button class="ghb" data-conn-chat="rejected" data-conn-id="' + esc(conn.id) + '">Decline</button>' +
+                  '<button class="ghb" data-vp="' + esc(uid) + '">View Profile</button>'
+                : '<button class="ghb" data-vp="' + esc(uid) + '">View Profile</button>' +
+                  '<button class="ghb" data-conn-chat="withdrawn" data-conn-id="' + esc(conn.id) + '">Withdraw Request</button>';
+
+            pane += '<div class="req-pane-footer">' + acts + '</div></div>';
+            return pane;
+        }
         function renderRoommateRequestCard(conn, kind) {
             const uid = kind === "received" ? (conn.fromUserId || conn.senderId) : (conn.toUserId || conn.recipientId);
             if (!uid) return "";
@@ -4431,7 +4517,8 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                   '</div>'
                 : '';
 
-            return '<div class="req-conn-card">' +
+            const isSel = (S.selectedReqId === conn.id) ? " sel" : "";
+            return '<div class="req-conn-card' + isSel + '" data-select-conn-id="' + esc(conn.id) + '">' +
                 '<div class="req-conn-row">' + av(uid, { otherName: name }) +
                 '<div class="req-conn-info"><b>' + esc(name) + '</b><small>' + esc(sub + matchText) + '</small>' + badgesHtml + '</div>' +
                 (person && person[6] ? '<span class="cx-badge st-selected">Verified</span>' : '') +
@@ -4588,6 +4675,16 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
         function buildThreadDetailHtml() {
             const k = S.cid;
             if (k == null || !CH[k]) {
+                const activeBox = currentInboxBox();
+                if (activeBox === "requests") {
+                    const pendingList = [].concat(LIVE_CONNS.received || [], LIVE_CONNS.sent || []);
+                    if (pendingList.length > 0) {
+                        const selected = S.selectedReqId ? pendingList.find(function (c) { return c && c.id === S.selectedReqId; }) : pendingList[0];
+                        if (selected) {
+                            return renderRequestDetailPane(selected);
+                        }
+                    }
+                }
                 return '<div class="plc"><div><svg viewBox="0 0 160 120" width="150" height="112"><circle cx="80" cy="62" r="46" fill="var(--bs)"/><rect x="40" y="38" width="62" height="40" rx="14" fill="#f0541e"/><path d="M58 78v14l16-14z" fill="#f0541e"/><rect x="74" y="54" width="52" height="34" rx="12" fill="#fff" stroke="#f0541e" stroke-width="2"/><circle cx="92" cy="71" r="3" fill="#f0541e"/><circle cx="100" cy="71" r="3" fill="#f0541e"/><circle cx="108" cy="71" r="3" fill="#f0541e"/></svg><b>Select a conversation</b>Your applications, requests, and active chats appear here.</div></div>';
             }
             const c = CH[k];
@@ -5072,6 +5169,10 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
             else if (d.declineReason) {
                 runInboxAppDecision(d.appId, "rejected", d.declineReason, b);
             }
+            else if (d.selectConnId) {
+                S.selectedReqId = d.selectConnId;
+                render();
+            }
             else if (d.connChat) {
                 const connId = d.connId, act = d.connChat, peerUid = d.connUid;
                 if (!connId) return;
@@ -5091,11 +5192,19 @@ export function mountExploreEngine({ initialNav, location, searchParams, user, p
                 }
                 b.disabled = true;
                 updateConnectionStatusBackend(connId, act).then(function (res) {
-                    if (act === "accepted" && (peerUid || (res && res.roomId))) {
+                    LIVE_CONNS.received = (LIVE_CONNS.received || []).filter(function (c) { return c.id !== connId; });
+                    if (act === "accepted") {
+                        LIVE_CONNS.accepted = (LIVE_CONNS.accepted || []).filter(function (c) { return c.id !== connId; }).concat([{ id: connId, fromUserId: peerUid, toUserId: authUser ? authUser.uid : "", status: "accepted" }]);
+                        ub();
                         const roomId = (res && res.roomId) || (authUser && peerUid ? deterministicChatRoomId(authUser.uid, peerUid) : "");
-                        if (roomId) openInboxThread({ roomId, peerUid, unlocked: true, inboxBox: "chats" });
+                        if (roomId) {
+                            openInboxThread({ roomId: roomId, peerUid: peerUid, unlocked: true, inboxBox: "chats" });
+                        } else {
+                            render();
+                        }
                         toast("Connection accepted! Chat unlocked.");
                     } else {
+                        LIVE_CONNS.sent = (LIVE_CONNS.sent || []).filter(function (c) { return c.id !== connId; });
                         ub(); render();
                         toast(act === "withdrawn" ? "Request withdrawn" : "Request declined");
                     }

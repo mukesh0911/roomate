@@ -1685,7 +1685,12 @@ export async function updateConnectionStatusBackend(connectionId: string, newSta
   const initial = await getDoc(doc(db, 'connections', connectionId));
   if (!initial.exists()) throw new Error('Request not found.');
   if (initial.data().toUserId !== user.uid) throw new Error('Only the recipient can decide this request.');
-  const context = await getInteractionContext(initial.data().fromUserId, initial.data().listingId);
+  let context: any = null;
+  try {
+    context = await getInteractionContext(initial.data().fromUserId, initial.data().listingId);
+  } catch (err) {
+    console.warn('getInteractionContext non-fatal fallback in updateConnectionStatusBackend:', err);
+  }
   const acceptRoomId = deterministicChatRoomId(initial.data().fromUserId, initial.data().toUserId);
   await runTransaction(db, async tx => {
     const connRef = doc(db, 'connections', connectionId), snap = await tx.get(connRef);
@@ -1693,7 +1698,8 @@ export async function updateConnectionStatusBackend(connectionId: string, newSta
     const c = snap.data();
     if (c.toUserId !== user.uid) throw new Error('Only the recipient can decide this request.');
     const recipient = await tx.get(doc(db, 'users', user.uid));
-    const sender = { exists: () => true, data: () => interactionPeer(context, user.uid) };
+    const senderData = context ? interactionPeer(context, user.uid) : { status: 'active', uid: c.fromUserId };
+    const sender = { exists: () => true, data: () => senderData };
     if (!sender.exists() || !recipient.exists() || pairIsBlocked(sender.data(), recipient.data(), c.fromUserId, c.toUserId) || (sender.data().status || 'active') !== 'active' || (recipient.data().status || 'active') !== 'active') throw new Error('Communication unavailable.');
     if (status === 'accepted' && !consentIsCurrent(sender.data(), recipient.data(), c)) throw new Error('Fresh consent is required after a block.');
     if (c.status === status) return;
